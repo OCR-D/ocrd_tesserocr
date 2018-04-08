@@ -18,6 +18,13 @@ help:
 	@echo ""
 	@echo "    deps-ubuntu  Dependencies for deployment in an ubuntu/debian linux"
 	@echo "    deps-pip     Install python deps via pip"
+	@echo "    install      Install"
+	@echo "    docker       Build docker image"
+	@echo "    test         Run test"
+	@echo ""
+	@echo "  Variables"
+	@echo ""
+	@echo "    DOCKER_TAG  Docker container tag"
 
 # END-EVAL
 
