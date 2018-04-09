@@ -31,6 +31,7 @@ help:
 # Dependencies for deployment in an ubuntu/debian linux
 deps-ubuntu:
 	apt install -y \
+		libxml2-utils \
 		libtesseract-dev \
 		libleptonica-dev \
 		tesseract-ocr-eng
