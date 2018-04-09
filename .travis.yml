@@ -9,4 +9,4 @@ before_install:
 install:
   - make deps-pip test-deps-pip
 script:
-  - export TESSDATA_PREFIX="/usr/share/tesseract-ocr/4.00/tessdata"; make test TESSDATA_PREFIX="/usr/share/tesseract-ocr/4.00/tessdata"
+  - make test TESSDATA_PREFIX="/usr/share/tesseract-ocr/4.00/tessdata" OCRD_BASEURL='https://github.com/OCR-D/ocrd-assets/raw/master/data/
