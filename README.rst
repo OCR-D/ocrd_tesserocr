@@ -1,5 +1,5 @@
-ocrd_processor_tesserocr
-========================
+ocrd_tesserocr
+==============
 
     Segment region, line, recognize with tesserocr
 
