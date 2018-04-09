@@ -4,9 +4,9 @@ import shutil
 from test.base import TestCase, main, assets, skip
 
 from ocrd.resolver import Resolver
-from ocrd_processor_tesserocr.segment_line import TesserocrSegmentLine
-from ocrd_processor_tesserocr.segment_region import TesserocrSegmentRegion
-#  from ocrd_processor_tesserocr.recognize import TesserocrRecognize
+from ocrd_tesserocr.segment_line import TesserocrSegmentLine
+from ocrd_tesserocr.segment_region import TesserocrSegmentRegion
+#  from ocrd_tesserocr.recognize import TesserocrRecognize
 
 METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/mets_one_file.xml')
 
