@@ -1,7 +1,7 @@
 from test.base import TestCase, main, assets
 
 from ocrd.resolver import Resolver
-from ocrd_processor_tesserocr.segment_region import TesserocrSegmentRegion
+from ocrd_tesserocr.segment_region import TesserocrSegmentRegion
 
 METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/mets_one_file.xml')
 
