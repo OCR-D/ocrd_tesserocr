@@ -39,6 +39,10 @@ deps-ubuntu:
 deps-pip:
 	$(PIP) install -r requirements.txt
 
+# Install testing deps via pip
+deps-pip-test:
+	$(PIP) install -r requirements_test.txt
+
 # Install
 install:
 	$(PIP) install .
