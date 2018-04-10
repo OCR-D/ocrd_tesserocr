@@ -23,7 +23,7 @@ class TesserocrSegmentLine(Processor):
                     for component in tessapi.GetComponentImages(tesserocr.RIL.TEXTLINE, True):
                         region.add_textline(coords=component[1])
                 self.add_output_file(
-                    ID=mets_file_id(self.outputGrp, n),
+                    ID=mets_file_id(self.output_filegrp, n),
                     input_file=input_file,
                     mimetype=MIMETYPE_PAGE,
                     content=page.to_xml()

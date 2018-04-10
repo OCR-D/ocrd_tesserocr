@@ -33,7 +33,7 @@ class TesserocrRecognize(Processor):
                         tessapi.SetImage(image)
                         line.textequiv = tessapi.GetUTF8Text()
                 self.add_output_file(
-                    ID=mets_file_id(self.outputGrp, n),
+                    ID=mets_file_id(self.output_filegrp, n),
                     input_file=input_file,
                     mimetype=MIMETYPE_PAGE,
                     content=page.to_xml()

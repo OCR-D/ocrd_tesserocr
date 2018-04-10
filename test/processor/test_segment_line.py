@@ -21,9 +21,9 @@ class TestProcessorSegmentLineTesseract3(TestCase):
     def runTest(self):
         resolver = Resolver(cache_enabled=True)
         workspace = resolver.workspace_from_url(METS_HEROLD_SMALL, directory=WORKSPACE_DIR)
-        TesserocrSegmentRegion(workspace, inputGrp="INPUT", outputGrp="OCR-D-SEG-BLOCK").process()
+        TesserocrSegmentRegion(workspace, inputGrp="INPUT", output_filegrp="OCR-D-SEG-BLOCK").process()
         #  workspace.save_mets()
-        TesserocrSegmentLine(workspace, inputGrp="OCR-D-SEG-BLOCK", outputGrp="OCR-D-SEG-LINE").process()
+        TesserocrSegmentLine(workspace, inputGrp="OCR-D-SEG-BLOCK", output_filegrp="OCR-D-SEG-LINE").process()
         workspace.save_mets()
 
 if __name__ == '__main__':

@@ -13,6 +13,7 @@ class TesserocrSegmentRegion(Processor):
         Performs the region segmentation.
         """
         with tesserocr.PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
+            print (self.input_filegrp)
             for (n, input_file) in enumerate(self.input_files):
                 page = OcrdPage.from_file(self.workspace.download_file(input_file))
                 image = self.workspace.resolve_image_as_pil(page.imageFileName)
@@ -25,7 +26,7 @@ class TesserocrSegmentRegion(Processor):
                     page.add_reading_order_ref(ID, index)
                     page.add_textregion(ID, box)
                 self.add_output_file(
-                    ID=mets_file_id(self.outputGrp, n),
+                    ID=mets_file_id(self.output_filegrp, n),
                     input_file=input_file,
                     mimetype=MIMETYPE_PAGE,
                     content=page.to_xml()
