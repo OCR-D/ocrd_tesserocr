@@ -6,19 +6,19 @@
       "tags": ["Layouterkennung"],
       "description": "Segment page into regions with tesseract",
       "binary": "ocrd_tesserocr_segment_line",
-      "step": "segment-line"
+      "step": "layout/segmentation"
     },
     {
       "tags": ["Layouterkennung"],
       "description": "Segment regions into lines with tesseract",
       "binary": "ocrd_tesserocr_segment_region",
-      "step": "segment-region"
+      "step": "layout/segmentation"
     },
     {
       "tags": ["Texterkennung"],
       "description": "Recognize text in lines with tesseract",
       "binary": "ocrd_tesserocr_recognize",
-      "step": "recognize"
+      "step": "recognition"
     }
   ]
 }
