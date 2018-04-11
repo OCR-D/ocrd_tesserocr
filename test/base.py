@@ -1,3 +1,5 @@
+# pylint: disable=unused-import
+
 import os
 import sys
 from unittest import TestCase, skip, main # pylint: disable=unused-import
