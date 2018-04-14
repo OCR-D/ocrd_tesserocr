@@ -3,22 +3,22 @@
   "dockerhub": "ocrd/ocrd-tesserocr",
   "tools": [
     {
-      "tags": ["Layouterkennung"],
+      "tags": ["Layout analysis"],
       "description": "Segment page into regions with tesseract",
       "binary": "ocrd_tesserocr_segment_line",
-      "step": "layout/segmentation"
+      "step": "layout/segmentation/line"
     },
     {
-      "tags": ["Layouterkennung"],
+      "tags": ["Layout analysis"],
       "description": "Segment regions into lines with tesseract",
       "binary": "ocrd_tesserocr_segment_region",
-      "step": "layout/segmentation"
+      "step": "layout/segmentation/region"
     },
     {
       "tags": ["Texterkennung"],
       "description": "Recognize text in lines with tesseract",
       "binary": "ocrd_tesserocr_recognize",
-      "step": "recognition"
+      "step": "recognition/text-recognition"
     }
   ]
 }
