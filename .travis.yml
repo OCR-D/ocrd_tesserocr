@@ -6,6 +6,8 @@ before_install:
   - sudo apt-get -qq update
   - make deps-ubuntu
 install:
+  - pip install 'git+https://github.com/sirfz/tesserocr#egg=tesserocr'
   - make deps-pip deps-pip-test
+
 script:
   - make assets test TESSDATA_PREFIX="/usr/share/tesseract-ocr/4.00/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"
