@@ -3,5 +3,5 @@ venv3
 __pycache__
 *.pyc
 *.egg-info
-ocrd-assets
+repo/assets
 test/assets

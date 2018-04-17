@@ -2,7 +2,6 @@ export
 
 SHELL = /bin/bash
 PYTHON = python
-PYTHONPATH := .:$(PYTHONPATH)
 PIP = pip
 LOG_LEVEL = INFO
 PYTHONIOENCODING=utf8
@@ -16,11 +15,16 @@ help:
 	@echo ""
 	@echo "  Targets"
 	@echo ""
-	@echo "    deps-ubuntu  Dependencies for deployment in an ubuntu/debian linux"
-	@echo "    deps-pip     Install python deps via pip"
-	@echo "    install      Install"
-	@echo "    docker       Build docker image"
-	@echo "    test         Run test"
+	@echo "    deps-ubuntu    Dependencies for deployment in an ubuntu/debian linux"
+	@echo "    deps-pip       Install python deps via pip"
+	@echo "    deps-pip-test  Install testing deps via pip"
+	@echo "    install        Install"
+	@echo "    docker         Build docker image"
+	@echo "    test           Run test"
+	@echo "    repo/assets    Clone OCR-D/ocrd-assets to ./repo/assets"
+	@echo "    assets         Setup test assets"
+	@echo "    assets-server  Start asset server at http://localhost:5001"
+	@echo "    assets-clean   Remove symlinks in test/assets"
 	@echo ""
 	@echo "  Variables"
 	@echo ""
@@ -30,7 +34,7 @@ help:
 
 # Dependencies for deployment in an ubuntu/debian linux
 deps-ubuntu:
-	apt install -y \
+	sudo apt-get install -y \
 		libxml2-utils \
 		libtesseract-dev \
 		libleptonica-dev \
@@ -55,21 +59,22 @@ docker:
 .PHONY: test
 # Run test
 test:
-	python -m pytest test
+	$(PYTHON) -m pytest test
 
 #
 # Assets
 #
 
-# Clone the ocrd-assets repo for sample files
-assets: ocrd-assets test/assets
+# Clone OCR-D/ocrd-assets to ./repo/assets
+repo/assets:
+	mkdir -p $(dir $@)
+	git clone https://github.com/OCR-D/ocrd-assets "$@"
 
-ocrd-assets:
-	git clone https://github.com/OCR-D/ocrd-assets
 
-test/assets:
+# Setup test assets
+assets: repo/assets
 	mkdir -p test/assets
-	cp -r -t test/assets ocrd-assets/data/*
+	cp -r -t test/assets repo/assets/data/*
 
 # Start asset server at http://localhost:5001
 assets-server:
