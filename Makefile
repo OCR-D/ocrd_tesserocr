@@ -76,10 +76,6 @@ assets: repo/assets
 	mkdir -p test/assets
 	cp -r -t test/assets repo/assets/data/*
 
-# Start asset server at http://localhost:5001
-assets-server:
-	cd ocrd-assets && make start
-
 # Remove symlinks in test/assets
 assets-clean:
 	rm -rf test/assets
