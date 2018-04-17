@@ -24,9 +24,12 @@ setup(
     author='Konstantin Baierer',
     author_email='unixprog@gmail.com',
     url='https://github.com/kba/ocrd_tesserocr',
-    license=LICENSE,
+    license='Apache License 2.0',
     packages=find_packages(exclude=('tests', 'docs')),
     install_requires=[
+        'ocrd',
+        'click',
+        'tesserocr',
     ],
     entry_points={
         'console_scripts': [

@@ -5,7 +5,7 @@ click
 lxml
 jsonschema
 Flask
-git+https://github.com/smarnach/pyexiftool.git#egg=pyexiftool
+ocrd-pyexiftool
 pyaml
 
 git+https://github.com/sirfz/tesserocr#egg=tesserocr
