@@ -33,9 +33,9 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'ocrd_tesserocr_segment_region=ocrd_tesserocr.cli:ocrd_tesserocr_segment_region',
-            'ocrd_tesserocr_segment_line=ocrd_tesserocr.cli:ocrd_tesserocr_segment_line',
-            'ocrd_tesserocr_recognize=ocrd_tesserocr.cli:ocrd_tesserocr_recognize',
+            'ocrd-tesserocr-segment-region=ocrd_tesserocr.cli:ocrd_tesserocr_segment_region',
+            'ocrd-tesserocr-segment-line=ocrd_tesserocr.cli:ocrd_tesserocr_segment_line',
+            'ocrd-tesserocr-recognize=ocrd_tesserocr.cli:ocrd_tesserocr_recognize',
         ]
     },
 )
