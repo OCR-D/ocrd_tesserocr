@@ -17,7 +17,7 @@ Installation
 Required ubuntu packages:
 
 * Tesseract headers (``libtesseract-dev``)
-* Some tesseract language models (``tesseract-ocr-{eng,deu,deu-frak,...}``)
+* Some tesseract language models (``tesseract-ocr-{eng,deu,frk,...}`` or script models (``tesseract-ocr-script-{latn,frak,...}``)
 * Leptonica headers (``libleptonica-dev``)
 
 ::
@@ -32,7 +32,8 @@ If tesserocr fails to compile with an error:::
                   ^~~~~~
                   stdin
 
-This is due to some inconsistencies in the installed tesseract C headers. Replace ``string`` with ``std::string`` in ``$PREFIX/include/tesseract/unicharset.h:265:5:`` and ``$PREFIX/include/tesseract/unichar.h:164:10:`` ff.
+This is due to some inconsistencies in the installed tesseract C headers (fix expected for next Ubuntu upgrade, already fixed for Debian).
+Replace ``string`` with ``std::string`` in ``$PREFIX/include/tesseract/unicharset.h:265:5:`` and ``$PREFIX/include/tesseract/unichar.h:164:10:`` ff.
 
 If tesserocr fails with an error about ``LSTM``/``CUBE``, you have a
 mismatch between tesseract header/data/pkg-config versions. ``apt policy
