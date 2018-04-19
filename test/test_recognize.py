@@ -23,12 +23,12 @@ class TestTesserocrRecognize(TestCase):
     def runTest(self):
         resolver = Resolver(cache_enabled=True)
         workspace = resolver.workspace_from_url(METS_HEROLD_SMALL, directory=WORKSPACE_DIR)
-        TesserocrSegmentRegion(workspace, input_filegrp="INPUT", output_filegrp="OCR-D-SEG-BLOCK").process()
+        TesserocrSegmentRegion(workspace, input_file_grp="INPUT", output_file_grp="OCR-D-SEG-BLOCK").process()
         workspace.save_mets()
-        TesserocrSegmentLine(workspace, input_filegrp="OCR-D-SEG-BLOCK", output_filegrp="OCR-D-SEG-LINE").process()
+        TesserocrSegmentLine(workspace, input_file_grp="OCR-D-SEG-BLOCK", output_file_grp="OCR-D-SEG-LINE").process()
         workspace.save_mets()
         #  TODO takes too long
-        #  TesserocrRecognize(workspace, input_filegrp="OCR-D-SEG-LINE", output_filegrp="OCR-D-OCR-TESS").process()
+        #  TesserocrRecognize(workspace, input_file_grp="OCR-D-SEG-LINE", output_file_grp="OCR-D-OCR-TESS").process()
         workspace.save_mets()
 
 if __name__ == '__main__':
