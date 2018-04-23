@@ -21,7 +21,7 @@ help:
 	@echo "    install        Install"
 	@echo "    docker         Build docker image"
 	@echo "    test           Run test"
-	@echo "    repo/assets    Clone OCR-D/ocrd-assets to ./repo/assets"
+	@echo "    repo/assets    Clone OCR-D/assets to ./repo/assets"
 	@echo "    assets         Setup test assets"
 	@echo "    assets-server  Start asset server at http://localhost:5001"
 	@echo "    assets-clean   Remove symlinks in test/assets"
@@ -65,10 +65,10 @@ test:
 # Assets
 #
 
-# Clone OCR-D/ocrd-assets to ./repo/assets
+# Clone OCR-D/assets to ./repo/assets
 repo/assets:
 	mkdir -p $(dir $@)
-	git clone https://github.com/OCR-D/ocrd-assets "$@"
+	git clone https://github.com/OCR-D/assets "$@"
 
 
 # Setup test assets
