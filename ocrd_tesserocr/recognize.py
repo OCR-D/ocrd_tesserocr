@@ -1,8 +1,9 @@
 from __future__ import absolute_import
+
 import tesserocr
 from ocrd.utils import getLogger, mets_file_id
 from ocrd import Processor, OcrdPage, MIMETYPE_PAGE
-from .config import TESSDATA_PREFIX
+from ocrd_tesserocr.config import TESSDATA_PREFIX
 
 log = getLogger('processor.TesserocrRecognize')
 
