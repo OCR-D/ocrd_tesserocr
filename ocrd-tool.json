@@ -18,7 +18,20 @@
       "tags": ["Text recognition and optimization"],
       "description": "Recognize text in lines with tesseract",
       "executable": "ocrd-tesserocr-recognize",
-      "step": "recognition/text-recognition"
+      "step": "recognition/text-recognition",
+      "parameter": {
+        "textequiv_level": {
+          "type": "string",
+          "enum": [
+            "page",
+            "region",
+            "line",
+            "word",
+            "glyph"
+          ],
+          "default": "line"
+        }
+      }
     }
   ]
 }

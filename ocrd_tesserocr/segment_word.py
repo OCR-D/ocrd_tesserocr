@@ -1,34 +1,38 @@
 from __future__ import absolute_import
-from tesserocr import PyTessBaseAPI, RIL
+from tesserocr import RIL, PyTessBaseAPI, OEM, PSM
 from ocrd import Processor, MIMETYPE_PAGE
 from ocrd_tesserocr.config import TESSDATA_PREFIX
 from ocrd.utils import getLogger, mets_file_id, coordinate_string_from_xywh, xywh_from_coordinate_string
 from ocrd.model.ocrd_page import (
     CoordsType,
-    TextLineType,
+    WordType,
     from_file,
     to_xml
 )
 
-log = getLogger('processor.TesserocrSegmentLine')
+log = getLogger('processor.TesserocrSegmentWord')
 
-class TesserocrSegmentLine(Processor):
+class TesserocrSegmentWord(Processor):
 
     def process(self):
         """
         Performs the line segmentation.
         """
-        with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
+        with PyTessBaseAPI(
+            psm=PSM.SINGLE_LINE,
+            path=TESSDATA_PREFIX,
+        ) as tessapi:
             for (n, input_file) in enumerate(self.input_files):
                 pcgts = from_file(self.workspace.download_file(input_file))
                 image_url = pcgts.get_Page().imageFilename
                 for region in pcgts.get_Page().get_TextRegion():
-                    log.debug("Detecting lines in %s with tesseract", region.id)
-                    image = self.workspace.resolve_image_as_pil(image_url, xywh_from_coordinate_string(region.get_Coords().points))
-                    tessapi.SetImage(image)
-                    for (line_no, component) in enumerate(tessapi.GetComponentImages(RIL.TEXTLINE, True)):
-                        line_id = '%s_line%04d' % (region.id, line_no)
-                        region.add_TextLine(TextLineType(id=line_id, Coords=CoordsType(coordinate_string_from_xywh(component[1]))))
+                    for line in region.get_TextLine():
+                        log.debug("Detecting words in line '%s'", line.id)
+                        image = self.workspace.resolve_image_as_pil(image_url, xywh_from_coordinate_string(line.get_Coords().points))
+                        tessapi.SetImage(image)
+                        for (word_no, component) in enumerate(tessapi.GetComponentImages(RIL.WORD, True)):
+                            word_id = '%s_word%04d' % (line.id, word_no)
+                            line.add_Word(WordType(id=word_id, Coords=CoordsType(coordinate_string_from_xywh(component[1]))))
                 ID = mets_file_id(self.output_file_grp, n)
                 self.add_output_file(
                     ID=ID,

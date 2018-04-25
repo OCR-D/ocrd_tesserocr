@@ -34,7 +34,8 @@ class TesserocrSegmentRegion(Processor):
                     #
                     # the region reference in the reading order element
                     #
-                    ID = "r%i" % index
+                    ID = "region%04d" % index
+                    log.debug("Detected region '%s': %s", ID, points)
                     # <pg:ReadingOrder>
                     ro = pcgts.get_Page().get_ReadingOrder()
                     if ro is None:

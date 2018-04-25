@@ -34,7 +34,12 @@ class TestTesserocrRecognize(TestCase):
             output_file_grp="OCR-D-SEG-LINE"
         ).process()
         workspace.save_mets()
-        #  TesserocrRecognize(workspace, input_file_grp="OCR-D-SEG-LINE", output_file_grp="OCR-D-OCR-TESS").process()
+        TesserocrRecognize(
+            workspace,
+            input_file_grp="OCR-D-SEG-LINE",
+            output_file_grp="OCR-D-OCR-TESS",
+            parameter={'textequiv_level': 'word'}
+        ).process()
         workspace.save_mets()
 
 if __name__ == '__main__':

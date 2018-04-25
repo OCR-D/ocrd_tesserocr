@@ -16,6 +16,7 @@ class TesserocrRecognize(Processor):
         """
         Performs the (text) recognition.
         """
+        print(self.parameter)
         with tesserocr.PyTessBaseAPI(path=TESSDATA_PREFIX, lang=DEFAULT_MODEL) as tessapi:
             log.info("Using model %s in %s for recognition", tesserocr.get_languages()[0], tesserocr.get_languages()[1][-1])
             tessapi.SetPageSegMode(tesserocr.PSM.SINGLE_LINE)
@@ -27,12 +28,14 @@ class TesserocrRecognize(Processor):
                 for region in pcgts.get_Page().get_TextRegion():
                     textlines = region.get_TextLine()
                     log.info("About to recognize text in %i lines of region '%s'", len(textlines), region.id)
-                    for (line_no, line) in enumerate(textlines):
-                        log.debug("Recognizing text in region '%s' line '%s'", region.id, line_no)
+                    for line in textlines:
+                        log.debug("Recognizing text in line '%s'", line.id)
                         # xTODO use binarized / gray
                         image = self.workspace.resolve_image_as_pil(image_url, xywh_from_coordinate_string(line.get_Coords().points))
                         tessapi.SetImage(image)
                         line.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text()))
+                        #  tessapi.G
+                        #  print(tessapi.AllWordConfidences())
                 ID = mets_file_id(self.output_file_grp, n)
                 self.add_output_file(
                     ID=ID,
