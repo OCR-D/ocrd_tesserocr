@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from tesserocr import PyTessBaseAPI, RIL
 from ocrd import Processor, MIMETYPE_PAGE
 from ocrd_tesserocr.config import TESSDATA_PREFIX
-from ocrd.utils import getLogger, mets_file_id, coordinate_string_from_xywh, xywh_from_coordinate_string
+from ocrd.utils import getLogger, mets_file_id, points_from_xywh, polygon_from_points
 from ocrd.model.ocrd_page import (
     CoordsType,
     TextLineType,
@@ -24,11 +24,11 @@ class TesserocrSegmentLine(Processor):
                 image_url = pcgts.get_Page().imageFilename
                 for region in pcgts.get_Page().get_TextRegion():
                     log.debug("Detecting lines in %s with tesseract", region.id)
-                    image = self.workspace.resolve_image_as_pil(image_url, xywh_from_coordinate_string(region.get_Coords().points))
+                    image = self.workspace.resolve_image_as_pil(image_url, polygon_from_points(region.get_Coords().points))
                     tessapi.SetImage(image)
                     for (line_no, component) in enumerate(tessapi.GetComponentImages(RIL.TEXTLINE, True)):
                         line_id = '%s_line%04d' % (region.id, line_no)
-                        region.add_TextLine(TextLineType(id=line_id, Coords=CoordsType(coordinate_string_from_xywh(component[1]))))
+                        region.add_TextLine(TextLineType(id=line_id, Coords=CoordsType(points_from_xywh(component[1]))))
                 ID = mets_file_id(self.output_file_grp, n)
                 self.add_output_file(
                     ID=ID,

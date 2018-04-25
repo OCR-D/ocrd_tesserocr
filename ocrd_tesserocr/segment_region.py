@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import tesserocr
-from ocrd.utils import getLogger, mets_file_id, coordinate_string_from_xywh
+from ocrd.utils import getLogger, mets_file_id, points_from_xywh
 from ocrd.model.ocrd_page import (
     ReadingOrderType,
     RegionRefIndexedType,
@@ -29,7 +29,7 @@ class TesserocrSegmentRegion(Processor):
                 log.debug("Detecting regions with tesseract")
                 tessapi.SetImage(image)
                 for component in tessapi.GetComponentImages(tesserocr.RIL.BLOCK, True):
-                    points, index = coordinate_string_from_xywh(component[1]), component[2]
+                    points, index = points_from_xywh(component[1]), component[2]
 
                     #
                     # the region reference in the reading order element

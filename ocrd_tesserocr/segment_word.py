@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from tesserocr import RIL, PyTessBaseAPI, OEM, PSM
 from ocrd import Processor, MIMETYPE_PAGE
 from ocrd_tesserocr.config import TESSDATA_PREFIX
-from ocrd.utils import getLogger, mets_file_id, coordinate_string_from_xywh, xywh_from_coordinate_string
+from ocrd.utils import getLogger, mets_file_id, points_from_xywh, polygon_from_points
 from ocrd.model.ocrd_page import (
     CoordsType,
     WordType,
@@ -28,11 +28,11 @@ class TesserocrSegmentWord(Processor):
                 for region in pcgts.get_Page().get_TextRegion():
                     for line in region.get_TextLine():
                         log.debug("Detecting words in line '%s'", line.id)
-                        image = self.workspace.resolve_image_as_pil(image_url, xywh_from_coordinate_string(line.get_Coords().points))
+                        image = self.workspace.resolve_image_as_pil(image_url, polygon_from_points(line.get_Coords().points))
                         tessapi.SetImage(image)
                         for (word_no, component) in enumerate(tessapi.GetComponentImages(RIL.WORD, True)):
                             word_id = '%s_word%04d' % (line.id, word_no)
-                            line.add_Word(WordType(id=word_id, Coords=CoordsType(coordinate_string_from_xywh(component[1]))))
+                            line.add_Word(WordType(id=word_id, Coords=CoordsType(points_from_xywh(component[1]))))
                 ID = mets_file_id(self.output_file_grp, n)
                 self.add_output_file(
                     ID=ID,
