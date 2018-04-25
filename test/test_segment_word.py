@@ -19,7 +19,8 @@ class TestProcessorSegmentWordTesseract3(TestCase):
 
     def runTest(self):
         resolver = Resolver(cache_enabled=True)
-        workspace = resolver.workspace_from_url(assets.url_of('SBB0000F29300010000/mets_one_file.xml'), directory=WORKSPACE_DIR)
+        #  workspace = resolver.workspace_from_url(assets.url_of('SBB0000F29300010000/mets_one_file.xml'), directory=WORKSPACE_DIR)
+        workspace = resolver.workspace_from_url(assets.url_of('kant_aufklaerung_1784-binarized/mets.xml'), directory=WORKSPACE_DIR)
         TesserocrSegmentRegion(workspace, input_file_grp="INPUT", output_file_grp="OCR-D-SEG-BLOCK").process()
         TesserocrSegmentLine(workspace, input_file_grp="OCR-D-SEG-BLOCK", output_file_grp="OCR-D-SEG-LINE").process()
         TesserocrSegmentWord(workspace, input_file_grp="OCR-D-SEG-LINE", output_file_grp="OCR-D-SEG-WORD").process()
