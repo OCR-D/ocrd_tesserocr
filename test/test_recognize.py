@@ -24,7 +24,7 @@ class TestTesserocrRecognize(TestCase):
         workspace = resolver.workspace_from_url(assets.url_of('kant_aufklaerung_1784/mets.xml'), directory=WORKSPACE_DIR)
         TesserocrSegmentRegion(
             workspace,
-            input_file_grp="INPUT",
+            input_file_grp="OCR-D-IMG",
             output_file_grp="OCR-D-SEG-BLOCK"
         ).process()
         workspace.save_mets()

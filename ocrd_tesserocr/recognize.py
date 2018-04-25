@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
-import tesserocr
-from ocrd.utils import getLogger, mets_file_id, polygon_from_points
+from tesserocr import PyTessBaseAPI, PSM, get_languages
+from ocrd.utils import getLogger, mets_file_id, xywh_from_points
 from ocrd.model.ocrd_page import from_file, to_xml, TextEquivType
 from ocrd import Processor, MIMETYPE_PAGE
 from ocrd_tesserocr.config import TESSDATA_PREFIX
 
 log = getLogger('processor.TesserocrRecognize')
 
-DEFAULT_MODEL = tesserocr.get_languages()[1][-1]
+DEFAULT_MODEL = get_languages()[1][-1]
 
 class TesserocrRecognize(Processor):
 
@@ -17,22 +17,25 @@ class TesserocrRecognize(Processor):
         Performs the (text) recognition.
         """
         print(self.parameter)
-        with tesserocr.PyTessBaseAPI(path=TESSDATA_PREFIX, lang=DEFAULT_MODEL) as tessapi:
-            log.info("Using model %s in %s for recognition", tesserocr.get_languages()[0], tesserocr.get_languages()[1][-1])
-            tessapi.SetPageSegMode(tesserocr.PSM.SINGLE_LINE)
+        with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=DEFAULT_MODEL) as tessapi:
+            log.info("Using model %s in %s for recognition", get_languages()[0], get_languages()[1][-1])
             for (n, input_file) in enumerate(self.input_files):
                 log.info("INPUT FILE %i / %s", n, input_file)
                 pcgts = from_file(self.workspace.download_file(input_file))
-                image_url = pcgts.get_Page().imageFilename
+                # TODO use binarized / gray
+                pil_image = self.workspace.resolve_image_as_pil(pcgts.get_Page().imageFilename)
+                tessapi.SetImage(pil_image)
+                # TODO slow
+                #  tessapi.SetPageSegMode(PSM.SINGLE_LINE)
                 log.info("page %s", pcgts)
                 for region in pcgts.get_Page().get_TextRegion():
                     textlines = region.get_TextLine()
                     log.info("About to recognize text in %i lines of region '%s'", len(textlines), region.id)
                     for line in textlines:
                         log.debug("Recognizing text in line '%s'", line.id)
-                        # xTODO use binarized / gray
-                        image = self.workspace.resolve_image_as_pil(image_url, polygon_from_points(line.get_Coords().points))
-                        tessapi.SetImage(image)
+                        xywh = xywh_from_points(line.get_Coords().points)
+                        tessapi.SetRectangle(xywh['x'], xywh['y'], xywh['w'], xywh['h'])
+                        #  log.debug("xywh: %s", xywh)
                         line.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text()))
                         #  tessapi.G
                         #  print(tessapi.AllWordConfidences())
