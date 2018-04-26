@@ -36,6 +36,7 @@ help:
 deps-ubuntu:
 	sudo apt-get install -y \
 		libxml2-utils \
+		libimage-exiftool-perl \
 		libtesseract-dev \
 		libleptonica-dev \
 		tesseract-ocr-eng
