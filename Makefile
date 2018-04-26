@@ -7,7 +7,7 @@ LOG_LEVEL = INFO
 PYTHONIOENCODING=utf8
 
 # Docker container tag
-DOCKER_TAG = 'ocrd/ocrd_tesserocr'
+DOCKER_TAG = 'ocrd/tesserocr'
 
 # BEGIN-EVAL makefile-parser --make-help Makefile
 
