@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from tesserocr import RIL, PyTessBaseAPI, OEM, PSM
+from tesserocr import RIL, PyTessBaseAPI, PSM
 from ocrd import Processor, MIMETYPE_PAGE
 from ocrd_tesserocr.config import TESSDATA_PREFIX
 from ocrd.utils import getLogger, mets_file_id, points_from_xywh, polygon_from_points, xywh_from_points
