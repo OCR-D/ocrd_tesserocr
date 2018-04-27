@@ -7,7 +7,7 @@ LOG_LEVEL = INFO
 PYTHONIOENCODING=utf8
 
 # Docker container tag
-DOCKER_TAG = 'ocrd/ocrd_tesserocr'
+DOCKER_TAG = 'ocrd/tesserocr'
 
 # BEGIN-EVAL makefile-parser --make-help Makefile
 
@@ -36,6 +36,7 @@ help:
 deps-ubuntu:
 	sudo apt-get install -y \
 		libxml2-utils \
+		libimage-exiftool-perl \
 		libtesseract-dev \
 		libleptonica-dev \
 		tesseract-ocr-eng

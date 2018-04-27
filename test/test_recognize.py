@@ -6,9 +6,7 @@ from test.base import TestCase, main, assets, skip
 from ocrd.resolver import Resolver
 from ocrd_tesserocr.segment_line import TesserocrSegmentLine
 from ocrd_tesserocr.segment_region import TesserocrSegmentRegion
-#  from ocrd_tesserocr.recognize import TesserocrRecognize
-
-METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/mets_one_file.xml')
+from ocrd_tesserocr.recognize import TesserocrRecognize
 
 WORKSPACE_DIR = '/tmp/pyocrd-test-recognizer'
 
@@ -22,13 +20,26 @@ class TestTesserocrRecognize(TestCase):
     skip("Takes too long")
     def runTest(self):
         resolver = Resolver(cache_enabled=True)
-        workspace = resolver.workspace_from_url(METS_HEROLD_SMALL, directory=WORKSPACE_DIR)
-        TesserocrSegmentRegion(workspace, input_file_grp="INPUT", output_file_grp="OCR-D-SEG-BLOCK").process()
+        #  workspace = resolver.workspace_from_url(assets.url_of('SBB0000F29300010000/mets_one_file.xml'), directory=WORKSPACE_DIR)
+        workspace = resolver.workspace_from_url(assets.url_of('kant_aufklaerung_1784/mets.xml'), directory=WORKSPACE_DIR)
+        TesserocrSegmentRegion(
+            workspace,
+            input_file_grp="OCR-D-IMG",
+            output_file_grp="OCR-D-SEG-BLOCK"
+        ).process()
         workspace.save_mets()
-        TesserocrSegmentLine(workspace, input_file_grp="OCR-D-SEG-BLOCK", output_file_grp="OCR-D-SEG-LINE").process()
+        TesserocrSegmentLine(
+            workspace,
+            input_file_grp="OCR-D-SEG-BLOCK",
+            output_file_grp="OCR-D-SEG-LINE"
+        ).process()
         workspace.save_mets()
-        #  TODO takes too long
-        #  TesserocrRecognize(workspace, input_file_grp="OCR-D-SEG-LINE", output_file_grp="OCR-D-OCR-TESS").process()
+        TesserocrRecognize(
+            workspace,
+            input_file_grp="OCR-D-SEG-LINE",
+            output_file_grp="OCR-D-OCR-TESS",
+            parameter={'textequiv_level': 'word'}
+        ).process()
         workspace.save_mets()
 
 if __name__ == '__main__':
