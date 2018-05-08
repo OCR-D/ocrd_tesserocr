@@ -1,3 +1,3 @@
-ocrd >= 0.1.0
+ocrd >= 0.2.0
 click
 tesserocr

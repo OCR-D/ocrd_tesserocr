@@ -23,7 +23,6 @@ help:
 	@echo "    test           Run test"
 	@echo "    repo/assets    Clone OCR-D/assets to ./repo/assets"
 	@echo "    assets         Setup test assets"
-	@echo "    assets-server  Start asset server at http://localhost:5001"
 	@echo "    assets-clean   Remove symlinks in test/assets"
 	@echo ""
 	@echo "  Variables"
