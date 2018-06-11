@@ -18,6 +18,11 @@ RUN apt-get update && \
     git
 COPY Makefile .
 RUN make deps-ubuntu
+RUN git clone https://github.com/sirfz/tesserocr && \
+    cd tesserocr && \
+    python3 setup.py install && \
+    cd .. && \
+    mkdir data
 COPY ocrd_tesserocr ./ocrd_tesserocr
 RUN pip3 install --upgrade pip
 RUN make deps-pip install

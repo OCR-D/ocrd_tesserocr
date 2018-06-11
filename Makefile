@@ -39,6 +39,8 @@ deps-ubuntu:
 		libtesseract-dev \
 		libleptonica-dev \
 		tesseract-ocr-eng
+		
+	sed -i 's/, bool textonly[)];/, bool textonly = false);/g' /usr/include/tesseract/renderer.h
 
 # Install python deps via pip
 deps-pip:
