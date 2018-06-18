@@ -16,7 +16,8 @@ log = getLogger('processor.TesserocrSegmentLine')
 class TesserocrSegmentLine(Processor):
 
     def __init__(self, *args, **kwargs):
-        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][2]
+        kwargs['ocrd_tool'] = OCRD_TOOL['tools']['ocrd-tesserocr-segment-line']
+        kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrSegmentLine, self).__init__(*args, **kwargs)
 
 

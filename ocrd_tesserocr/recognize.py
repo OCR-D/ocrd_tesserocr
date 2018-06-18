@@ -13,7 +13,8 @@ DEFAULT_MODEL = get_languages()[1][-1]
 class TesserocrRecognize(Processor):
 
     def __init__(self, *args, **kwargs):
-        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][0]
+        kwargs['ocrd_tool'] = OCRD_TOOL['tools']['ocrd-tesserocr-recognize']
+        kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrRecognize, self).__init__(*args, **kwargs)
 
     def process(self):

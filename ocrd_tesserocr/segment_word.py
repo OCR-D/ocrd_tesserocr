@@ -16,7 +16,8 @@ log = getLogger('processor.TesserocrSegmentWord')
 class TesserocrSegmentWord(Processor):
 
     def __init__(self, *args, **kwargs):
-        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][3]
+        kwargs['ocrd_tool'] = OCRD_TOOL['tools']['ocrd-tesserocr-segment-word']
+        kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrSegmentWord, self).__init__(*args, **kwargs)
 
     def process(self):
