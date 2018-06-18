@@ -4,13 +4,17 @@ from tesserocr import PyTessBaseAPI, PSM, get_languages
 from ocrd.utils import getLogger, concat_padded, xywh_from_points
 from ocrd.model.ocrd_page import from_file, to_xml, TextEquivType
 from ocrd import Processor, MIMETYPE_PAGE
-from ocrd_tesserocr.config import TESSDATA_PREFIX
+from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
 
 log = getLogger('processor.TesserocrRecognize')
 
 DEFAULT_MODEL = get_languages()[1][-1]
 
 class TesserocrRecognize(Processor):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][0]
+        super(TesserocrRecognize, self).__init__(*args, **kwargs)
 
     def process(self):
         """
@@ -45,5 +49,5 @@ class TesserocrRecognize(Processor):
                     file_grp=self.output_file_grp,
                     basename=ID + '.xml',
                     mimetype=MIMETYPE_PAGE,
-                    content=to_xml(pcgts).encode('utf-8'),
+                    content=to_xml(pcgts),
                 )

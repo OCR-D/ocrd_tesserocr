@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Installs three binaries:
+Installs four executables:
 
-    - ocrd_tesserocr_segment_line
-    - ocrd_tesserocr_segment_region
     - ocrd_tesserocr_recognize
+    - ocrd_tesserocr_segment_region
+    - ocrd_tesserocr_segment_line
+    - ocrd_tesserocr_segment_word
 """
 import codecs
 
@@ -28,11 +29,15 @@ setup(
         'click',
         'tesserocr',
     ],
+    package_data={
+        '': ['*.json', '*.yml', '*.yaml'],
+    },
     entry_points={
         'console_scripts': [
+            'ocrd-tesserocr-recognize=ocrd_tesserocr.cli:ocrd_tesserocr_recognize',
             'ocrd-tesserocr-segment-region=ocrd_tesserocr.cli:ocrd_tesserocr_segment_region',
             'ocrd-tesserocr-segment-line=ocrd_tesserocr.cli:ocrd_tesserocr_segment_line',
-            'ocrd-tesserocr-recognize=ocrd_tesserocr.cli:ocrd_tesserocr_recognize',
+            'ocrd-tesserocr-segment-line=ocrd_tesserocr.cli:ocrd_tesserocr_segment_word',
         ]
     },
 )

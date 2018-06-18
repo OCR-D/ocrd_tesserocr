@@ -11,11 +11,16 @@ from ocrd.model.ocrd_page import (
     to_xml
 )
 from ocrd import Processor, MIMETYPE_PAGE
-from ocrd_tesserocr.config import TESSDATA_PREFIX
+
+from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
 
 log = getLogger('processor.TesserocrSegmentRegion')
 
 class TesserocrSegmentRegion(Processor):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][1]
+        super(TesserocrSegmentRegion, self).__init__(*args, **kwargs)
 
     def process(self):
         """
