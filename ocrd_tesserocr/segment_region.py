@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import tesserocr
-from ocrd.utils import getLogger, mets_file_id, points_from_xywh
+from ocrd.utils import getLogger, concat_padded, points_from_xywh
 from ocrd.model.ocrd_page import (
     ReadingOrderType,
     RegionRefIndexedType,
@@ -54,7 +54,7 @@ class TesserocrSegmentRegion(Processor):
                     #
                     pcgts.get_Page().add_TextRegion(TextRegionType(id=ID, Coords=CoordsType(points=points)))
 
-                ID = mets_file_id(self.output_file_grp, n)
+                ID = concat_padded(self.output_file_grp, n)
                 self.add_output_file(
                     ID=ID,
                     file_grp=self.output_file_grp,

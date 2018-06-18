@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from tesserocr import PyTessBaseAPI, PSM, get_languages
-from ocrd.utils import getLogger, mets_file_id, xywh_from_points
+from ocrd.utils import getLogger, concat_padded, xywh_from_points
 from ocrd.model.ocrd_page import from_file, to_xml, TextEquivType
 from ocrd import Processor, MIMETYPE_PAGE
 from ocrd_tesserocr.config import TESSDATA_PREFIX
@@ -39,7 +39,7 @@ class TesserocrRecognize(Processor):
                         line.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text()))
                         #  tessapi.G
                         #  print(tessapi.AllWordConfidences())
-                ID = mets_file_id(self.output_file_grp, n)
+                ID = concat_padded(self.output_file_grp, n)
                 self.add_output_file(
                     ID=ID,
                     file_grp=self.output_file_grp,

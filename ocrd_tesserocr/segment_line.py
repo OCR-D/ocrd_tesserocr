@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from tesserocr import PyTessBaseAPI, RIL
 from ocrd import Processor, MIMETYPE_PAGE
 from ocrd_tesserocr.config import TESSDATA_PREFIX
-from ocrd.utils import getLogger, mets_file_id, points_from_xywh, polygon_from_points, xywh_from_points
+from ocrd.utils import getLogger, concat_padded, points_from_xywh, polygon_from_points, xywh_from_points
 from ocrd.model.ocrd_page import (
     CoordsType,
     TextLineType,
@@ -34,7 +34,7 @@ class TesserocrSegmentLine(Processor):
                         line_xywh['y'] += offset['y']
                         line_points = points_from_xywh(line_xywh)
                         region.add_TextLine(TextLineType(id=line_id, Coords=CoordsType(line_points)))
-                ID = mets_file_id(self.output_file_grp, n)
+                ID = concat_padded(self.output_file_grp, n)
                 self.add_output_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
