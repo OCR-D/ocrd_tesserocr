@@ -8,6 +8,7 @@ before_install:
   - git clone https://github.com/OCR-D/ocrd-train
   - cd ocrd-train
   - sudo make LOCAL=/usr leptonica tesseract
+  - cd ..
 install:
   - pip install 'git+https://github.com/sirfz/tesserocr#egg=tesserocr'
   - make deps-pip deps-pip-test
