@@ -7,7 +7,7 @@ before_install:
   - sudo apt-get install libxml2-utils libimage-exiftool-perl build-essential autoconf-archive libpango1.0-dev
   - git clone https://github.com/OCR-D/ocrd-train
   - cd ocrd-train
-  - sudo make LOCAL=/usr leptonica tesseract
+  - sudo make LOCAL=/usr leptonica tesseract tesseract-langs
   - cd ..
 install:
   - pip install 'git+https://github.com/sirfz/tesserocr#egg=tesserocr'
