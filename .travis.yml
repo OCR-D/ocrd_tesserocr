@@ -4,7 +4,7 @@ python:
   - 3.4
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install libxml2-utils libimage-exiftool-perl build-essential autoconf-archive
+  - sudo apt-get install libxml2-utils libimage-exiftool-perl build-essential autoconf-archive libpango1.0-dev
   - git clone https://github.com/OCR-D/ocrd-train
   - cd ocrd-train
   - sudo make LOCAL=/usr leptonica tesseract
