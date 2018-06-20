@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from tesserocr import PyTessBaseAPI, PSM, get_languages
+from tesserocr import PyTessBaseAPI, get_languages
 from ocrd.utils import getLogger, concat_padded, xywh_from_points
 from ocrd.model.ocrd_page import from_file, to_xml, TextEquivType
 from ocrd import Processor, MIMETYPE_PAGE
