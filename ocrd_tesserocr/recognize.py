@@ -1,16 +1,21 @@
 from __future__ import absolute_import
 
-from tesserocr import PyTessBaseAPI, PSM, get_languages
-from ocrd.utils import getLogger, mets_file_id, xywh_from_points
+from tesserocr import PyTessBaseAPI, get_languages
+from ocrd.utils import getLogger, concat_padded, xywh_from_points
 from ocrd.model.ocrd_page import from_file, to_xml, TextEquivType
 from ocrd import Processor, MIMETYPE_PAGE
-from ocrd_tesserocr.config import TESSDATA_PREFIX
+from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
 
 log = getLogger('processor.TesserocrRecognize')
 
 DEFAULT_MODEL = get_languages()[1][-1]
 
 class TesserocrRecognize(Processor):
+
+    def __init__(self, *args, **kwargs):
+        kwargs['ocrd_tool'] = OCRD_TOOL['tools']['ocrd-tesserocr-recognize']
+        kwargs['version'] = OCRD_TOOL['version']
+        super(TesserocrRecognize, self).__init__(*args, **kwargs)
 
     def process(self):
         """
@@ -39,11 +44,11 @@ class TesserocrRecognize(Processor):
                         line.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text()))
                         #  tessapi.G
                         #  print(tessapi.AllWordConfidences())
-                ID = mets_file_id(self.output_file_grp, n)
+                ID = concat_padded(self.output_file_grp, n)
                 self.add_output_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
                     basename=ID + '.xml',
                     mimetype=MIMETYPE_PAGE,
-                    content=to_xml(pcgts).encode('utf-8'),
+                    content=to_xml(pcgts),
                 )

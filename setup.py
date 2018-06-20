@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Installs three binaries:
+Installs four executables:
 
-    - ocrd_tesserocr_segment_line
-    - ocrd_tesserocr_segment_region
     - ocrd_tesserocr_recognize
+    - ocrd_tesserocr_segment_region
+    - ocrd_tesserocr_segment_line
+    - ocrd_tesserocr_segment_word
 """
 import codecs
 
@@ -24,15 +25,19 @@ setup(
     license='Apache License 2.0',
     packages=find_packages(exclude=('tests', 'docs')),
     install_requires=[
-        'ocrd >= 0.2.0',
+        'ocrd >= 0.3.1',
         'click',
         'tesserocr',
     ],
+    package_data={
+        '': ['*.json', '*.yml', '*.yaml'],
+    },
     entry_points={
         'console_scripts': [
+            'ocrd-tesserocr-recognize=ocrd_tesserocr.cli:ocrd_tesserocr_recognize',
             'ocrd-tesserocr-segment-region=ocrd_tesserocr.cli:ocrd_tesserocr_segment_region',
             'ocrd-tesserocr-segment-line=ocrd_tesserocr.cli:ocrd_tesserocr_segment_line',
-            'ocrd-tesserocr-recognize=ocrd_tesserocr.cli:ocrd_tesserocr_recognize',
+            'ocrd-tesserocr-segment-word=ocrd_tesserocr.cli:ocrd_tesserocr_segment_word',
         ]
     },
 )
