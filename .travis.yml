@@ -14,4 +14,4 @@ install:
   - make deps-pip deps-pip-test
 
 script:
-  - make assets test TESSDATA_PREFIX="/usr/share/tesseract-ocr/4.00/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"
+  - make assets test TESSDATA_PREFIX="/usr/share/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"
