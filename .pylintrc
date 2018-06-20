@@ -11,4 +11,5 @@ disable =
     superfluous-parens,
     invalid-name,
     line-too-long,
+    too-many-locals,
     too-few-public-methods,

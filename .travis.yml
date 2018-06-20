@@ -1,13 +1,17 @@
 language: python
 python:
-  - 3.6
+  - 2.7
+  - 3.4
 before_install:
-  - sudo add-apt-repository -y ppa:alex-p/tesseract-ocr
   - sudo apt-get -qq update
-  - make deps-ubuntu
+  - sudo apt-get install libxml2-utils libimage-exiftool-perl build-essential autoconf-archive libpango1.0-dev
+  - git clone https://github.com/OCR-D/ocrd-train
+  - cd ocrd-train
+  - sudo make LOCAL=/usr leptonica tesseract tesseract-langs
+  - cd ..
 install:
   - pip install 'git+https://github.com/sirfz/tesserocr#egg=tesserocr'
   - make deps-pip deps-pip-test
 
 script:
-  - make assets test TESSDATA_PREFIX="/usr/share/tesseract-ocr/4.00/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"
+  - make assets test TESSDATA_PREFIX="/usr/share/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"

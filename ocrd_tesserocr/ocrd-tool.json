@@ -1,0 +1,41 @@
+{
+  "version": "0.0.1",
+  "git_url": "https://github.com/OCR-D/ocrd_tesserocr",
+  "dockerhub": "ocrd/tesserocr",
+  "tools": {
+    "ocrd-tesserocr-recognize": {
+      "executable": "ocrd-tesserocr-recognize",
+      "categories": ["Text recognition and optimization"],
+      "description": "Recognize text in lines with tesseract",
+      "steps": ["recognition/text-recognition"],
+      "parameters": {
+        "textequiv_level": {
+          "type": "string",
+          "enum": ["page", "region", "line", "word", "glyph"],
+          "default": "line"
+        }
+      }
+    },
+     "ocrd-tesserocr-segment-region": {
+      "executable": "ocrd-tesserocr-segment-region",
+      "categories": ["Layout analysis"],
+      "description": "Segment regions into lines with tesseract",
+      "steps": ["layout/segmentation/region"],
+      "parameters": {}
+    },
+    "ocrd-tesserocr-segment-line": {
+      "executable": "ocrd-tesserocr-segment-line",
+      "categories": ["Layout analysis"],
+      "description": "Segment page into regions with tesseract",
+      "steps": ["layout/segmentation/line"],
+      "parameters": {}
+    },
+    "ocrd-tesserocr-segment-word": {
+      "executable": "ocrd-tesserocr-segment-word",
+      "categories": ["Layout analysis"],
+      "description": "Segment lines into words with tesseract",
+      "steps": ["layout/segmentation/word"],
+      "parameters": {}
+    }
+  }
+}
