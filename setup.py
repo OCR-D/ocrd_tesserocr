@@ -27,7 +27,7 @@ setup(
     install_requires=[
         'ocrd >= 0.3.1',
         'click',
-        'tesserocr',
+        'ocrd-fork-tesserocr >= 3.0.0rc1',
     ],
     package_data={
         '': ['*.json', '*.yml', '*.yaml'],

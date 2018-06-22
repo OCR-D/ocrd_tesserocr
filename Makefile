@@ -16,7 +16,7 @@ help:
 	@echo "  Targets"
 	@echo ""
 	@echo "    deps-ubuntu    Dependencies for deployment in an ubuntu/debian linux"
-	@echo "    patch-header   Add default parameter to regain downward compatibility
+	@echo "    patch-header   Add default parameter to regain downward compatibility"
 	@echo "    deps-pip       Install python deps via pip"
 	@echo "    deps-pip-test  Install testing deps via pip"
 	@echo "    install        Install"
