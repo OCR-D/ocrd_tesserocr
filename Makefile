@@ -32,6 +32,11 @@ help:
 
 # END-EVAL
 
+# Add default parameter to regain downward compatibility
+.PHONY: patch-header
+patch-header:
+	sed -i 's/, bool textonly[)];/, bool textonly = false);/g' /usr/include/tesseract/renderer.h
+
 # Dependencies for deployment in an ubuntu/debian linux
 deps-ubuntu:
 	sudo apt-get install -y \
@@ -41,11 +46,6 @@ deps-ubuntu:
 		libleptonica-dev \
 		tesseract-ocr-eng
 
-# Add default parameter to regain downward compatibility
-.PHONY: patch-header
-patch-header:
-	sed -i 's/, bool textonly[)];/, bool textonly = false);/g' /usr/include/tesseract/renderer.h
-
 # Install python deps via pip
 deps-pip:
 	$(PIP) install -r requirements.txt
@@ -53,6 +53,8 @@ deps-pip:
 # Install testing deps via pip
 deps-pip-test:
 	$(PIP) install -r requirements_test.txt
+
+deps: deps-ubuntu deps-pip
 
 # Install
 install:
