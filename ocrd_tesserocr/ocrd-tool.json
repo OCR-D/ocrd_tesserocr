@@ -14,7 +14,7 @@
           "enum": ["page", "region", "line", "word", "glyph"],
           "default": "line"
         },
-        "language": {
+        "model": {
           "type": "string",
           "description": "tessdata model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)"
         }

@@ -23,8 +23,8 @@ class TesserocrRecognize(Processor):
         if self.parameter['textequiv_level'] != 'line':
             raise Exception("currently only implemented at the line level")
         model = get_languages()[1][-1] # last installed model
-        if 'language' in self.parameter:
-            model = self.parameter['language']
+        if 'model' in self.parameter:
+            model = self.parameter['model']
             if model not in get_languages()[1]:
                 raise Exception("configured model " + model + " is not installed")
         with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
