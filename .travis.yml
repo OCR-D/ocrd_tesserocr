@@ -4,14 +4,14 @@ python:
   - 3.4
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install libxml2-utils libimage-exiftool-perl build-essential autoconf-archive libpango1.0-dev
+  - sudo apt-get install build-essential autoconf-archive libpango1.0-dev
   - git clone https://github.com/OCR-D/ocrd-train
   - cd ocrd-train
   - sudo make LOCAL=/usr leptonica tesseract tesseract-langs
   - cd ..
   - sudo make patch-header
 install:
-  - pip install 'git+https://github.com/sirfz/tesserocr#egg=tesserocr'
+  # - pip install 'git+https://github.com/sirfz/tesserocr#egg=tesserocr'
   - make deps-pip deps-pip-test
 
 script:

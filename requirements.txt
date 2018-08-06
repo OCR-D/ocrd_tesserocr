@@ -1,3 +1,3 @@
-ocrd >= 0.4.0
+ocrd >= 0.7.2
 click
-ocrd-fork-tesserocr >= 3.0.0rc1
+tesserocr >= 2.3.0
