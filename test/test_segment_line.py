@@ -19,7 +19,7 @@ class TestProcessorSegmentLineTesseract3(TestCase):
         os.makedirs(WORKSPACE_DIR)
 
     def runTest(self):
-        resolver = Resolver(cache_enabled=True)
+        resolver = Resolver()
         workspace = resolver.workspace_from_url(METS_HEROLD_SMALL, directory=WORKSPACE_DIR)
         TesserocrSegmentRegion(workspace, input_file_grp="INPUT", output_file_grp="OCR-D-SEG-BLOCK").process()
         #  workspace.save_mets()
