@@ -38,7 +38,7 @@ class TestTesserocrRecognize(TestCase):
             workspace,
             input_file_grp="OCR-D-SEG-LINE",
             output_file_grp="OCR-D-OCR-TESS",
-            parameter={'textequiv_level': 'word'}
+            parameter={'textequiv_level': 'line'}
         ).process()
         workspace.save_mets()
 

@@ -8,8 +8,6 @@ from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
 
 log = getLogger('processor.TesserocrRecognize')
 
-DEFAULT_MODEL = get_languages()[1][-1]
-
 class TesserocrRecognize(Processor):
 
     def __init__(self, *args, **kwargs):
@@ -22,8 +20,15 @@ class TesserocrRecognize(Processor):
         Performs the (text) recognition.
         """
         print(self.parameter)
-        with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=DEFAULT_MODEL) as tessapi:
-            log.info("Using model %s in %s for recognition", get_languages()[0], get_languages()[1][-1])
+        if self.parameter['textequiv_level'] != 'line':
+            raise Exception("currently only implemented at the line level")
+        model = get_languages()[1][-1] # last installed model
+        if 'model' in self.parameter:
+            model = self.parameter['model']
+            if model not in get_languages()[1]:
+                raise Exception("configured model " + model + " is not installed")
+        with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
+            log.info("Using model %s in %s for recognition", model, get_languages()[0])
             for (n, input_file) in enumerate(self.input_files):
                 log.info("INPUT FILE %i / %s", n, input_file)
                 pcgts = from_file(self.workspace.download_file(input_file))
