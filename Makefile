@@ -23,7 +23,7 @@ help:
 	@echo "    docker         Build docker image"
 	@echo "    test           Run test"
 	@echo "    repo/assets    Clone OCR-D/assets to ./repo/assets"
-	@echo "    assets         Setup test assets"
+	@echo "    test/assets    Setup test assets"
 	@echo "    assets-clean   Remove symlinks in test/assets"
 	@echo ""
 	@echo "  Variables"
@@ -64,9 +64,9 @@ install:
 docker:
 	docker build -t $(DOCKER_TAG) .
 
-.PHONY: test
+.PHONY: test install deps deps-ubuntu deps-pip deps-pip-test help
 # Run test
-test:
+test: test/assets
 	$(PYTHON) -m pytest test
 
 #
@@ -80,10 +80,11 @@ repo/assets:
 
 
 # Setup test assets
-assets: repo/assets
-	mkdir -p test/assets
-	cp -r -t test/assets repo/assets/data/*
+test/assets: repo/assets
+	mkdir -p $@
+	cp -r -t $@ repo/assets/data/*
 
+.PHONY: assets-clean
 # Remove symlinks in test/assets
 assets-clean:
 	rm -rf test/assets
