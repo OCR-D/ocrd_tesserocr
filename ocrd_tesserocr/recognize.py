@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from tesserocr import RIL, PSM, PyTessBaseAPI, PyResultIterator, get_languages, iterate_level
 from ocrd.utils import getLogger, concat_padded, xywh_from_points, points_from_xywh, points_from_x0y0x1y1
 from ocrd.model.ocrd_page import from_file, to_xml, TextEquivType, CoordsType, GlyphType, WordType
-from ocrd.model.ocrd_page_generateds import TextStyleType
+from ocrd.model.ocrd_page_generateds import TextStyleType, MetadataItemType, LabelsType, LabelType
 from ocrd import Processor, MIMETYPE_PAGE
 from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
 
@@ -83,6 +83,15 @@ class TesserocrRecognize(Processor):
                 # TODO use binarized / gray
                 pil_image = self.workspace.resolve_image_as_pil(pcgts.get_Page().imageFilename)
                 tessapi.SetImage(pil_image)
+                metadata = pcgts.get_Metadata() # ensured by from_file()
+                metadata.add_MetadataItem(
+                    MetadataItemType(type_="processingStep",
+                                     name=OCRD_TOOL['tools']['ocrd-tesserocr-recognize']['steps'][0],
+                                     value='ocrd-tesserocr-recognize',
+                                     Labels=[LabelsType(externalRef="parameters",
+                                                        Label=[LabelType(type_=name,
+                                                                         value=self.parameter[name])
+                                                               for name in self.parameter.keys()])]))
                 # TODO slow
                 #  tessapi.SetPageSegMode(PSM.SINGLE_LINE)
                 log.info("Recognizing text in page '%s'", pcgts.get_pcGtsId())
