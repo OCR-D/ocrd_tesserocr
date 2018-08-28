@@ -113,7 +113,7 @@ class TesserocrRecognize(Processor):
                         tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
                         if region.get_TextEquiv():
                             log.warn("Region '%s' already contains text results", region.id)
-                        region.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text()))
+                        region.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().strip()))
                         continue # next region (to avoid indentation below)
                     ## line, word, or glyph level:
                     textlines = region.get_TextLine()
@@ -132,7 +132,7 @@ class TesserocrRecognize(Processor):
                         for (word_no, conf) in enumerate(tessapi.AllWordConfidences()): # or tessapi.MeanTextConf()?
                             line_conf *= conf/100.0
                         # add line annotation unconditionally (i.e. even for word or glyph level):
-                        line.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text(), conf=line_conf))
+                        line.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().strip(), conf=line_conf))
                         if maxlevel == 'line':
                             # maybe add TextEquiv alternatives via ChoiceIterator for TEXTLINE?
                             continue # next line (to avoid indentation below)
@@ -150,7 +150,7 @@ class TesserocrRecognize(Processor):
                                 if word.get_TextEquiv():
                                     log.warn("Word '%s' already contains text results", word.id)
                                 word_conf = tessapi.AllWordConfidences()[0]/100.0
-                                word.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text(), conf=word_conf))
+                                word.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().strip(), conf=word_conf))
                                 if maxlevel == 'word':
                                     # maybe add TextEquiv alternatives via ChoiceIterator for WORD?
                                     continue # next word (to avoid indentation below)
@@ -168,7 +168,7 @@ class TesserocrRecognize(Processor):
                                         if glyph.get_TextEquiv():
                                             log.warn("Glyph '%s' already contains text results", glyph.id)
                                         glyph_conf = tessapi.AllWordConfidences()[0]/100.0
-                                        glyph.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text(), conf=glyph_conf))
+                                        glyph.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().strip(), conf=glyph_conf))
                                         # maybe add TextEquiv alternatives via ChoiceIterator for SYMBOL?
                                     continue # next word (to avoid indentation below)
                                 ## internal glyph layout:
