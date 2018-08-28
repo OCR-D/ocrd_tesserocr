@@ -12,7 +12,8 @@
         "textequiv_level": {
           "type": "string",
           "enum": ["page", "region", "line", "word", "glyph"],
-          "default": "line"
+            "default": "line",
+          "description": "PAGE XML hierarchy level at which to add the TextEquiv results (requires existing layout annotation up to one level above that)"
         },
         "model": {
           "type": "string",
