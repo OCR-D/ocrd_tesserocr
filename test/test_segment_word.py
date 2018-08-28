@@ -10,7 +10,7 @@ from ocrd_tesserocr.segment_word import TesserocrSegmentWord
 
 WORKSPACE_DIR = '/tmp/pyocrd-test-segment-word-tesserocr'
 
-class TestProcessorSegmentWordTesseract3(TestCase):
+class TestProcessorSegmentWordTesseract(TestCase):
 
     def setUp(self):
         if os.path.exists(WORKSPACE_DIR):

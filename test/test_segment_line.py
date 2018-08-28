@@ -11,7 +11,7 @@ METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/mets_one_file.xml')
 
 WORKSPACE_DIR = '/tmp/pyocrd-test-segment-line-tesserocr'
 
-class TestProcessorSegmentLineTesseract3(TestCase):
+class TestProcessorSegmentLineTesseract(TestCase):
 
     def setUp(self):
         if os.path.exists(WORKSPACE_DIR):
