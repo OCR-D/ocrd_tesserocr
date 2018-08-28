@@ -61,7 +61,7 @@ class TesserocrSegmentRegion(Processor):
                     pcgts.get_Page().add_TextRegion(TextRegionType(id=ID, Coords=CoordsType(points=points)))
 
                 ID = concat_padded(self.output_file_grp, n)
-                self.add_output_file(
+                self.workspace.add_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
                     basename=ID + '.xml',

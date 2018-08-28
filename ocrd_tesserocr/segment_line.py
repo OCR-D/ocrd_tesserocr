@@ -42,7 +42,7 @@ class TesserocrSegmentLine(Processor):
                         line_points = points_from_xywh(line_xywh)
                         region.add_TextLine(TextLineType(id=line_id, Coords=CoordsType(line_points)))
                 ID = concat_padded(self.output_file_grp, n)
-                self.add_output_file(
+                self.workspace.add_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
                     basename=ID + '.xml',
