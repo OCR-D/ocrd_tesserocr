@@ -44,7 +44,7 @@ class TesserocrSegmentWord(Processor):
                             word_xywh['y'] += offset['y']
                             line.add_Word(WordType(id=word_id, Coords=CoordsType(points_from_xywh(word_xywh))))
                 ID = concat_padded(self.output_file_grp, n)
-                self.add_output_file(
+                self.workspace.add_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
                     basename=ID + '.xml',

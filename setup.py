@@ -16,7 +16,7 @@ with codecs.open('README.rst', encoding='utf-8') as f:
 
 setup(
     name='ocrd_tesserocr',
-    version='0.0.1',
+    version='0.1.0',
     description='Tesserocr bindings',
     long_description=README,
     author='Konstantin Baierer',

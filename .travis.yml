@@ -2,6 +2,7 @@ language: python
 python:
   - 2.7
   - 3.4
+  - 3.6
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install build-essential autoconf-archive libpango1.0-dev
@@ -15,4 +16,4 @@ install:
   - make deps-pip deps-pip-test
 
 script:
-  - make assets test TESSDATA_PREFIX="/usr/share/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"
+  - make test TESSDATA_PREFIX="/usr/share/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"

@@ -1,5 +1,5 @@
 {
-  "version": "0.0.1",
+  "version": "0.1.0",
   "git_url": "https://github.com/OCR-D/ocrd_tesserocr",
   "dockerhub": "ocrd/tesserocr",
   "tools": {
@@ -12,7 +12,8 @@
         "textequiv_level": {
           "type": "string",
           "enum": ["page", "region", "line", "word", "glyph"],
-          "default": "line"
+            "default": "line",
+          "description": "PAGE XML hierarchy level at which to add the TextEquiv results (requires existing layout annotation up to one level above that)"
         },
         "model": {
           "type": "string",

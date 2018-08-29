@@ -6,6 +6,9 @@ PIP = pip
 LOG_LEVEL = INFO
 PYTHONIOENCODING=utf8
 
+# pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. Default: '$(PYTEST_ARGS)'
+PYTEST_ARGS =
+
 # Docker container tag
 DOCKER_TAG = 'ocrd/tesserocr'
 
@@ -15,20 +18,21 @@ help:
 	@echo ""
 	@echo "  Targets"
 	@echo ""
-	@echo "    deps-ubuntu    Dependencies for deployment in an ubuntu/debian linux"
 	@echo "    patch-header   Add default parameter to regain downward compatibility"
+	@echo "    deps-ubuntu    Dependencies for deployment in an ubuntu/debian linux"
 	@echo "    deps-pip       Install python deps via pip"
 	@echo "    deps-pip-test  Install testing deps via pip"
 	@echo "    install        Install"
 	@echo "    docker         Build docker image"
 	@echo "    test           Run test"
 	@echo "    repo/assets    Clone OCR-D/assets to ./repo/assets"
-	@echo "    assets         Setup test assets"
+	@echo "    test/assets    Setup test assets"
 	@echo "    assets-clean   Remove symlinks in test/assets"
 	@echo ""
 	@echo "  Variables"
 	@echo ""
-	@echo "    DOCKER_TAG  Docker container tag"
+	@echo "    PYTEST_ARGS  pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. Default: '$(PYTEST_ARGS)'"
+	@echo "    DOCKER_TAG      Docker container tag"
 
 # END-EVAL
 
@@ -64,10 +68,11 @@ install:
 docker:
 	docker build -t $(DOCKER_TAG) .
 
-.PHONY: test
+.PHONY: test install deps deps-ubuntu deps-pip deps-pip-test help
 # Run test
-test:
-	$(PYTHON) -m pytest test
+test: test/assets
+	# declare -p HTTP_PROXY
+	$(PYTHON) -m pytest test $(PYTEST_ARGS)
 
 #
 # Assets
@@ -80,10 +85,11 @@ repo/assets:
 
 
 # Setup test assets
-assets: repo/assets
-	mkdir -p test/assets
-	cp -r -t test/assets repo/assets/data/*
+test/assets: repo/assets
+	mkdir -p $@
+	cp -r -t $@ repo/assets/data/*
 
+.PHONY: assets-clean
 # Remove symlinks in test/assets
 assets-clean:
 	rm -rf test/assets
