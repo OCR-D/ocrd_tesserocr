@@ -12,7 +12,7 @@ python:
 env:
     matrix:
         # - TESSERACT=3.04.01-1
-        # - TESSERACT=3.05.02-3
+        - TESSERACT=3.05.02-3
         - TESSERACT=4.0.0-beta.4-2
 
 before_install:
@@ -29,5 +29,5 @@ install:
 
 script:
     # - make test OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"
-    - make test TESSDATA_PREFIX="/usr/share/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/" PYTEST_ARGS="-s --verbose" LC_ALL="en_US.UTF-8"
+    - make test TESSDATA_PREFIX="/usr/share/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/" PYTEST_ARGS="-s --verbose" LC_ALL="C"
 
