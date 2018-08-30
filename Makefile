@@ -18,47 +18,40 @@ help:
 	@echo ""
 	@echo "  Targets"
 	@echo ""
-	@echo "    patch-header   Add default parameter to regain downward compatibility"
-	@echo "    deps-ubuntu    Dependencies for deployment in an ubuntu/debian linux"
-	@echo "    deps-pip       Install python deps via pip"
-	@echo "    deps-pip-test  Install testing deps via pip"
-	@echo "    install        Install"
-	@echo "    docker         Build docker image"
-	@echo "    test           Run test"
-	@echo "    repo/assets    Clone OCR-D/assets to ./repo/assets"
-	@echo "    test/assets    Setup test assets"
-	@echo "    assets-clean   Remove symlinks in test/assets"
+	@echo "    patch-header  Add default parameter to regain downward compatibility"
+	@echo "    deps          Install python deps via pip"
+	@echo "    deps-test     Install testing python deps via pip"
+	@echo "    install       Install"
+	@echo "    docker        Build docker image"
+	@echo "    test          Run test"
+	@echo "    repo/assets   Clone OCR-D/assets to ./repo/assets"
+	@echo "    test/assets   Setup test assets"
+	@echo "    assets-clean  Remove symlinks in test/assets"
 	@echo ""
 	@echo "  Variables"
 	@echo ""
 	@echo "    PYTEST_ARGS  pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. Default: '$(PYTEST_ARGS)'"
-	@echo "    DOCKER_TAG      Docker container tag"
+	@echo "    DOCKER_TAG   Docker container tag"
 
 # END-EVAL
 
 # Add default parameter to regain downward compatibility
 .PHONY: patch-header
 patch-header:
+	# TODO remove if possible
 	sed -i 's/, bool textonly[)];/, bool textonly = false);/g' /usr/include/tesseract/renderer.h
 
-# Dependencies for deployment in an ubuntu/debian linux
-deps-ubuntu:
-	sudo apt-get install -y \
-		libxml2-utils \
-		libimage-exiftool-perl \
-		libtesseract-dev \
-		libleptonica-dev \
-		tesseract-ocr-eng
+# # Dependencies for deployment in an ubuntu/debian linux
+# deps-ubuntu:
+#   apt-get install -y tesseract-ocr-eng
 
 # Install python deps via pip
-deps-pip:
+deps:
 	$(PIP) install -r requirements.txt
 
-# Install testing deps via pip
-deps-pip-test:
+# Install testing python deps via pip
+deps-test:
 	$(PIP) install -r requirements_test.txt
-
-deps: deps-ubuntu deps-pip
 
 # Install
 install:
@@ -68,7 +61,7 @@ install:
 docker:
 	docker build -t $(DOCKER_TAG) .
 
-.PHONY: test install deps deps-ubuntu deps-pip deps-pip-test help
+.PHONY: test install deps deps-ubuntu deps deps-test help
 # Run test
 test: test/assets
 	# declare -p HTTP_PROXY

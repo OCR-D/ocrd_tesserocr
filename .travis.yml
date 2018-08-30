@@ -1,19 +1,33 @@
+os: linux
+dist: trusty
+sudo: true
 language: python
+
 python:
-  - 2.7
-  - 3.4
-  - 3.6
+    - 2.7
+    - 3.4
+    - 3.6
+    - 3.7-dev
+
+env:
+    matrix:
+        # - TESSERACT=3.04.01-1
+        # - TESSERACT=3.05.02-3
+        - TESSERACT=4.0.0-beta.4-2
+
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install build-essential autoconf-archive libpango1.0-dev
-  - git clone https://github.com/OCR-D/ocrd-train
-  - cd ocrd-train
-  - sudo make LOCAL=/usr leptonica tesseract tesseract-langs
-  - cd ..
-  - sudo make patch-header
+    # - export TESSERACT_INSTALL=$HOME/.tesseract
+    # - export TESSERACT_PKG=$TESSERACT_INSTALL/lib/pkgconfig
+    # - export LD_LIBRARY_PATH=$TESSERACT_INSTALL/lib:$LD_LIBRARY_PATH
+    # - export PKG_CONFIG_PATH=$TESSERACT_PKG:$PKG_CONFIG_PATH
+    - wget -O - https://github.com/nijel/tesseract-ocr-build/releases/download/$TESSERACT/tesseract.tar.xz | tar -xJf -
+    - sudo cp -rt /usr .tesseract/*
+
 install:
-  # - pip install 'git+https://github.com/sirfz/tesserocr#egg=tesserocr'
-  - make deps-pip deps-pip-test
+    # - pip install 'git+https://github.com/sirfz/tesserocr#egg=tesserocr'
+    - make deps deps-test
 
 script:
-  - make test TESSDATA_PREFIX="/usr/share/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"
+    # - make test OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"
+    - make test TESSDATA_PREFIX="/usr/share/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/" PYTEST_ARGS="-s --verbose" LC_ALL="en_US.UTF-8"
+
