@@ -143,13 +143,14 @@ class TesserocrRecognize(Processor):
                             # raise Exception("existing annotation for Word level would clash with OCR results for line '%s'", line.id) # forcing external layout annotation for words or glyphs is worse with Tesseract
                             log.warn("Line '%s' contains words already, recognition might be suboptimal", line.id)
                             for word in words:
-                                log.debug("Recognizing word in line '%s'", word.id)
+                                log.debug("Recognizing text in word '%s'", word.id)
                                 word_xywh = xywh_from_points(word.get_Coords().points)
                                 tessapi.SetRectangle(word_xywh['x'], word_xywh['y'], word_xywh['w'], word_xywh['h'])
                                 tessapi.SetPageSegMode(PSM.SINGLE_WORD)
                                 if word.get_TextEquiv():
                                     log.warn("Word '%s' already contains text results", word.id)
-                                word_conf = tessapi.AllWordConfidences()[0]/100.0
+                                word_conf = tessapi.AllWordConfidences()
+                                word_conf = word_conf[0]/100.0 if word_conf else 0.0
                                 word.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().rstrip("\n\f"), conf=word_conf))
                                 if maxlevel == 'word':
                                     # maybe add TextEquiv alternatives via ChoiceIterator for WORD?
@@ -167,7 +168,8 @@ class TesserocrRecognize(Processor):
                                         tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
                                         if glyph.get_TextEquiv():
                                             log.warn("Glyph '%s' already contains text results", glyph.id)
-                                        glyph_conf = tessapi.AllWordConfidences()[0]/100.0
+                                        glyph_conf = tessapi.AllWordConfidences()
+                                        glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 0.0
                                         glyph.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().rstrip("\n\f"), conf=glyph_conf))
                                         # maybe add TextEquiv alternatives via ChoiceIterator for SYMBOL?
                                     continue # next word (to avoid indentation below)
