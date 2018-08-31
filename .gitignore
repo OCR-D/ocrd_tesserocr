@@ -6,3 +6,5 @@ __pycache__
 repo/assets
 test/assets
 .tox
+/build
+/dist
