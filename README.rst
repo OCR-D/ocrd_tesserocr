@@ -6,6 +6,9 @@ ocrd_tesserocr
 .. image:: https://travis-ci.org/OCR-D/ocrd_tesserocr.svg?branch=master
     :target: https://travis-ci.org/OCR-D/ocrd_tesserocr
 
+.. image:: https://img.shields.io/pypi/v/ocrd_tesserocr.svg
+    :target: https://pypi.org/project/ocrd_tesserocr/
+
 .. image:: https://img.shields.io/docker/automated/ocrd/tesserocr.svg
     :target: https://hub.docker.com/r/ocrd/tesserocr/tags/
     :alt: Docker Automated build
