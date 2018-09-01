@@ -128,9 +128,7 @@ class TesserocrRecognize(Processor):
                         if line.get_TextEquiv():
                             log.warn("Line '%s' already contains text results", line.id)
                         #  tessapi.G
-                        line_conf = 1.0
-                        for (word_no, conf) in enumerate(tessapi.AllWordConfidences()): # or tessapi.MeanTextConf()?
-                            line_conf *= conf/100.0
+                        line_conf = tessapi.MeanTextConf()/100.0 # iterator scores are arithmetic averages, too
                         # add line annotation unconditionally (i.e. even for word or glyph level):
                         line.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().rstrip("\n\f"), conf=line_conf))
                         if maxlevel == 'line':
