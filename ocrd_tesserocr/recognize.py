@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import locale
+locale.setlocale(locale.LC_ALL, 'C') # circumvent tesseract-ocr issue 1670 (which cannot be done on command line because Click requires an UTF-8 locale in Python 3)
+
 from tesserocr import RIL, PSM, PyTessBaseAPI, PyResultIterator, get_languages, iterate_level
 from ocrd.utils import getLogger, concat_padded, xywh_from_points, points_from_xywh, points_from_x0y0x1y1
 from ocrd.model.ocrd_page import from_file, to_xml, TextEquivType, CoordsType, GlyphType, WordType
@@ -33,6 +36,7 @@ class TesserocrRecognize(Processor):
                 raise Exception("configured model " + model + " is not installed")
         with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
             log.info("Using model '%s' in %s for recognition at the %s level", model, get_languages()[0], maxlevel)
+            tessapi.SetVariable("glyph_confidences", "2") # populate GetChoiceIterator() with LSTM models, too
             # tessapi.SetVariable("tessedit_single_match", "0")
             # 
             # tessedit_load_sublangs
