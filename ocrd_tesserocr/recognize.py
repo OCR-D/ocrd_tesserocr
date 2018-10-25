@@ -2,14 +2,15 @@ from __future__ import absolute_import
 
 import locale
 
+# pylint: disable=wrong-import-position
+locale.setlocale(locale.LC_ALL, 'C') # circumvent tesseract-ocr issue 1670 (which cannot be done on command line because Click requires an UTF-8 locale in Python 3)
+
 from tesserocr import RIL, PSM, PyTessBaseAPI, get_languages
 from ocrd.utils import getLogger, concat_padded, xywh_from_points, points_from_x0y0x1y1
 from ocrd.model.ocrd_page import from_file, to_xml, TextEquivType, CoordsType, GlyphType, WordType
 from ocrd.model.ocrd_page_generateds import TextStyleType, MetadataItemType, LabelsType, LabelType
 from ocrd import Processor, MIMETYPE_PAGE
 from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
-
-locale.setlocale(locale.LC_ALL, 'C') # circumvent tesseract-ocr issue 1670 (which cannot be done on command line because Click requires an UTF-8 locale in Python 3)
 
 log = getLogger('processor.TesserocrRecognize')
 
