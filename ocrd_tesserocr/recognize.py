@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
 import locale
-locale.setlocale(locale.LC_ALL, 'C') # circumvent tesseract-ocr issue 1670 (which cannot be done on command line because Click requires an UTF-8 locale in Python 3)
 
-from tesserocr import RIL, PSM, PyTessBaseAPI, PyResultIterator, get_languages, iterate_level
-from ocrd.utils import getLogger, concat_padded, xywh_from_points, points_from_xywh, points_from_x0y0x1y1
+from tesserocr import RIL, PSM, PyTessBaseAPI, get_languages
+from ocrd.utils import getLogger, concat_padded, xywh_from_points, points_from_x0y0x1y1
 from ocrd.model.ocrd_page import from_file, to_xml, TextEquivType, CoordsType, GlyphType, WordType
 from ocrd.model.ocrd_page_generateds import TextStyleType, MetadataItemType, LabelsType, LabelType
 from ocrd import Processor, MIMETYPE_PAGE
 from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
+
+locale.setlocale(locale.LC_ALL, 'C') # circumvent tesseract-ocr issue 1670 (which cannot be done on command line because Click requires an UTF-8 locale in Python 3)
 
 log = getLogger('processor.TesserocrRecognize')
 
@@ -28,6 +29,7 @@ class TesserocrRecognize(Processor):
         Performs the (text) recognition.
         """
         # print(self.parameter)
+        log.debug("TESSDATA: %s, installed tesseract models: %s", *get_languages())
         maxlevel = self.parameter['textequiv_level']
         model = get_languages()[1][-1] # last installed model
         if 'model' in self.parameter:
@@ -38,7 +40,7 @@ class TesserocrRecognize(Processor):
             log.info("Using model '%s' in %s for recognition at the %s level", model, get_languages()[0], maxlevel)
             tessapi.SetVariable("glyph_confidences", "2") # populate GetChoiceIterator() with LSTM models, too
             # tessapi.SetVariable("tessedit_single_match", "0")
-            # 
+            #
             # tessedit_load_sublangs
             # tessedit_preserve_min_wd_len 2
             # tessedit_prefer_joined_punct 0
