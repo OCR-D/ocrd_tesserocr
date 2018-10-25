@@ -235,21 +235,23 @@ class TesserocrRecognize(Processor):
                 ## external glyph layout:
                 # raise Exception("existing annotation for Glyph level would clash with OCR results for word '%s'", word.id) # forcing external layout annotation for gylphs is worse with Tesseract
                 log.warning("Word '%s' contains glyphs already, recognition might be suboptimal", word.id)
-                for glyph in glyphs:
-                    log.debug("Recognizing glyph in word '%s'", glyph.id)
-                    glyph_xywh = xywh_from_points(glyph.get_Coords().points)
-                    tessapi.SetRectangle(glyph_xywh['x'], glyph_xywh['y'], glyph_xywh['w'], glyph_xywh['h'])
-                    tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
-                    if glyph.get_TextEquiv():
-                        log.warning("Glyph '%s' already contains text results", glyph.id)
-                    glyph_conf = tessapi.AllWordConfidences()
-                    glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 0.0
-                    glyph.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().rstrip("\n\f"), conf=glyph_conf))
-                    # maybe add TextEquiv alternatives via ChoiceIterator for SYMBOL?
-                continue # next word (to avoid indentation below)
-            ## internal glyph layout:
-            result_it = tessapi.GetIterator()
-            self._process_glyphs_in_word(word, result_it)
+                self._process_existing_glyphs(glyphs, tessapi)
+            else:
+                ## internal glyph layout:
+                self._process_glyphs_in_word(word, tessapi.GetIterator())
+
+    def _process_existing_glyphs(self, glyphs, tessapi):
+        for glyph in glyphs:
+            log.debug("Recognizing glyph in word '%s'", glyph.id)
+            glyph_xywh = xywh_from_points(glyph.get_Coords().points)
+            tessapi.SetRectangle(glyph_xywh['x'], glyph_xywh['y'], glyph_xywh['w'], glyph_xywh['h'])
+            tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
+            if glyph.get_TextEquiv():
+                log.warning("Glyph '%s' already contains text results", glyph.id)
+            glyph_conf = tessapi.AllWordConfidences()
+            glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 0.0
+            glyph.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().rstrip("\n\f"), conf=glyph_conf))
+            # TODO maybe add TextEquiv alternatives via ChoiceIterator for SYMBOL?
 
     def _process_glyphs_in_word(self, word, result_it):
         for glyph_no in range(0, MAX_ELEMENTS): # iterate until IsAtFinalElement(RIL.WORD, RIL.SYMBOL)
