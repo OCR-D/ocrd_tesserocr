@@ -67,6 +67,16 @@ test: test/assets
 	# declare -p HTTP_PROXY
 	$(PYTHON) -m pytest test $(PYTEST_ARGS)
 
+test-cli: test/assets
+	pip install -e .
+	rm -fv test-workspace
+	cp -rv test/assets/kant_aufklaerung_1784 test-workspace
+	cd test-workspace && \
+		ocrd-tesserocr-segment-region -m mets.xml -I OCR-D-IMG -O OCR-D-SEG-BLOCK ; \
+		ocrd-tesserocr-segment-line -m mets.xml -I OCR-D-SEG-BLOCK -O OCR-D-SEG-LINE ; \
+		ocrd-tesserocr-recognize -m mets.xml -I OCR-D-SEG-LINE -O OCR-D-TESS-OCR
+
+
 #
 # Assets
 #
