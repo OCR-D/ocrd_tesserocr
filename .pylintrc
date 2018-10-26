@@ -5,6 +5,8 @@ ignored-modules=cv2,tesserocr
 [MESSAGES CONTROL]
 disable =
     ungrouped-imports,
+    fixme,
+    bad-continuation,
     missing-docstring,
     no-self-use,
     too-many-arguments,
