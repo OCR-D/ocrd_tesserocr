@@ -113,11 +113,11 @@ class TesserocrRecognize(Processor):
                 if not regions:
                     log.warning("Page contains no text regions")
                 self._process_regions(regions, maxlevel, tessapi)
-                ID = concat_padded(self.output_file_grp, n)
+                ID = concat_padded(self.output_file_grp, int(re.replace('[^\d]', '', input_file.ID)))
                 self.workspace.add_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
-                    basename=ID + '.xml',
+                    basename="%s.xml" % ID,
                     mimetype=MIMETYPE_PAGE,
                     content=to_xml(pcgts),
                 )
