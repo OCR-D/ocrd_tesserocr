@@ -6,6 +6,16 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.1.3] - 2019-01-04
+
+Fixed:
+
+  * Override locale to POSIX before importing tesserocr
+
+Changed:
+
+  * split recognizing existing glyphs vs. all in word
+
 ## [0.1.2] - 2018-09-03
 
 Fixed:
@@ -27,6 +37,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.1.3]: v0.1.3...v0.1.2
 [0.1.2]: v0.1.2...v0.1.1
 [0.1.1]: v0.1.1...v0.1.0
 [0.1.0]: ../../compare/HEAD...v0.1.0
