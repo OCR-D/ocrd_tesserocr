@@ -21,8 +21,8 @@ class TestTesserocrRecognize(TestCase):
     #skip("Takes too long")
     def runTest(self):
         resolver = Resolver()
-        #  workspace = resolver.workspace_from_url(assets.url_of('SBB0000F29300010000/mets_one_file.xml'), directory=WORKSPACE_DIR)
-        workspace = resolver.workspace_from_url(assets.url_of('kant_aufklaerung_1784-page-block-line-word/mets.xml'), directory=WORKSPACE_DIR)
+        #  workspace = resolver.workspace_from_url(assets.url_of('SBB0000F29300010000/data/mets_one_file.xml'), src_dir=WORKSPACE_DIR)
+        workspace = resolver.workspace_from_url(assets.url_of('kant_aufklaerung_1784-page-block-line-word/data/mets.xml'), src_dir=WORKSPACE_DIR)
         TesserocrSegmentRegion(
             workspace,
             input_file_grp="OCR-D-IMG",

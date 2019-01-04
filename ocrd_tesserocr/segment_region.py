@@ -28,8 +28,9 @@ class TesserocrSegmentRegion(Processor):
         Performs the region segmentation.
         """
         with tesserocr.PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
-            print(self.input_file_grp)
+            #  print(self.input_file_grp)
             for (n, input_file) in enumerate(self.input_files):
+                #  print(input_file)
                 pcgts = from_file(self.workspace.download_file(input_file))
                 image = self.workspace.resolve_image_as_pil(pcgts.get_Page().imageFilename)
                 log.debug("Detecting regions with tesseract")

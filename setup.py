@@ -25,7 +25,7 @@ setup(
     license='Apache License 2.0',
     packages=find_packages(exclude=('tests', 'docs')),
     install_requires=[
-        'ocrd >= 0.7.2',
+        'ocrd >= 0.15.0',
         'tesserocr >= 2.3.0',
         'click',
     ],
