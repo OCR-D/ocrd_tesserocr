@@ -1,16 +1,17 @@
 from __future__ import absolute_import
 import tesserocr
-from ocrd.utils import getLogger, concat_padded, points_from_xywh
-from ocrd.model.ocrd_page import (
+from ocrd_utils import getLogger, concat_padded, points_from_xywh, MIMETYPE_PAGE
+from ocrd_modelfactory import page_from_file
+from ocrd_models.ocrd_page import (
+    CoordsType,
+    OrderedGroupType,
     ReadingOrderType,
     RegionRefIndexedType,
     TextRegionType,
-    CoordsType,
-    OrderedGroupType,
-    from_file,
+
     to_xml
 )
-from ocrd import Processor, MIMETYPE_PAGE
+from ocrd import Processor
 
 from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
 
@@ -31,7 +32,7 @@ class TesserocrSegmentRegion(Processor):
             #  print(self.input_file_grp)
             for (n, input_file) in enumerate(self.input_files):
                 #  print(input_file)
-                pcgts = from_file(self.workspace.download_file(input_file))
+                pcgts = page_from_file(self.workspace.download_file(input_file))
                 image = self.workspace.resolve_image_as_pil(pcgts.get_Page().imageFilename)
                 log.debug("Detecting regions with tesseract")
                 tessapi.SetImage(image)

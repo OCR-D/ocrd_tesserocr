@@ -3,7 +3,7 @@ import shutil
 
 from test.base import TestCase, main, assets
 
-from ocrd.resolver import Resolver
+from ocrd import Resolver
 from ocrd_tesserocr.segment_region import TesserocrSegmentRegion
 from ocrd_tesserocr.segment_line import TesserocrSegmentLine
 from ocrd_tesserocr.segment_word import TesserocrSegmentWord
