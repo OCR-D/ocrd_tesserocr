@@ -26,7 +26,7 @@ setup(
     packages=find_packages(exclude=('tests', 'docs')),
     install_requires=[
         'ocrd >= 0.15.0',
-        'tesserocr >= 2.3.0',
+        'tesserocr >= 2.3.1',
         'click',
     ],
     package_data={

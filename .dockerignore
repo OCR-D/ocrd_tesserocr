@@ -2,7 +2,12 @@
 !Makefile
 !setup.py
 !requirements.txt
+!requirements_test.txt
 !LICENSE
 !README.rst
 
-!ocrd_tesserocr
+# avoid .git and __pycache__ etc:
+!ocrd_tesserocr/**/*.py
+!ocrd_tesserocr/**/*.json
+!test/**/*.py
+
