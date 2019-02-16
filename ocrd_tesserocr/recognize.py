@@ -39,7 +39,9 @@ class TesserocrRecognize(Processor):
                 raise Exception("configured model " + model + " is not installed")
         with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
             log.info("Using model '%s' in %s for recognition at the %s level", model, get_languages()[0], maxlevel)
-            tessapi.SetVariable("glyph_confidences", "2") # populate GetChoiceIterator() with LSTM models, too
+            # todo: populate GetChoiceIterator() with LSTM models, too:
+            #tessapi.SetVariable("lstm_choice_mode", "2")
+            # todo: determine relevancy of these variables:
             # tessapi.SetVariable("tessedit_single_match", "0")
             #
             # tessedit_load_sublangs
@@ -99,17 +101,8 @@ class TesserocrRecognize(Processor):
                                                         Label=[LabelType(type_=name,
                                                                          value=self.parameter[name])
                                                                for name in self.parameter.keys()])]))
-                # TODO slow
-                #  tessapi.SetPageSegMode(PSM.SINGLE_LINE)
                 log.info("Recognizing text in page '%s'", pcgts.get_pcGtsId())
-                page = pcgts.get_Page()
-                if maxlevel == 'page':
-                    # not sure what to do here:
-                    # - We cannot simply do GetUTF8Text(), because there is no TextEquiv on the page level.
-                    # - We could GetComponentImages(RIL.BLOCK) and add a text region for each, then enter region level recognition below. But what if regions are already annotated? How to go about non-text blocks?
-                    raise Exception("currently only implemented below the page level")
-                ## region, line, word, or glyph level:
-                regions = page.get_TextRegion()
+                regions = pcgts.get_Page().get_TextRegion()
                 if not regions:
                     log.warning("Page contains no text regions")
                 self._process_regions(regions, maxlevel, tessapi)
@@ -125,6 +118,23 @@ class TesserocrRecognize(Processor):
     def _process_regions(self, regions, maxlevel, tessapi):
         for region in regions:
             log.debug("Recognizing text in region '%s'", region.id)
+            # todo: determine if and how this can still be used for region classification:
+            # result_it = tessapi.GetIterator()
+            # if not result_it or result_it.Empty(RIL.BLOCK)
+            # ptype = result_it.BlockType()
+            # PT.UNKNOWN
+            # PT.FLOWING_TEXT
+            # PT.HEADING_TEXT
+            # PT.PULLOUT_TEXT
+            # PT.EQUATION
+            # PT.TABLE
+            # PT.VERTICAL_TEXT
+            # PT.CAPTION_TEXT
+            # PT.HORZ_LINE
+            # PT.VERT_LINE
+            # PT.NOISE
+            # PT.COUNT
+            # ...
             if maxlevel == 'region':
                 region_xywh = xywh_from_points(region.get_Coords().points)
                 tessapi.SetRectangle(region_xywh['x'], region_xywh['y'], region_xywh['w'], region_xywh['h'])
@@ -149,12 +159,10 @@ class TesserocrRecognize(Processor):
             tessapi.SetPageSegMode(PSM.SINGLE_LINE) # RAW_LINE fails with Tesseract 3 models and is worse with Tesseract 4 models
             if line.get_TextEquiv():
                 log.warning("Line '%s' already contains text results", line.id)
-            #  tessapi.G
             line_conf = tessapi.MeanTextConf()/100.0 # iterator scores are arithmetic averages, too
             # add line annotation unconditionally (i.e. even for word or glyph level):
             line.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().rstrip("\n\f"), conf=line_conf))
             if maxlevel == 'line':
-                # maybe add TextEquiv alternatives via ChoiceIterator for TEXTLINE?
                 continue # next line (to avoid indentation below)
             ## word, or glyph level:
             words = line.get_Word()
@@ -170,6 +178,9 @@ class TesserocrRecognize(Processor):
     def _process_words_in_line(self, line, maxlevel, tessapi):
         result_it = tessapi.GetIterator()
         for word_no in range(0, MAX_ELEMENTS): # iterate until IsAtFinalElement(RIL.LINE, RIL.WORD)
+            if not result_it:
+                log.error("No iterator at '%s'", line.id)
+                break
             if result_it.Empty(RIL.WORD):
                 log.debug("No word here")
                 break
@@ -178,6 +189,7 @@ class TesserocrRecognize(Processor):
             word_bbox = result_it.BoundingBox(RIL.WORD)
             word = WordType(id=word_id, Coords=CoordsType(points_from_x0y0x1y1(word_bbox)))
             line.add_Word(word)
+            # todo: determine if font attributes available for word level will work with LSTM models
             word_attributes = result_it.WordFontAttributes()
             if word_attributes:
                 word_style = TextStyleType(fontSize=word_attributes['pointsize'] if 'pointsize' in word_attributes else None,
@@ -189,24 +201,9 @@ class TesserocrRecognize(Processor):
                                            serif=None if 'serif' not in word_attributes else word_attributes['serif']
                                            )
                 word.set_TextStyle(word_style) # (or somewhere in custom attribute?)
-            # word_type = result_it.BlockType()
-            # PT.UNKNOWN
-            # PT.FLOWING_TEXT
-            # PT.HEADING_TEXT
-            # PT.PULLOUT_TEXT
-            # PT.EQUATION
-            # PT.TABLE
-            # PT.VERTICAL_TEXT
-            # PT.CAPTION_TEXT
-            # PT.HORZ_LINE
-            # PT.VERT_LINE
-            # PT.NOISE
-            # PT.COUNT
-            # ...
             # add word annotation unconditionally (i.e. even for glyph level):
             word.add_TextEquiv(TextEquivType(Unicode=result_it.GetUTF8Text(RIL.WORD), conf=result_it.Confidence(RIL.WORD)/100))
             if maxlevel == 'word':
-                # maybe add TextEquiv alternatives via ChoiceIterator for WORD?
                 pass
             else:
                 self._process_glyphs_in_word(word, result_it)
@@ -227,7 +224,6 @@ class TesserocrRecognize(Processor):
             word_conf = word_conf[0]/100.0 if word_conf else 0.0
             word.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().rstrip("\n\f"), conf=word_conf))
             if maxlevel == 'word':
-                # maybe add TextEquiv alternatives via ChoiceIterator for WORD?
                 continue # next word (to avoid indentation below)
             ## glyph level:
             glyphs = word.get_Glyph()
@@ -248,13 +244,29 @@ class TesserocrRecognize(Processor):
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
             if glyph.get_TextEquiv():
                 log.warning("Glyph '%s' already contains text results", glyph.id)
+            #glyph_symb = tessapi.GetUTF8Text().rstrip("\n\f")
             glyph_conf = tessapi.AllWordConfidences()
             glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 0.0
-            glyph.add_TextEquiv(TextEquivType(Unicode=tessapi.GetUTF8Text().rstrip("\n\f"), conf=glyph_conf))
-            # TODO maybe add TextEquiv alternatives via ChoiceIterator for SYMBOL?
-
+            #log.debug('best glyph: "%s" [%f]', glyph_symb, glyph_conf)
+            result_it = tessapi.GetIterator()
+            if not result_it or result_it.Empty(RIL.SYMBOL):
+                log.error("No glyph here")
+                continue
+            choice_it = result_it.GetChoiceIterator()
+            for (choice_no, choice) in enumerate(choice_it):
+                alternative_symb = choice.GetUTF8Text()
+                alternative_conf = choice.Confidence()/100
+                #log.debug('alternative glyph: "%s" [%f]', alternative_symb, alternative_conf)
+                if (glyph_conf - alternative_conf > CHOICE_THRESHOLD_CONF or
+                    choice_no > CHOICE_THRESHOLD_NUM):
+                    break
+                glyph.add_TextEquiv(TextEquivType(index=choice_no, conf=alternative_conf, Unicode=alternative_symb))
+    
     def _process_glyphs_in_word(self, word, result_it):
         for glyph_no in range(0, MAX_ELEMENTS): # iterate until IsAtFinalElement(RIL.WORD, RIL.SYMBOL)
+            if not result_it:
+                log.error("No iterator at '%s'", word.id)
+                break
             if result_it.Empty(RIL.SYMBOL):
                 log.debug("No glyph here")
                 break
@@ -262,6 +274,7 @@ class TesserocrRecognize(Processor):
             log.debug("Recognizing text in glyph '%s'", glyph_id)
             #  glyph_symb = result_it.GetUTF8Text(RIL.SYMBOL) # equals first choice?
             glyph_conf = result_it.Confidence(RIL.SYMBOL)/100 # equals first choice?
+            #log.debug('best glyph: "%s" [%f]', glyph_symb, glyph_conf)
             glyph_bbox = result_it.BoundingBox(RIL.SYMBOL)
             glyph = GlyphType(id=glyph_id, Coords=CoordsType(points_from_x0y0x1y1(glyph_bbox)))
             word.add_Glyph(glyph)
@@ -269,7 +282,8 @@ class TesserocrRecognize(Processor):
             for (choice_no, choice) in enumerate(choice_it):
                 alternative_symb = choice.GetUTF8Text()
                 alternative_conf = choice.Confidence()/100
-                if (glyph_conf-alternative_conf > CHOICE_THRESHOLD_CONF or
+                #log.debug('alternative glyph: "%s" [%f]', alternative_symb, alternative_conf)
+                if (glyph_conf - alternative_conf > CHOICE_THRESHOLD_CONF or
                     choice_no > CHOICE_THRESHOLD_NUM):
                     break
                 glyph.add_TextEquiv(TextEquivType(index=choice_no, conf=alternative_conf, Unicode=alternative_symb))
