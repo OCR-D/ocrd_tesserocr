@@ -178,6 +178,7 @@ class TesserocrRecognize(Processor):
                 self._process_existing_words(words, maxlevel, tessapi)
             else:
                 ## internal word and glyph layout:
+                tessapi.Recognize()
                 self._process_words_in_line(line, maxlevel, tessapi.GetIterator())
 
     def _process_words_in_line(self, line, maxlevel, result_it):
@@ -240,6 +241,7 @@ class TesserocrRecognize(Processor):
                 self._process_existing_glyphs(glyphs, tessapi)
             else:
                 ## internal glyph layout:
+                tessapi.Recognize()
                 self._process_glyphs_in_word(word, tessapi.GetIterator())
 
     def _process_existing_glyphs(self, glyphs, tessapi):
