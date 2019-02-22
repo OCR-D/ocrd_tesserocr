@@ -18,7 +18,7 @@ help:
 	@echo ""
 	@echo "  Targets"
 	@echo ""
-	@echo "    patch-header  Add default parameter to regain downward compatibility"
+	@echo "    deps-ubuntu   Dependencies for deployment in an ubuntu/debian linux"
 	@echo "    deps          Install python deps via pip"
 	@echo "    deps-test     Install testing python deps via pip"
 	@echo "    install       Install"
@@ -35,15 +35,21 @@ help:
 
 # END-EVAL
 
-# Add default parameter to regain downward compatibility
-.PHONY: patch-header
-patch-header:
-	# TODO remove if possible
-	sed -i 's/, bool textonly[)];/, bool textonly = false);/g' /usr/include/tesseract/renderer.h
-
-# # Dependencies for deployment in an ubuntu/debian linux
-# deps-ubuntu:
-#   apt-get install -y tesseract-ocr-eng
+# Dependencies for deployment in an ubuntu/debian linux
+# (lib*-dev merely for building tesserocr with pip)
+# (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0,
+#  but some beta, not the final release,
+#  on which tesserocr 2.4.0 depends,
+#  but we can instead downgrade to 2.3.1;
+#  in the future, however, we might require
+#  a tesseract build from git)
+deps-ubuntu:
+	sudo apt-get install -y \
+		libxml2-utils \
+		libimage-exiftool-perl \
+		libtesseract-dev \
+		libleptonica-dev \
+		tesseract-ocr tesseract-ocr-eng
 
 # Install python deps via pip
 deps:
@@ -61,7 +67,6 @@ install:
 docker:
 	docker build -t $(DOCKER_TAG) .
 
-.PHONY: test install deps deps-ubuntu deps deps-test help
 # Run test
 test: test/assets
 	# declare -p HTTP_PROXY
@@ -71,11 +76,12 @@ test-cli: test/assets
 	pip install -e .
 	rm -rfv test-workspace
 	cp -rv test/assets/kant_aufklaerung_1784 test-workspace
-	cd test-workspace && \
+	cd test-workspace/data && \
 		ocrd-tesserocr-segment-region -l DEBUG -m mets.xml -I OCR-D-IMG -O OCR-D-SEG-BLOCK ; \
 		ocrd-tesserocr-segment-line   -l DEBUG -m mets.xml -I OCR-D-SEG-BLOCK -O OCR-D-SEG-LINE ; \
 		ocrd-tesserocr-recognize      -l DEBUG -m mets.xml -I OCR-D-SEG-LINE -O OCR-D-TESS-OCR
 
+.PHONY: test test-cli install deps deps-ubuntu deps-test help
 
 #
 # Assets

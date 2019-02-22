@@ -8,6 +8,7 @@ ENV LANG C.UTF-8
 WORKDIR /build-ocrd
 COPY setup.py .
 COPY requirements.txt .
+COPY requirements_test.txt .
 COPY README.rst .
 COPY LICENSE .
 RUN apt-get update && \
@@ -18,18 +19,10 @@ RUN apt-get update && \
     git
 COPY Makefile .
 RUN make deps-ubuntu
-RUN sudo make patch-header
-RUN git clone https://github.com/sirfz/tesserocr && \
-    cd tesserocr && \
-    python3 setup.py install && \
-    cd .. && \
-    mkdir data
-RUN git clone https://github.com/OCR-D/core && \
-    cd core && \
-    python3 setup.py install && \
-    cd ..
 COPY ocrd_tesserocr ./ocrd_tesserocr
 RUN pip3 install --upgrade pip
-RUN make deps-pip install
+RUN make PYTHON=python3 PIP=pip3 deps install
+COPY test ./test
+RUN make PYTHON=python3 PIP=pip3 deps-test
 
 ENTRYPOINT ["/bin/sh", "-c"]

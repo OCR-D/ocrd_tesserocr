@@ -7,6 +7,15 @@
       "executable": "ocrd-tesserocr-recognize",
       "categories": ["Text recognition and optimization"],
       "description": "Recognize text in lines with tesseract",
+      "input_file_grp": [
+        "OCR-D-SEG-BLOCK",
+        "OCR-D-SEG-LINE",
+        "OCR-D-SEG-WORD",
+        "OCR-D-SEG-GLYPH"
+      ],
+      "output_file_grp": [
+        "OCR-D-OCR-TESS"
+      ],
       "steps": ["recognition/text-recognition"],
       "parameters": {
         "textequiv_level": {
@@ -25,6 +34,12 @@
       "executable": "ocrd-tesserocr-segment-region",
       "categories": ["Layout analysis"],
       "description": "Segment regions into lines with tesseract",
+      "input_file_grp": [
+        "OCR-D-IMG"
+      ],
+      "output_file_grp": [
+        "OCR-D-SEG-BLOCK"
+      ],
       "steps": ["layout/segmentation/region"],
       "parameters": {}
     },
@@ -32,6 +47,12 @@
       "executable": "ocrd-tesserocr-segment-line",
       "categories": ["Layout analysis"],
       "description": "Segment page into regions with tesseract",
+      "input_file_grp": [
+        "OCR-D-SEG-BLOCK"
+      ],
+      "output_file_grp": [
+        "OCR-D-SEG-LINE"
+      ],
       "steps": ["layout/segmentation/line"],
       "parameters": {}
     },
@@ -39,6 +60,12 @@
       "executable": "ocrd-tesserocr-segment-word",
       "categories": ["Layout analysis"],
       "description": "Segment lines into words with tesseract",
+      "input_file_grp": [
+        "OCR-D-SEG-LINE"
+      ],
+      "output_file_grp": [
+        "OCR-D-SEG-WORD"
+      ],
       "steps": ["layout/segmentation/word"],
       "parameters": {}
     }

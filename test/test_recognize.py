@@ -9,6 +9,9 @@ from ocrd_tesserocr.segment_line import TesserocrSegmentLine
 from ocrd_tesserocr.segment_region import TesserocrSegmentRegion
 from ocrd_tesserocr.recognize import TesserocrRecognize
 
+#METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/data/mets_one_file.xml')
+METS_HEROLD_SMALL = assets.url_of('kant_aufklaerung_1784/data/mets.xml')
+
 WORKSPACE_DIR = '/tmp/pyocrd-test-recognizer'
 
 class TestTesserocrRecognize(TestCase):
@@ -21,8 +24,7 @@ class TestTesserocrRecognize(TestCase):
     #skip("Takes too long")
     def runTest(self):
         resolver = Resolver()
-        #  workspace = resolver.workspace_from_url(assets.url_of('SBB0000F29300010000/data/mets_one_file.xml'), src_dir=WORKSPACE_DIR)
-        workspace = resolver.workspace_from_url(assets.url_of('kant_aufklaerung_1784-page-block-line-word/data/mets.xml'), src_dir=WORKSPACE_DIR)
+        workspace = resolver.workspace_from_url(METS_HEROLD_SMALL, dst_dir=WORKSPACE_DIR)
         TesserocrSegmentRegion(
             workspace,
             input_file_grp="OCR-D-IMG",
