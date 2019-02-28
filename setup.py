@@ -13,7 +13,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='ocrd_tesserocr',
-    version='0.2.0',
+    version='0.2.1',
     description='Tesserocr bindings',
     long_description=codecs.open('README.rst', encoding='utf-8').read(),
     author='Konstantin Baierer',

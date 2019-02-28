@@ -6,6 +6,18 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.2.1] - 2019-02-28
+
+Fixed:
+
+  * workspace.add_file was wrong in segment_word
+
+## [0.2.0] - 2019-02-28
+
+Changed:
+
+  * Adapt to OCR-D/core 1.0.0b5 API
+
 ## [0.1.3] - 2019-01-04
 
 Fixed:
