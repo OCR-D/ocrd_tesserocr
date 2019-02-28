@@ -6,11 +6,22 @@ import locale
 locale.setlocale(locale.LC_ALL, 'C') # circumvent tesseract-ocr issue 1670 (which cannot be done on command line because Click requires an UTF-8 locale in Python 3)
 
 from tesserocr import RIL, PSM, PyTessBaseAPI, get_languages
-from ocrd.utils import getLogger, concat_padded, xywh_from_points, points_from_x0y0x1y1
-from ocrd.model.ocrd_page import from_file, to_xml, TextEquivType, CoordsType, GlyphType, WordType
-from ocrd.model.ocrd_page_generateds import TextStyleType, MetadataItemType, LabelsType, LabelType
-from ocrd import Processor, MIMETYPE_PAGE
-from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
+
+from ocrd_utils import getLogger, concat_padded, xywh_from_points, points_from_x0y0x1y1, MIMETYPE_PAGE
+from ocrd_modelfactory import page_from_file
+from ocrd_models.ocrd_page import (
+    CoordsType,
+    GlyphType,
+    LabelType,
+    LabelsType,
+    MetadataItemType,
+    TextEquivType,
+    TextStyleType,
+
+    to_xml
+)
+from ocrd import Processor
+from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 log = getLogger('processor.TesserocrRecognize')
 
@@ -88,7 +99,7 @@ class TesserocrRecognize(Processor):
             # user_patterns_file
             for (n, input_file) in enumerate(self.input_files):
                 log.info("INPUT FILE %i / %s", n, input_file)
-                pcgts = from_file(self.workspace.download_file(input_file))
+                pcgts = page_from_file(self.workspace.download_file(input_file))
                 # TODO use binarized / gray
                 pil_image = self.workspace.resolve_image_as_pil(pcgts.get_Page().imageFilename)
                 tessapi.SetImage(pil_image)
@@ -110,8 +121,8 @@ class TesserocrRecognize(Processor):
                 self.workspace.add_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
-                    basename=ID + '.xml',
                     mimetype=MIMETYPE_PAGE,
+                    local_filename='%s/%s' % (self.output_file_grp, ID),
                     content=to_xml(pcgts),
                 )
 

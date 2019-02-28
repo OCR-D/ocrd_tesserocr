@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 from tesserocr import PyTessBaseAPI, RIL
-from ocrd import Processor, MIMETYPE_PAGE
-from ocrd.utils import getLogger, concat_padded, points_from_xywh, polygon_from_points, xywh_from_points
-from ocrd.model.ocrd_page import (
+from ocrd import Processor
+from ocrd_utils import getLogger, concat_padded, points_from_xywh, polygon_from_points, xywh_from_points, MIMETYPE_PAGE
+from ocrd_modelfactory import page_from_file
+from ocrd_models.ocrd_page import (
     CoordsType,
     TextLineType,
-    from_file,
+
     to_xml
 )
 
@@ -27,7 +28,7 @@ class TesserocrSegmentLine(Processor):
         """
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             for (n, input_file) in enumerate(self.input_files):
-                pcgts = from_file(self.workspace.download_file(input_file))
+                pcgts = page_from_file(self.workspace.download_file(input_file))
                 image_url = pcgts.get_Page().imageFilename
                 for region in pcgts.get_Page().get_TextRegion():
                     log.debug("Detecting lines in %s with tesseract", region.id)
@@ -45,7 +46,7 @@ class TesserocrSegmentLine(Processor):
                 self.workspace.add_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
-                    basename=ID + '.xml',
                     mimetype=MIMETYPE_PAGE,
+                    local_filename='%s/%s' % (self.output_file_grp, ID),
                     content=to_xml(pcgts).encode('utf-8'),
                 )

@@ -16,7 +16,7 @@ with codecs.open('README.rst', encoding='utf-8') as f:
 
 setup(
     name='ocrd_tesserocr',
-    version='0.1.3',
+    version='0.2.0a1',
     description='Tesserocr bindings',
     long_description=README,
     author='Konstantin Baierer',
@@ -24,11 +24,7 @@ setup(
     url='https://github.com/kba/ocrd_tesserocr',
     license='Apache License 2.0',
     packages=find_packages(exclude=('tests', 'docs')),
-    install_requires=[
-        'ocrd >= 0.15.0',
-        'tesserocr >= 2.3.1',
-        'click',
-    ],
+    install_requires=open('requirements.txt').read().split('\n'),
     package_data={
         '': ['*.json', '*.yml', '*.yaml'],
     },
