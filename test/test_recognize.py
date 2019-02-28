@@ -31,12 +31,14 @@ class TestTesserocrRecognize(TestCase):
             output_file_grp="OCR-D-SEG-BLOCK"
         ).process()
         workspace.save_mets()
+
         TesserocrSegmentLine(
             workspace,
             input_file_grp="OCR-D-SEG-BLOCK",
             output_file_grp="OCR-D-SEG-LINE"
         ).process()
         workspace.save_mets()
+
         TesserocrRecognize(
             workspace,
             input_file_grp="OCR-D-SEG-LINE",
@@ -44,12 +46,14 @@ class TestTesserocrRecognize(TestCase):
             parameter={'textequiv_level': 'line'} # add dep tesseract-ocr-script-frak: , 'model': 'Fraktur'
         ).process()
         workspace.save_mets()
+
         TesserocrSegmentWord(
             workspace,
             input_file_grp="OCR-D-SEG-LINE",
             output_file_grp="OCR-D-SEG-WORD"
         ).process()
         workspace.save_mets()
+
         TesserocrRecognize(
             workspace,
             input_file_grp="OCR-D-SEG-WORD",

@@ -11,14 +11,11 @@ import codecs
 
 from setuptools import setup, find_packages
 
-with codecs.open('README.rst', encoding='utf-8') as f:
-    README = f.read()
-
 setup(
     name='ocrd_tesserocr',
     version='0.2.0',
     description='Tesserocr bindings',
-    long_description=README,
+    long_description=codecs.open('README.rst', encoding='utf-8').read(),
     author='Konstantin Baierer',
     author_email='unixprog@gmail.com',
     url='https://github.com/kba/ocrd_tesserocr',
