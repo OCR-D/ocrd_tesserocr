@@ -1,4 +1,3 @@
-ocrd >= 0.15.0
-ocrd >= 1.0.0b2
+ocrd >= 1.0.0b4
 click
 tesserocr == 2.3.1
