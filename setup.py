@@ -18,7 +18,7 @@ setup(
     long_description=codecs.open('README.rst', encoding='utf-8').read(),
     author='Konstantin Baierer',
     author_email='unixprog@gmail.com',
-    url='https://github.com/kba/ocrd_tesserocr',
+    url='https://github.com/OCR-D/ocrd_tesserocr',
     license='Apache License 2.0',
     packages=find_packages(exclude=('tests', 'docs')),
     install_requires=open('requirements.txt').read().split('\n'),
