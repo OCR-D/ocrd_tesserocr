@@ -4,10 +4,11 @@ from ocrd_utils import getLogger, concat_padded, points_from_xywh, MIMETYPE_PAGE
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
     CoordsType,
-    PrintSpaceType,
 
     to_xml
 )
+from ocrd_models.ocrd_page_generateds import BorderType
+
 from ocrd import Processor
 
 from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
@@ -23,7 +24,7 @@ class TesserocrCrop(Processor):
 
     def process(self):
         """
-        Performs the region segmentation.
+        Performs the cropping.
         """
         with tesserocr.PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             #  print(self.input_file_grp)
@@ -63,14 +64,13 @@ class TesserocrCrop(Processor):
                             max_x = x
                         elif y > max_y:
                             max_y = y
-                    log.debug("Updated print space: %i,%i %i,%i %i,%i %i,%i" % (min_x, min_y, max_x, min_y, max_x, max_y, min_x, max_y))
+                    log.debug("Updated page border: %i,%i %i,%i %i,%i %i,%i" % (min_x, min_y, max_x, min_y, max_x, max_y, min_x, max_y))
 
                 #
-                # set the identified print space
+                # set the identified page border
                 #
-                ps = PrintSpaceType(Coords=CoordsType("%i,%i %i,%i %i,%i %i,%i" % (min_x, min_y, max_x, min_y, max_x, max_y, min_x, max_y)))
-                pcgts.get_Page().set_PrintSpace(ps)
-                log.debug(pcgts.get_Page().get_PrintSpace())
+                brd = BorderType(Coords=CoordsType("%i,%i %i,%i %i,%i %i,%i" % (min_x, min_y, max_x, min_y, max_x, max_y, min_x, max_y)))
+                pcgts.get_Page().set_Border(brd)
 
                 ID = concat_padded(self.output_file_grp, n)
                 self.workspace.add_file(
