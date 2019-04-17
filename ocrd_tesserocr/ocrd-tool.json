@@ -68,6 +68,19 @@
       ],
       "steps": ["layout/segmentation/word"],
       "parameters": {}
+    },
+    "ocrd-tesserocr-crop": {
+      "executable": "ocrd-tesserocr-crop",
+      "categories": ["Image preprocessing"],
+      "description": "Poor man's cropping with tesseract",
+      "input_file_grp": [
+	"OCR-D-IMG"
+      ],
+      "output_file_grp": [
+	"OCR-D-IMG-CROPPED"
+      ],
+      "steps": ["preprocessing/optimization/cropping"],
+      "parameters" : {}
     }
   }
 }
