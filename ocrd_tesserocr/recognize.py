@@ -37,10 +37,20 @@ class TesserocrRecognize(Processor):
         super(TesserocrRecognize, self).__init__(*args, **kwargs)
 
     def process(self):
+        """Perform OCR recognition with Tesseract on the workspace.
+        
+        Open and deserialise PAGE input files and their respective images, 
+        then iterate over the element hierarchy down to the requested
+        `textequiv_level`. If `overwrite_words` is enabled and any layout
+        annotation below the line level already exists, then remove it
+        (regardless of `textequiv_level`).
+        Set up Tesseract to recognise each segment's image rectangle with
+        the appropriate mode and `model`. Create new elements below the line
+        level if necessary. Put text results and confidence values into new
+        TextEquiv at `textequiv_level`, and make the higher levels consistent
+        with that (by concatenation joined by whitespace). Produce new output
+        files by serialising the resulting hierarchy.
         """
-        Performs the (text) recognition.
-        """
-        # print(self.parameter)
         log.debug("TESSDATA: %s, installed tesseract models: %s", *get_languages())
         maxlevel = self.parameter['textequiv_level']
         model = get_languages()[1][-1] # last installed model
@@ -170,6 +180,8 @@ class TesserocrRecognize(Processor):
 
     def _process_lines(self, textlines, maxlevel, tessapi):
         for line in textlines:
+            if self.parameter['overwrite_words']:
+                line.set_Word([])
             log.debug("Recognizing text in line '%s'", line.id)
             line_xywh = xywh_from_points(line.get_Coords().points)
             #  log.debug("xywh: %s", line_xywh)
