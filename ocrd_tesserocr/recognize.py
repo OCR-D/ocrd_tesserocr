@@ -12,12 +12,12 @@ from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
     CoordsType,
     GlyphType,
+    WordType,
     LabelType,
     LabelsType,
     MetadataItemType,
     TextEquivType,
     TextStyleType,
-
     to_xml
 )
 from ocrd import Processor
@@ -108,7 +108,9 @@ class TesserocrRecognize(Processor):
                     MetadataItemType(type_="processingStep",
                                      name=OCRD_TOOL['tools']['ocrd-tesserocr-recognize']['steps'][0],
                                      value='ocrd-tesserocr-recognize',
-                                     Labels=[LabelsType(externalRef="parameters",
+                                     # FIXME: externalRef is invalid by pagecontent.xsd, but ocrd does not reflect this
+                                     # what we want here is `externalModel="ocrd-tool" externalId="parameters"`
+                                     Labels=[LabelsType(#externalRef="parameters",
                                                         Label=[LabelType(type_=name,
                                                                          value=self.parameter[name])
                                                                for name in self.parameter.keys()])]))
