@@ -134,6 +134,7 @@ class TesserocrRecognize(Processor):
                 self.workspace.add_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
+                    pageId=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
                     local_filename='%s/%s' % (self.output_file_grp, ID),
                     content=to_xml(pcgts),
