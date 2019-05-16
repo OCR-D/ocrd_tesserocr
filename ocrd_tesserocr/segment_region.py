@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import tesserocr
-from ocrd_utils import getLogger, concat_padded, points_from_xywh, MIMETYPE_PAGE
+from ocrd_utils import getLogger, concat_padded, points_from_xywh, xywh_from_points, MIMETYPE_PAGE
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
     CoordsType,
@@ -31,14 +31,31 @@ class TesserocrSegmentRegion(Processor):
         with tesserocr.PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             #  print(self.input_file_grp)
             for (n, input_file) in enumerate(self.input_files):
-                #  print(input_file)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 image = self.workspace.resolve_image_as_pil(pcgts.get_Page().imageFilename)
                 log.debug("Detecting regions with tesseract")
                 tessapi.SetImage(image)
-                for component in tessapi.GetComponentImages(tesserocr.RIL.BLOCK, True):
-                    points, index = points_from_xywh(component[1]), component[2]
+                # respect border element if present
+                if pcgts.get_Page().get_Border() is not None and pcgts.get_Page().get_Border().get_Coords() is not None:
+                    border = xywh_from_points(pcgts.get_Page().get_Border().get_Coords().points)
+                    log.debug("Explictly set page border at %s", pcgts.get_Page().get_Border().get_Coords().points)
+                    tessapi.SetRectangle(border['x'], border['y'], border['w'], border['h'])
+                else:
+                    border = xywh_from_points("0,0 0,0 0,0 0,0")
 
+                # recognize the layout and the region types
+                tessapi.AnalyseLayout()
+
+                # iterate and add (text) regions
+                for component in tessapi.GetComponentImages(tesserocr.RIL.BLOCK, True):
+                    # GetComponentImages returns coordinates wrt. internal rectangle and not original image
+                    box = {}
+                    box['x'] = component[1]['x'] + border['x']
+                    box['y'] = component[1]['y'] + border['y']
+                    box['w'] = component[1]['w']
+                    box['h'] = component[1]['h']
+
+                    points, index = points_from_xywh(box), component[2]
                     #
                     # the region reference in the reading order element
                     #
