@@ -29,5 +29,5 @@ install:
 
 script:
     # - make test OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"
-    - make test TESSDATA_PREFIX="/usr/share/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/" PYTEST_ARGS="-s --verbose" LC_ALL="C"
+    - make test TESSDATA_PREFIX="/usr/share/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/" PYTEST_ARGS="-s --verbose"
     - make test-cli TESSDATA_PREFIX="/usr/share/tessdata" OCRD_BASEURL="https://github.com/OCR-D/ocrd-assets/raw/master/data/"

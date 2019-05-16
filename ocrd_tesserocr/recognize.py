@@ -1,25 +1,23 @@
 from __future__ import absolute_import
+import math
 
-import locale
+from tesserocr import (
+    RIL, PSM,
+    PyTessBaseAPI, get_languages,
+    Orientation, TextlineOrder, WritingDirection)
 
-# pylint: disable=wrong-import-position
-locale.setlocale(locale.LC_ALL, 'C') # circumvent tesseract-ocr issue 1670 (which cannot be done on command line because Click requires an UTF-8 locale in Python 3)
-
-from tesserocr import RIL, PSM, PyTessBaseAPI, get_languages
-
-from ocrd_utils import getLogger, concat_padded, xywh_from_points, points_from_x0y0x1y1, MIMETYPE_PAGE
-from ocrd_modelfactory import page_from_file
+from ocrd_utils import (
+    getLogger, concat_padded,
+    polygon_from_points, xywh_from_points, points_from_x0y0x1y1,
+    MIMETYPE_PAGE)
 from ocrd_models.ocrd_page import (
     CoordsType,
-    GlyphType,
-    WordType,
-    LabelType,
-    LabelsType,
+    GlyphType, WordType,
+    LabelType, LabelsType,
     MetadataItemType,
-    TextEquivType,
-    TextStyleType,
-    to_xml
-)
+    TextEquivType, TextStyleType,
+    to_xml)
+from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 
@@ -214,7 +212,7 @@ class TesserocrRecognize(Processor):
                 log.error("No iterator at '%s'", line.id)
                 break
             if result_it.Empty(RIL.WORD):
-                log.debug("No word here")
+                log.warning("No word in line '%s'", line.id)
                 break
             word_id = '%s_word%04d' % (line.id, word_no)
             log.debug("Recognizing text in word '%s'", word_id)

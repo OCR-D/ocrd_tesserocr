@@ -4,9 +4,9 @@ import shutil
 from test.base import TestCase, main, assets
 
 from ocrd import Resolver
-from ocrd_tesserocr.segment_region import TesserocrSegmentRegion
-from ocrd_tesserocr.segment_line import TesserocrSegmentLine
-from ocrd_tesserocr.segment_word import TesserocrSegmentWord
+from ocrd_tesserocr import TesserocrSegmentRegion
+from ocrd_tesserocr import TesserocrSegmentLine
+from ocrd_tesserocr import TesserocrSegmentWord
 
 #METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/mets_one_file.xml')
 METS_HEROLD_SMALL = assets.url_of('kant_aufklaerung_1784-binarized/data/mets.xml')
