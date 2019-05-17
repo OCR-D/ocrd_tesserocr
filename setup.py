@@ -7,6 +7,7 @@ Installs five executables:
     - ocrd_tesserocr_segment_line
     - ocrd_tesserocr_segment_word
     - ocrd_tesserocr_deskew
+    - ocrd_tesserocr_crop
 """
 import codecs
 
@@ -33,6 +34,7 @@ setup(
             'ocrd-tesserocr-segment-line=ocrd_tesserocr.cli:ocrd_tesserocr_segment_line',
             'ocrd-tesserocr-segment-word=ocrd_tesserocr.cli:ocrd_tesserocr_segment_word',
             'ocrd-tesserocr-deskew=ocrd_tesserocr.cli:ocrd_tesserocr_deskew',
+            'ocrd-tesserocr-crop=ocrd_tesserocr.cli:ocrd_tesserocr_crop',
         ]
     },
 )
