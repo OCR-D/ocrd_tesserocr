@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import tesserocr
-from ocrd_utils import getLogger, concat_padded, points_from_xywh, xywh_from_points, MIMETYPE_PAGE
+from ocrd_utils import getLogger, concat_padded, points_from_x0y0x1y1, xywh_from_points, MIMETYPE_PAGE
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
     CoordsType,
@@ -8,6 +8,10 @@ from ocrd_models.ocrd_page import (
     ReadingOrderType,
     RegionRefIndexedType,
     TextRegionType,
+    ImageRegionType,
+    MathsRegionType,
+    SeparatorRegionType,
+    NoiseRegionType,
 
     to_xml
 )
@@ -40,22 +44,13 @@ class TesserocrSegmentRegion(Processor):
                     border = xywh_from_points(pcgts.get_Page().get_Border().get_Coords().points)
                     log.debug("Explictly set page border at %s", pcgts.get_Page().get_Border().get_Coords().points)
                     tessapi.SetRectangle(border['x'], border['y'], border['w'], border['h'])
-                else:
-                    border = xywh_from_points("0,0 0,0 0,0 0,0")
 
                 # recognize the layout and the region types
-                tessapi.AnalyseLayout()
+                it = tessapi.AnalyseLayout()
+                index = 0
+                while it and not it.Empty(tesserocr.RIL.BLOCK):
+                    points = points_from_x0y0x1y1(it.BoundingBox(tesserocr.RIL.BLOCK))
 
-                # iterate and add (text) regions
-                for component in tessapi.GetComponentImages(tesserocr.RIL.BLOCK, True):
-                    # GetComponentImages returns coordinates wrt. internal rectangle and not original image
-                    box = {}
-                    box['x'] = component[1]['x'] + border['x']
-                    box['y'] = component[1]['y'] + border['y']
-                    box['w'] = component[1]['w']
-                    box['h'] = component[1]['h']
-
-                    points, index = points_from_xywh(box), component[2]
                     #
                     # the region reference in the reading order element
                     #
@@ -75,9 +70,25 @@ class TesserocrSegmentRegion(Processor):
                     og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
 
                     #
-                    #  text region
+                    # region switch
                     #
-                    pcgts.get_Page().add_TextRegion(TextRegionType(id=ID, Coords=CoordsType(points=points)))
+                    block_type = it.BlockType()
+                    if block_type in [tesserocr.PT.FLOWING_TEXT, tesserocr.PT.HEADING_TEXT, tesserocr.PT.PULLOUT_TEXT]:
+                        pcgts.get_Page().add_TextRegion(TextRegionType(id=ID, Coords=CoordsType(points=points)))
+                    elif block_type in [tesserocr.PT.FLOWING_IMAGE, tesserocr.PT.HEADING_IMAGE, tesserocr.PT.PULLOUT_IMAGE]:
+                        pcgts.get_Page().add_ImageRegion(ImageRegionType(id=ID, Coords=CoordsType(points=points)))
+                    elif block_type in [tesserocr.PT.HORZ_LINE, tesserocr.PT.VERT_LINE]:
+                        pcgts.get_Page().add_SeparatorRegion(SeparatorRegionType(id=ID, Coords=CoordsType(points=points)))
+                    elif block_type in [tesserocr.PT.INLINE_EQUATION, tesserocr.PT.EQUATION]:
+                        pcgts.get_Page().add_MathsRegion(MathsRegionType(id=ID, Coords=CoordsType(points=points)))
+                    else:
+                        pcgts.get_Page().add_NoiseRegion(NoiseRegionType(id=ID, Coords=CoordsType(points=points)))
+
+                    #
+                    # iterator increment
+                    #
+                    index += 1
+                    it.Next(tesserocr.RIL.BLOCK)
 
                 ID = concat_padded(self.output_file_grp, n)
                 self.workspace.add_file(
