@@ -20,7 +20,11 @@ class TestTesserocrSegmentRegionTesseract(TestCase):
     def runTest(self):
         resolver = Resolver()
         workspace = resolver.workspace_from_url(METS_HEROLD_SMALL, dst_dir=WORKSPACE_DIR)
-        TesserocrSegmentRegion(workspace, input_file_grp="INPUT", output_file_grp="OCR-D-SEG-BLOCK").process()
+        TesserocrSegmentRegion(
+            workspace,
+            input_file_grp="OCR-D-IMG",
+            output_file_grp="OCR-D-SEG-BLOCK"
+        ).process()
         workspace.save_mets()
 
 if __name__ == '__main__':
