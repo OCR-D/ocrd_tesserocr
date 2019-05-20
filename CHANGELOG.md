@@ -1,4 +1,3 @@
-
 Change Log
 ==========
 
@@ -6,7 +5,7 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-## [0.2.2] - 2019-05-16
+## [0.2.2] - 2019-05-20
 
 Changed:
 
