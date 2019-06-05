@@ -1,11 +1,11 @@
 from __future__ import absolute_import
-from tesserocr import RIL, PyTessBaseAPI, OEM, PSM
-from ocrd import Processor, MIMETYPE_PAGE
-from ocrd.utils import getLogger, concat_padded, points_from_xywh, polygon_from_points, xywh_from_points
-from ocrd.model.ocrd_page import (
+from tesserocr import RIL, PyTessBaseAPI, PSM
+from ocrd import Processor
+from ocrd_utils import getLogger, concat_padded, points_from_xywh, polygon_from_points, xywh_from_points, MIMETYPE_PAGE
+from ocrd_modelfactory import page_from_file
+from ocrd_models.ocrd_page import (
     CoordsType,
     WordType,
-    from_file,
     to_xml
 )
 
@@ -29,7 +29,7 @@ class TesserocrSegmentWord(Processor):
             path=TESSDATA_PREFIX,
         ) as tessapi:
             for (n, input_file) in enumerate(self.input_files):
-                pcgts = from_file(self.workspace.download_file(input_file))
+                pcgts = page_from_file(self.workspace.download_file(input_file))
                 image_url = pcgts.get_Page().imageFilename
                 for region in pcgts.get_Page().get_TextRegion():
                     for line in region.get_TextLine():
@@ -47,7 +47,8 @@ class TesserocrSegmentWord(Processor):
                 self.workspace.add_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
-                    basename=ID + '.xml',
+                    pageId=input_file.pageId,
+                    local_filename='%s/%s' % (self.output_file_grp, ID),
                     mimetype=MIMETYPE_PAGE,
                     content=to_xml(pcgts).encode('utf-8'),
                 )

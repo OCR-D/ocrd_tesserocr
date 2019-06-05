@@ -5,6 +5,7 @@ from ocrd_tesserocr.recognize import TesserocrRecognize
 from ocrd_tesserocr.segment_region import TesserocrSegmentRegion
 from ocrd_tesserocr.segment_line import TesserocrSegmentLine
 from ocrd_tesserocr.segment_word import TesserocrSegmentWord
+from ocrd_tesserocr.crop import TesserocrCrop
 
 @click.command()
 @ocrd_cli_options
@@ -25,3 +26,8 @@ def ocrd_tesserocr_segment_word(*args, **kwargs):
 @ocrd_cli_options
 def ocrd_tesserocr_recognize(*args, **kwargs):
     return ocrd_cli_wrap_processor(TesserocrRecognize, *args, **kwargs)
+
+@click.command()
+@ocrd_cli_options
+def ocrd_tesserocr_crop(*args, **kwargs):
+    return ocrd_cli_wrap_processor(TesserocrCrop, *args, **kwargs)

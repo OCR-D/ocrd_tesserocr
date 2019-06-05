@@ -9,3 +9,4 @@ test/assets
 /build
 /dist
 test-workspace
+*.swp
