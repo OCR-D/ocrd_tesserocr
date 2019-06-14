@@ -1,0 +1,17 @@
+version: 2
+
+jobs:
+
+  build-python35:
+    docker:
+      - image: python:3.5.3
+    steps:
+      - checkout
+      - run: make deps-ubuntu deps-test deps install repo/assets
+      - run: make test
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build-python35
