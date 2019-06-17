@@ -7,8 +7,9 @@ jobs:
       - image: ubuntu:18.04
     steps:
       - checkout
-      - run: make deps-ubuntu deps-test deps install repo/assets
-      - run: make test
+      - run: apt-get update ; apt-get install -y sudo make python3 python3-pip git
+      - run: make deps-ubuntu deps-test deps install repo/assets PIP=pip3
+      - run: make test PYTHON=python3
 
 workflows:
   version: 2
