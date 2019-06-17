@@ -4,13 +4,14 @@ import shutil
 from test.base import TestCase, main, assets, skip
 
 from ocrd.resolver import Resolver
-from ocrd_tesserocr.segment_word import TesserocrSegmentWord
-from ocrd_tesserocr.segment_line import TesserocrSegmentLine
-from ocrd_tesserocr.segment_region import TesserocrSegmentRegion
-from ocrd_tesserocr.recognize import TesserocrRecognize
+from ocrd_tesserocr import TesserocrSegmentWord
+from ocrd_tesserocr import TesserocrSegmentLine
+from ocrd_tesserocr import TesserocrSegmentRegion
+from ocrd_tesserocr import TesserocrRecognize
 
 #METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/data/mets_one_file.xml')
-METS_HEROLD_SMALL = assets.url_of('kant_aufklaerung_1784/data/mets.xml')
+# as long as #96 remains, we cannot use workspaces which have local relative files:
+METS_HEROLD_SMALL = assets.url_of('kant_aufklaerung_1784-binarized/data/mets.xml')
 
 WORKSPACE_DIR = '/tmp/pyocrd-test-recognizer'
 

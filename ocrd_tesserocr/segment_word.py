@@ -47,6 +47,7 @@ class TesserocrSegmentWord(Processor):
                 self.workspace.add_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
+                    pageId=input_file.pageId,
                     local_filename='%s/%s' % (self.output_file_grp, ID),
                     mimetype=MIMETYPE_PAGE,
                     content=to_xml(pcgts).encode('utf-8'),

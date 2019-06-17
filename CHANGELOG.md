@@ -1,10 +1,23 @@
-
 Change Log
 ==========
 
 Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
+
+## [0.2.2] - 2019-05-20
+
+Changed:
+
+  * Add simple page cropping processor crop
+  * Respect border cropping in segment_word
+  * Add parameter overwrite_words in recognize
+  * Make higher TextEquivs consistent after recognize
+  
+Fixed:
+
+  * Remove invalid @externalRef from MetadataItem
+  * Retain pageId in output (i.e. link to structMap)
 
 ## [0.2.1] - 2019-02-28
 

@@ -24,6 +24,11 @@
           "default": "line",
           "description": "PAGE XML hierarchy level to add the TextEquiv results to (requires existing layout annotation up to one level above that)"
         },
+        "overwrite_words": {
+          "type": "boolean",
+          "default": false,
+          "description": "remove existing layout and text annotation below the TextLine level (regardless of textequiv_level)"
+        },
         "model": {
           "type": "string",
           "description": "tessdata model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)"
