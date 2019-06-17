@@ -3,8 +3,8 @@ ocrd_tesserocr
 
     Segment region, line, recognize with tesserocr
 
-.. image:: https://travis-ci.org/OCR-D/ocrd_tesserocr.svg?branch=master
-    :target: https://travis-ci.org/OCR-D/ocrd_tesserocr
+.. image:: https://circleci.com/gh/OCR-D/ocrd_tesserocr.svg?style=svg
+    :target: https://circleci.com/gh/OCR-D/ocrd_tesserocr
 
 .. image:: https://img.shields.io/pypi/v/ocrd_tesserocr.svg
     :target: https://pypi.org/project/ocrd_tesserocr/

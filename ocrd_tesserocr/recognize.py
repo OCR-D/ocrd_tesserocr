@@ -54,8 +54,9 @@ class TesserocrRecognize(Processor):
         model = get_languages()[1][-1] # last installed model
         if 'model' in self.parameter:
             model = self.parameter['model']
-            if model not in get_languages()[1]:
-                raise Exception("configured model " + model + " is not installed")
+            for sub_model in model.split('+'):
+                if sub_model not in get_languages()[1]:
+                    raise Exception("configured model " + sub_model + " is not installed")
         with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
             log.info("Using model '%s' in %s for recognition at the %s level", model, get_languages()[0], maxlevel)
             # todo: populate GetChoiceIterator() with LSTM models, too:
