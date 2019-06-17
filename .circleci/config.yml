@@ -9,7 +9,7 @@ jobs:
       - checkout
       - run: apt-get update ; apt-get install -y sudo make python3 python3-pip git
       - run: make deps-ubuntu deps-test deps install repo/assets PIP=pip3
-      - run: make test PYTHON=python3
+      - run: make test test-cli PYTHON=python3 PIP=pip3
 
 workflows:
   version: 2

@@ -78,7 +78,7 @@ test: test/assets
 	$(PYTHON) -m pytest test $(PYTEST_ARGS)
 
 test-cli: test/assets
-	pip install -e .
+	$(PIP) install -e .
 	rm -rfv test-workspace
 	cp -rv test/assets/kant_aufklaerung_1784 test-workspace
 	cd test-workspace/data && \
