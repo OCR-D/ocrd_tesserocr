@@ -1,25 +1,23 @@
 from __future__ import absolute_import
+import math
 
-import locale
+from tesserocr import (
+    RIL, PSM,
+    PyTessBaseAPI, get_languages,
+    Orientation, TextlineOrder, WritingDirection)
 
-# pylint: disable=wrong-import-position
-locale.setlocale(locale.LC_ALL, 'C') # circumvent tesseract-ocr issue 1670 (which cannot be done on command line because Click requires an UTF-8 locale in Python 3)
-
-from tesserocr import RIL, PSM, PyTessBaseAPI, get_languages
-
-from ocrd_utils import getLogger, concat_padded, xywh_from_points, points_from_x0y0x1y1, MIMETYPE_PAGE
-from ocrd_modelfactory import page_from_file
+from ocrd_utils import (
+    getLogger, concat_padded,
+    polygon_from_points, xywh_from_points, points_from_x0y0x1y1,
+    MIMETYPE_PAGE)
 from ocrd_models.ocrd_page import (
     CoordsType,
-    GlyphType,
-    LabelType,
-    LabelsType,
+    GlyphType, WordType,
+    LabelType, LabelsType,
     MetadataItemType,
-    TextEquivType,
-    TextStyleType,
-
-    to_xml
-)
+    TextEquivType, TextStyleType,
+    to_xml)
+from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 
@@ -37,10 +35,20 @@ class TesserocrRecognize(Processor):
         super(TesserocrRecognize, self).__init__(*args, **kwargs)
 
     def process(self):
+        """Perform OCR recognition with Tesseract on the workspace.
+        
+        Open and deserialise PAGE input files and their respective images, 
+        then iterate over the element hierarchy down to the requested
+        `textequiv_level`. If `overwrite_words` is enabled and any layout
+        annotation below the line level already exists, then remove it
+        (regardless of `textequiv_level`).
+        Set up Tesseract to recognise each segment's image rectangle with
+        the appropriate mode and `model`. Create new elements below the line
+        level if necessary. Put text results and confidence values into new
+        TextEquiv at `textequiv_level`, and make the higher levels consistent
+        with that (by concatenation joined by whitespace). Produce new output
+        files by serialising the resulting hierarchy.
         """
-        Performs the (text) recognition.
-        """
-        # print(self.parameter)
         log.debug("TESSDATA: %s, installed tesseract models: %s", *get_languages())
         maxlevel = self.parameter['textequiv_level']
         model = get_languages()[1][-1] # last installed model
@@ -109,7 +117,9 @@ class TesserocrRecognize(Processor):
                     MetadataItemType(type_="processingStep",
                                      name=OCRD_TOOL['tools']['ocrd-tesserocr-recognize']['steps'][0],
                                      value='ocrd-tesserocr-recognize',
-                                     Labels=[LabelsType(externalRef="parameters",
+                                     # FIXME: externalRef is invalid by pagecontent.xsd, but ocrd does not reflect this
+                                     # what we want here is `externalModel="ocrd-tool" externalId="parameters"`
+                                     Labels=[LabelsType(#externalRef="parameters",
                                                         Label=[LabelType(type_=name,
                                                                          value=self.parameter[name])
                                                                for name in self.parameter.keys()])]))
@@ -118,10 +128,12 @@ class TesserocrRecognize(Processor):
                 if not regions:
                     log.warning("Page contains no text regions")
                 self._process_regions(regions, maxlevel, tessapi)
+                page_update_higher_textequiv_levels(maxlevel, pcgts)
                 ID = concat_padded(self.output_file_grp, n)
                 self.workspace.add_file(
                     ID=ID,
                     file_grp=self.output_file_grp,
+                    pageId=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
                     local_filename='%s/%s' % (self.output_file_grp, ID),
                     content=to_xml(pcgts),
@@ -168,6 +180,8 @@ class TesserocrRecognize(Processor):
 
     def _process_lines(self, textlines, maxlevel, tessapi):
         for line in textlines:
+            if self.parameter['overwrite_words']:
+                line.set_Word([])
             log.debug("Recognizing text in line '%s'", line.id)
             line_xywh = xywh_from_points(line.get_Coords().points)
             #  log.debug("xywh: %s", line_xywh)
@@ -199,7 +213,7 @@ class TesserocrRecognize(Processor):
                 log.error("No iterator at '%s'", line.id)
                 break
             if result_it.Empty(RIL.WORD):
-                log.debug("No word here")
+                log.warning("No word in line '%s'", line.id)
                 break
             word_id = '%s_word%04d' % (line.id, word_no)
             log.debug("Recognizing text in word '%s'", word_id)
@@ -314,3 +328,36 @@ class TesserocrRecognize(Processor):
                 break
             else:
                 result_it.Next(RIL.SYMBOL)
+
+def page_update_higher_textequiv_levels(level, pcgts):
+    '''Update the TextEquivs of all PAGE-XML hierarchy levels above `level` for consistency.
+    
+    Starting with the hierarchy level chosen for processing,
+    join all first TextEquiv (by the rules governing the respective level)
+    into TextEquiv of the next higher level, replacing them.
+    '''
+    regions = pcgts.get_Page().get_TextRegion()
+    if level != 'region':
+        for region in regions:
+            lines = region.get_TextLine()
+            if level != 'line':
+                for line in lines:
+                    words = line.get_Word()
+                    if level != 'word':
+                        for word in words:
+                            glyphs = word.get_Glyph()
+                            word_unicode = u''.join(glyph.get_TextEquiv()[0].Unicode
+                                                    if glyph.get_TextEquiv()
+                                                    else u'' for glyph in glyphs)
+                            word.set_TextEquiv(
+                                [TextEquivType(Unicode=word_unicode)]) # remove old
+                    line_unicode = u' '.join(word.get_TextEquiv()[0].Unicode
+                                             if word.get_TextEquiv()
+                                             else u'' for word in words)
+                    line.set_TextEquiv(
+                        [TextEquivType(Unicode=line_unicode)]) # remove old
+            region_unicode = u'\n'.join(line.get_TextEquiv()[0].Unicode
+                                        if line.get_TextEquiv()
+                                        else u'' for line in lines)
+            region.set_TextEquiv(
+                [TextEquivType(Unicode=region_unicode)]) # remove old

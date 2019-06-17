@@ -39,17 +39,22 @@ help:
 # (lib*-dev merely for building tesserocr with pip)
 # (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0,
 #  but some beta, not the final release,
-#  on which tesserocr 2.4.0 depends,
-#  but we can instead downgrade to 2.3.1;
-#  in the future, however, we might require
-#  a tesseract build from git)
+#  on which tesserocr 2.4.0 depends;
+#  this downloads a tesseract build from git
+#  and installs it system-wide -
+#  intended for dockerfile and travis,
+#  not recommended for live systems!)
 deps-ubuntu:
 	sudo apt-get install -y \
 		libxml2-utils \
 		libimage-exiftool-perl \
 		libtesseract-dev \
 		libleptonica-dev \
-		tesseract-ocr tesseract-ocr-eng
+		tesseract-ocr-eng \
+		tesseract-ocr \
+		wget
+	wget -O - https://github.com/nijel/tesseract-ocr-build/releases/download/4.0.0-1/tesseract.tar.xz | tar -xJf -
+	sudo cp -rt /usr .tesseract/*
 
 # Install python deps via pip
 deps:
