@@ -4,7 +4,7 @@ jobs:
 
   build-python35:
     docker:
-      - image: python:3.5.3
+      - image: ubuntu:18.04
     steps:
       - checkout
       - run: make deps-ubuntu deps-test deps install repo/assets
