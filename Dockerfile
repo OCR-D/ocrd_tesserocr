@@ -14,7 +14,6 @@ COPY LICENSE .
 RUN apt-get update && \
     apt-get -y install --no-install-recommends \
     ca-certificates \
-    sudo \
     make \
     git
 COPY Makefile .

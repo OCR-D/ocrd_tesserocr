@@ -45,7 +45,8 @@ help:
 #  intended for dockerfile and travis,
 #  not recommended for live systems!)
 deps-ubuntu:
-	sudo apt-get install -y \
+	apt-get update
+	apt-get install -y \
 		libxml2-utils \
 		libimage-exiftool-perl \
 		libtesseract-dev \
@@ -54,7 +55,7 @@ deps-ubuntu:
 		tesseract-ocr \
 		wget
 	wget -O - https://github.com/nijel/tesseract-ocr-build/releases/download/4.0.0-1/tesseract.tar.xz | tar -xJf -
-	sudo cp -rt /usr .tesseract/*
+	cp -rt /usr .tesseract/*
 
 # Install python deps via pip
 deps:
