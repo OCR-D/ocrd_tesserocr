@@ -45,8 +45,10 @@ help:
 #  intended for dockerfile and travis,
 #  not recommended for live systems!)
 deps-ubuntu:
-	apt-get update
 	apt-get install -y \
+		git \
+		python3 \
+		python3-pip \
 		libtesseract-dev \
 		libleptonica-dev \
 		tesseract-ocr-eng \
