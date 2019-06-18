@@ -6,8 +6,8 @@ jobs:
     docker:
       - image: ubuntu:18.04
     steps:
+      - run: apt-get update ; apt-get install -y make git
       - checkout
-      - run: apt-get update ; apt-get install -y make
       - run: make deps-ubuntu deps-test deps install repo/assets
       - run: make test
       - run: make test-cli
