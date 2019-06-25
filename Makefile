@@ -1,8 +1,8 @@
 export
 
 SHELL = /bin/bash
-PYTHON = python
-PIP = pip
+PYTHON = python3
+PIP = pip3
 LOG_LEVEL = INFO
 PYTHONIOENCODING=utf8
 
@@ -19,11 +19,20 @@ help:
 	@echo "  Targets"
 	@echo ""
 	@echo "    deps-ubuntu   Dependencies for deployment in an ubuntu/debian linux"
+	@echo "                  (lib*-dev merely for building tesserocr with pip)"
+	@echo "                  (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0,"
+	@echo "                   but some beta, not the final release,"
+	@echo "                   on which tesserocr 2.4.0 depends;"
+	@echo "                   this downloads a tesseract build from git"
+	@echo "                   and installs it system-wide -"
+	@echo "                   intended for dockerfile and travis,"
+	@echo "                   not recommended for live systems!)"
 	@echo "    deps          Install python deps via pip"
 	@echo "    deps-test     Install testing python deps via pip"
 	@echo "    install       Install"
 	@echo "    docker        Build docker image"
 	@echo "    test          Run test"
+	@echo "    test-cli      Test the command line tools"
 	@echo "    repo/assets   Clone OCR-D/assets to ./repo/assets"
 	@echo "    test/assets   Setup test assets"
 	@echo "    assets-clean  Remove symlinks in test/assets"
@@ -45,16 +54,17 @@ help:
 #  intended for dockerfile and travis,
 #  not recommended for live systems!)
 deps-ubuntu:
-	sudo apt-get install -y \
-		libxml2-utils \
-		libimage-exiftool-perl \
+	apt-get install -y \
+		git \
+		python3 \
+		python3-pip \
 		libtesseract-dev \
 		libleptonica-dev \
 		tesseract-ocr-eng \
 		tesseract-ocr \
 		wget
 	wget -O - https://github.com/nijel/tesseract-ocr-build/releases/download/4.0.0-1/tesseract.tar.xz | tar -xJf -
-	sudo cp -rt /usr .tesseract/*
+	cp -rt /usr .tesseract/*
 
 # Install python deps via pip
 deps:
@@ -77,11 +87,12 @@ test: test/assets
 	# declare -p HTTP_PROXY
 	$(PYTHON) -m pytest test $(PYTEST_ARGS)
 
+# Test the command line tools
 test-cli: test/assets
-	pip install -e .
+	$(PIP) install -e .
 	rm -rfv test-workspace
 	cp -rv test/assets/kant_aufklaerung_1784 test-workspace
-	cd test-workspace/data && \
+	export LC_ALL=C.UTF-8; cd test-workspace/data && \
 		ocrd-tesserocr-segment-region -l DEBUG -m mets.xml -I OCR-D-IMG -O OCR-D-SEG-BLOCK ; \
 		ocrd-tesserocr-segment-line   -l DEBUG -m mets.xml -I OCR-D-SEG-BLOCK -O OCR-D-SEG-LINE ; \
 		ocrd-tesserocr-recognize      -l DEBUG -m mets.xml -I OCR-D-SEG-LINE -O OCR-D-TESS-OCR
