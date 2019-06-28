@@ -8,6 +8,7 @@ Installs five executables:
     - ocrd_tesserocr_segment_word
     - ocrd_tesserocr_crop
     - ocrd_tesserocr_deskew
+    - ocrd_tesserocr_binarize
 """
 import codecs
 
@@ -15,7 +16,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='ocrd_tesserocr',
-    version='0.2.2',
+    version='0.2.3',
     description='Tesserocr bindings',
     long_description=codecs.open('README.rst', encoding='utf-8').read(),
     author='Konstantin Baierer, Kay-Michael Würzner',
@@ -35,6 +36,7 @@ setup(
             'ocrd-tesserocr-segment-word=ocrd_tesserocr.cli:ocrd_tesserocr_segment_word',
             'ocrd-tesserocr-crop=ocrd_tesserocr.cli:ocrd_tesserocr_crop',
             'ocrd-tesserocr-deskew=ocrd_tesserocr.cli:ocrd_tesserocr_deskew',
+            'ocrd-tesserocr-binarize=ocrd_tesserocr.cli:ocrd_tesserocr_binarize',
         ]
     },
 )

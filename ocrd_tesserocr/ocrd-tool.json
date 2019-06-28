@@ -6,13 +6,12 @@
     "ocrd-tesserocr-deskew": {
       "executable": "ocrd-tesserocr-deskew",
       "categories": ["Deskewing"],
-      "description": "Deskew images or image parts",
+      "description": "Deskew pages or regions",
       "input_file_grp": [
         "OCR-D-IMG",
         "OCR-D-SEG-BLOCK"
       ],
       "output_file_grp": [
-        "OCR-D-DESKEW-IMG",
         "OCR-D-DESKEW-BLOCK"
       ],
       "steps": ["preprocessing/optimization/deskewing"],
@@ -20,8 +19,8 @@
         "operation_level": {
           "type": "string",
           "enum": ["page","region"],
-          "default": "page",
-          "description": "Level of operation for deskewing"
+          "default": "region",
+          "description": "PAGE XML hierarchy level to operate on"
         }
       }
     },
@@ -68,7 +67,23 @@
         "OCR-D-SEG-BLOCK"
       ],
       "steps": ["layout/segmentation/region"],
-      "parameters": {}
+      "parameters": {
+        "overwrite_regions": {
+          "type": "boolean",
+          "default": true,
+          "description": "remove existing layout and text annotation below the Page level"
+        },
+        "crop_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "annotate polygon coordinates instead of rectangles, and create cropped AlternativeImage masked by the polygon outlines"
+        },
+        "find_tables": {
+          "type": "boolean",
+          "default": true,
+          "description": "recognise table regions (textord_tabfind_find_tables)"
+        }
+      }
     },
     "ocrd-tesserocr-segment-line": {
       "executable": "ocrd-tesserocr-segment-line",
@@ -81,7 +96,13 @@
         "OCR-D-SEG-LINE"
       ],
       "steps": ["layout/segmentation/line"],
-      "parameters": {}
+      "parameters": {
+        "overwrite_lines": {
+          "type": "boolean",
+          "default": true,
+          "description": "remove existing layout and text annotation below the TextRegion level"
+        }
+      }
     },
     "ocrd-tesserocr-segment-word": {
       "executable": "ocrd-tesserocr-segment-word",
@@ -94,7 +115,13 @@
         "OCR-D-SEG-WORD"
       ],
       "steps": ["layout/segmentation/word"],
-      "parameters": {}
+      "parameters": {
+        "overwrite_words": {
+          "type": "boolean",
+          "default": true,
+          "description": "remove existing layout and text annotation below the TextLine level"
+        }
+      }
     },
     "ocrd-tesserocr-crop": {
       "executable": "ocrd-tesserocr-crop",
@@ -108,6 +135,29 @@
       ],
       "steps": ["preprocessing/optimization/cropping"],
       "parameters" : {}
+    },
+    "ocrd-tesserocr-binarize": {
+      "executable": "ocrd-tesserocr-binarize",
+      "categories": ["Binarization"],
+      "description": "Binarize pages, regions or lines",
+      "input_file_grp": [
+        "OCR-D-IMG",
+        "OCR-D-SEG-BLOCK",
+        "OCR-D-SEG-LINE"
+      ],
+      "output_file_grp": [
+        "OCR-D-BIN-BLOCK",
+        "OCR-D-BIN-LINE"
+      ],
+      "steps": ["preprocessing/optimization/binarization"],
+      "parameters": {
+        "operation_level": {
+          "type": "string",
+          "enum": ["page", "region", "line"],
+          "default": "region",
+          "description": "PAGE XML hierarchy level to operate on"
+        }
+      }
     }
   }
 }
