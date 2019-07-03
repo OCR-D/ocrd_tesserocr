@@ -1,83 +1,157 @@
 from __future__ import absolute_import
+import os.path
+
 import tesserocr
-from ocrd_utils import getLogger, concat_padded, points_from_xywh, MIMETYPE_PAGE
+from ocrd_utils import (
+    getLogger, concat_padded,
+    MIMETYPE_PAGE
+)
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
+    MetadataItemType,
+    LabelsType, LabelType,
     CoordsType,
-
     to_xml
 )
 from ocrd_models.ocrd_page_generateds import BorderType
-
 from ocrd import Processor
 
-from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
+from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .common import (
+    bbox_from_points, points_from_bbox,
+    bbox_from_xywh
+)
 
-log = getLogger('processor.TesserocrCrop')
+TOOL = 'ocrd-tesserocr-crop'
+LOG = getLogger('processor.TesserocrCrop')
 
 class TesserocrCrop(Processor):
 
     def __init__(self, *args, **kwargs):
-        kwargs['ocrd_tool'] = OCRD_TOOL['tools']['ocrd-tesserocr-crop']
+        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrCrop, self).__init__(*args, **kwargs)
 
     def process(self):
+        """Performs page cropping with Tesseract on the workspace.
+        
+        Open and deserialize PAGE input files and their respective images.
+        Set up Tesseract to detect text blocks on each page, and find
+        the largest coordinate extent spanning all of them. Use this
+        extent in defining a Border, and add that to the page.
+        
+        Produce new output files by serialising the resulting hierarchy.
         """
-        Performs the cropping.
-        """
+        padding = self.parameter['padding']
+
         with tesserocr.PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
-            #  print(self.input_file_grp)
+            # disable table detection here (tables count as text blocks),
+            # because we do not want to risk confusing the spine with
+            # a column separator and thus creeping into a neighbouring
+            # page:
+            tessapi.SetVariable("textord_tabfind_find_tables", "0")
             for (n, input_file) in enumerate(self.input_files):
-                #  print(input_file)
+                page_id = input_file.pageId or input_file.ID
+                LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
-                image = self.workspace.resolve_image_as_pil(pcgts.get_Page().imageFilename)
-                log.debug("Cropping with tesseract")
-                tessapi.SetImage(image)
+                metadata = pcgts.get_Metadata() # ensured by from_file()
+                metadata.add_MetadataItem(
+                    MetadataItemType(type_="processingStep",
+                                     name=self.ocrd_tool['steps'][0],
+                                     value=TOOL,
+                                     # FIXME: externalRef is invalid by pagecontent.xsd, but ocrd does not reflect this
+                                     # what we want here is `externalModel="ocrd-tool" externalId="parameters"`
+                                     Labels=[LabelsType(#externalRef="parameters",
+                                                        Label=[LabelType(type_=name,
+                                                                         value=self.parameter[name])
+                                                               for name in self.parameter.keys()])]))
+                page = pcgts.get_Page()
+                border = page.get_Border()
+                if border:
+                    left, top, right, bottom = bbox_from_points(border.get_Coords().points)
+                    LOG.warning('Overwriting existing Border: %i:%i,%i:%i',
+                                left, top, right, bottom)
+                regions = page.get_TextRegion()
+                if regions:
+                    min_x = image.width
+                    min_y = image.height
+                    max_x = 0
+                    max_y = 0
+                    for region in regions:
+                        left, top, right, bottom = bbox_from_points(region.get_Coords().points)
+                        min_x = min(min_x, left)
+                        min_y = min(min_y, top)
+                        max_x = max(max_x, right)
+                        max_y = max(max_y, bottom)
+                    LOG.warning('Ignoring extent from existing TextRegions: %i:%i,%i:%i',
+                                min_x, max_x, min_y, max_y)
                 
+                page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
+                LOG.debug("Cropping with tesseract")
+                tessapi.SetImage(page_image)
+                # PSM.SPARSE_TEXT: get as much text as possible in no particular order
+                # PSM.AUTO (default): includes tables (dangerous)
+                tessapi.SetPageSegMode(tesserocr.PSM.SPARSE_TEXT)
                 #
                 # helper variables for saving the box coordinates
                 #
-                min_x = image.width
-                min_y = image.height
+                min_x = page_image.width
+                min_y = page_image.height
                 max_x = 0
                 max_y = 0
-
-                # iterate over all boxes and compare their extent
-                # to the min and max values
+                # iterate over all text blocks and compare their
+                # bbox extent to the running min and max values
                 for component in tessapi.GetComponentImages(tesserocr.RIL.BLOCK, True):
-                    points, index = points_from_xywh(component[1]), component[2]
-
+                    image, xywh, index, para = component
                     #
                     # the region reference in the reading order element
                     #
                     ID = "region%04d" % index
-                    log.debug("Detected region '%s': %s", ID, points)
-
-                    for pair in points.split(' '):
-                        x, y = (int(pair.split(',')[0]), int(pair.split(',')[1]))
-                        if x < min_x:
-                            min_x = x
-                        if y < min_y:
-                            min_y = y
-                        elif x > max_x:
-                            max_x = x
-                        elif y > max_y:
-                            max_y = y
-                    log.debug("Updated page border: %i,%i %i,%i %i,%i %i,%i" % (min_x, min_y, max_x, min_y, max_x, max_y, min_x, max_y))
+                    left, top, right, bottom = bbox_from_xywh(xywh)
+                    LOG.debug("Detected text region '%s': %i:%i,%i:%i",
+                              ID, left, right, top, bottom)
+                    # filter region results:
+                    bin_bbox = image.getbbox()
+                    if not bin_bbox:
+                        # this does happen!
+                        LOG.info("Ignoring region '%s' because its binarization is empty", ID)
+                        continue
+                    if bin_bbox[2]-bin_bbox[0] < 30 or bin_bbox[3]-bin_bbox[1] < 30:
+                        # we must be conservative here: page numbers are tiny regions, too!
+                        LOG.info("Ignoring region '%s' because its binarization is too small", ID)
+                        continue
+                    min_x = min(min_x, left)
+                    min_y = min(min_y, top)
+                    max_x = max(max_x, right)
+                    max_y = max(max_y, bottom)
+                    LOG.debug("Updated page border: %i:%i,%i:%i", min_x, max_x, min_y, max_y)
 
                 #
                 # set the identified page border
                 #
-                brd = BorderType(Coords=CoordsType("%i,%i %i,%i %i,%i %i,%i" % (min_x, min_y, max_x, min_y, max_x, max_y, min_x, max_y)))
-                pcgts.get_Page().set_Border(brd)
+                if min_x < max_x and min_y < max_y:
+                    # add padding:
+                    min_x = max(min_x - padding, 0)
+                    max_x = min(max_x + padding, page_image.width)
+                    min_y = max(min_y - padding, 0)
+                    max_y = min(max_y + padding, page_image.height)
+                    LOG.debug("Padded page border: %i:%i,%i:%i", min_x, max_x, min_y, max_y)
+                    border = BorderType(Coords=CoordsType(
+                        points_from_bbox(min_x, min_y, max_x, max_y)))
+                    page.set_Border(border)
+                else:
+                    LOG.error("Cannot find valid extent for page '%s'", page_id)
 
-                ID = concat_padded(self.output_file_grp, n)
+                # Use input_file's basename for the new file -
+                # this way the files retain the same basenames:
+                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
+                if file_id == input_file.ID:
+                    file_id = concat_padded(self.output_file_grp, n)
                 self.workspace.add_file(
-                    ID=ID,
+                    ID=file_id,
                     file_grp=self.output_file_grp,
                     pageId=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
-                    local_filename='%s/%s' % (self.output_file_grp, ID),
-                    content=to_xml(pcgts).encode('utf-8'),
-                )
+                    local_filename=os.path.join(self.output_file_grp,
+                                                file_id + '.xml'),
+                    content=to_xml(pcgts))

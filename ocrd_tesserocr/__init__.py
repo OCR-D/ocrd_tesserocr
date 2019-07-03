@@ -11,3 +11,5 @@ from .segment_word import TesserocrSegmentWord
 from .segment_line import TesserocrSegmentLine
 from .segment_region import TesserocrSegmentRegion
 from .crop import TesserocrCrop
+from .deskew import TesserocrDeskew
+from .binarize import TesserocrBinarize

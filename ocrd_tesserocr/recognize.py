@@ -1,14 +1,14 @@
 from __future__ import absolute_import
-import math
+import os.path
 
 from tesserocr import (
     RIL, PSM,
-    PyTessBaseAPI, get_languages,
-    Orientation, TextlineOrder, WritingDirection)
+    PyTessBaseAPI, get_languages)
 
 from ocrd_utils import (
     getLogger, concat_padded,
-    polygon_from_points, xywh_from_points, points_from_x0y0x1y1,
+    points_from_x0y0x1y1,
+    xywh_from_points, points_from_xywh,
     MIMETYPE_PAGE)
 from ocrd_models.ocrd_page import (
     CoordsType,
@@ -19,25 +19,33 @@ from ocrd_models.ocrd_page import (
     to_xml)
 from ocrd_modelfactory import page_from_file
 from ocrd import Processor
-from .config import TESSDATA_PREFIX, OCRD_TOOL
 
-log = getLogger('processor.TesserocrRecognize')
+from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .common import (
+    image_from_page,
+    image_from_region,
+    image_from_line,
+    image_from_word,
+    image_from_glyph
+)
+
+TOOL = 'ocrd-tesserocr-recognize'
+LOG = getLogger('processor.TesserocrRecognize')
 
 CHOICE_THRESHOLD_NUM = 6 # maximum number of choices to query and annotate
 CHOICE_THRESHOLD_CONF = 0.2 # maximum score drop from best choice to query and annotate
-MAX_ELEMENTS = 500 # maximum number of lower level elements embedded within each element (for word/glyph iterators)
 
 class TesserocrRecognize(Processor):
 
     def __init__(self, *args, **kwargs):
-        kwargs['ocrd_tool'] = OCRD_TOOL['tools']['ocrd-tesserocr-recognize']
+        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrRecognize, self).__init__(*args, **kwargs)
 
     def process(self):
         """Perform OCR recognition with Tesseract on the workspace.
         
-        Open and deserialise PAGE input files and their respective images, 
+        Open and deserialise PAGE input files and their respective images,
         then iterate over the element hierarchy down to the requested
         `textequiv_level`. If `overwrite_words` is enabled and any layout
         annotation below the line level already exists, then remove it
@@ -46,10 +54,11 @@ class TesserocrRecognize(Processor):
         the appropriate mode and `model`. Create new elements below the line
         level if necessary. Put text results and confidence values into new
         TextEquiv at `textequiv_level`, and make the higher levels consistent
-        with that (by concatenation joined by whitespace). Produce new output
-        files by serialising the resulting hierarchy.
+        with that (by concatenation joined by whitespace).
+
+        Produce new output files by serialising the resulting hierarchy.
         """
-        log.debug("TESSDATA: %s, installed tesseract models: %s", *get_languages())
+        LOG.debug("TESSDATA: %s, installed tesseract models: %s", *get_languages())
         maxlevel = self.parameter['textequiv_level']
         model = get_languages()[1][-1] # last installed model
         if 'model' in self.parameter:
@@ -58,7 +67,8 @@ class TesserocrRecognize(Processor):
                 if sub_model not in get_languages()[1]:
                     raise Exception("configured model " + sub_model + " is not installed")
         with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
-            log.info("Using model '%s' in %s for recognition at the %s level", model, get_languages()[0], maxlevel)
+            LOG.info("Using model '%s' in %s for recognition at the %s level",
+                     model, get_languages()[0], maxlevel)
             # todo: populate GetChoiceIterator() with LSTM models, too:
             #tessapi.SetVariable("lstm_choice_mode", "2")
             # todo: determine relevancy of these variables:
@@ -107,66 +117,60 @@ class TesserocrRecognize(Processor):
             # user_words_file
             # user_patterns_file
             for (n, input_file) in enumerate(self.input_files):
-                log.info("INPUT FILE %i / %s", n, input_file)
+                page_id = input_file.pageId or input_file.ID
+                LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
-                # TODO use binarized / gray
-                pil_image = self.workspace.resolve_image_as_pil(pcgts.get_Page().imageFilename)
-                tessapi.SetImage(pil_image)
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
                     MetadataItemType(type_="processingStep",
-                                     name=OCRD_TOOL['tools']['ocrd-tesserocr-recognize']['steps'][0],
-                                     value='ocrd-tesserocr-recognize',
+                                     name=self.ocrd_tool['steps'][0],
+                                     value=TOOL,
                                      # FIXME: externalRef is invalid by pagecontent.xsd, but ocrd does not reflect this
                                      # what we want here is `externalModel="ocrd-tool" externalId="parameters"`
                                      Labels=[LabelsType(#externalRef="parameters",
                                                         Label=[LabelType(type_=name,
                                                                          value=self.parameter[name])
                                                                for name in self.parameter.keys()])]))
-                log.info("Recognizing text in page '%s'", pcgts.get_pcGtsId())
-                regions = pcgts.get_Page().get_TextRegion()
+                page = pcgts.get_Page()
+                page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
+                page_image, page_xywh = image_from_page(
+                    self.workspace, page, page_image, page_id)
+                #tessapi.SetImage(page_image)
+                LOG.info("Processing page '%s'", page_id)
+                regions = page.get_TextRegion()
                 if not regions:
-                    log.warning("Page contains no text regions")
-                self._process_regions(regions, maxlevel, tessapi)
+                    LOG.warning("Page '%s' contains no text regions", page_id)
+                else:
+                    self._process_regions(tessapi, regions, page_image, page_xywh)
                 page_update_higher_textequiv_levels(maxlevel, pcgts)
-                ID = concat_padded(self.output_file_grp, n)
+                
+                # Use input_file's basename for the new file -
+                # this way the files retain the same basenames:
+                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
+                if file_id == input_file.ID:
+                    file_id = concat_padded(self.output_file_grp, n)
                 self.workspace.add_file(
-                    ID=ID,
+                    ID=file_id,
                     file_grp=self.output_file_grp,
                     pageId=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
-                    local_filename='%s/%s' % (self.output_file_grp, ID),
-                    content=to_xml(pcgts),
-                )
+                    local_filename=os.path.join(self.output_file_grp,
+                                                file_id + '.xml'),
+                    content=to_xml(pcgts))
 
-    def _process_regions(self, regions, maxlevel, tessapi):
+    def _process_regions(self, tessapi, regions, page_image, page_xywh):
         for region in regions:
-            log.debug("Recognizing text in region '%s'", region.id)
-            # todo: determine if and how this can still be used for region classification:
-            # result_it = tessapi.GetIterator()
-            # if not result_it or result_it.Empty(RIL.BLOCK)
-            # ptype = result_it.BlockType()
-            # PT.UNKNOWN
-            # PT.FLOWING_TEXT
-            # PT.HEADING_TEXT
-            # PT.PULLOUT_TEXT
-            # PT.EQUATION
-            # PT.TABLE
-            # PT.VERTICAL_TEXT
-            # PT.CAPTION_TEXT
-            # PT.HORZ_LINE
-            # PT.VERT_LINE
-            # PT.NOISE
-            # PT.COUNT
-            # ...
-            if maxlevel == 'region':
-                region_xywh = xywh_from_points(region.get_Coords().points)
-                tessapi.SetRectangle(region_xywh['x'], region_xywh['y'], region_xywh['w'], region_xywh['h'])
+            region_image, region_xywh = image_from_region(
+                self.workspace, region, page_image, page_xywh)
+            if self.parameter['textequiv_level'] == 'region':
+                tessapi.SetImage(region_image)
                 tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
+                #if region.get_primaryScript() not in tessapi.GetLoadedLanguages()...
+                LOG.debug("Recognizing text in region '%s'", region.id)
                 region_text = tessapi.GetUTF8Text().rstrip("\n\f")
                 region_conf = tessapi.MeanTextConf()/100.0 # iterator scores are arithmetic averages, too
                 if region.get_TextEquiv():
-                    log.warning("Region '%s' already contained text results", region.id)
+                    LOG.warning("Region '%s' already contained text results", region.id)
                     region.set_TextEquiv([])
                 # todo: consider SetParagraphSeparator
                 region.add_TextEquiv(TextEquivType(Unicode=region_text, conf=region_conf))
@@ -174,24 +178,27 @@ class TesserocrRecognize(Processor):
             ## line, word, or glyph level:
             textlines = region.get_TextLine()
             if not textlines:
-                log.warning("Region '%s' contains no text lines", region.id)
+                LOG.warning("Region '%s' contains no text lines", region.id)
             else:
-                self._process_lines(textlines, maxlevel, tessapi)
+                self._process_lines(tessapi, textlines, region_image, region_xywh)
 
-    def _process_lines(self, textlines, maxlevel, tessapi):
+    def _process_lines(self, tessapi, textlines, region_image, region_xywh):
         for line in textlines:
             if self.parameter['overwrite_words']:
                 line.set_Word([])
-            log.debug("Recognizing text in line '%s'", line.id)
-            line_xywh = xywh_from_points(line.get_Coords().points)
-            #  log.debug("xywh: %s", line_xywh)
-            tessapi.SetRectangle(line_xywh['x'], line_xywh['y'], line_xywh['w'], line_xywh['h'])
-            tessapi.SetPageSegMode(PSM.SINGLE_LINE) # RAW_LINE fails with Tesseract 3 models and is worse with Tesseract 4 models
-            if maxlevel == 'line':
+            line_image, line_xywh = image_from_line(
+                self.workspace, line, region_image, region_xywh)
+            # todo: Tesseract works better if the line images have a 5px margin everywhere
+            tessapi.SetImage(line_image)
+            # RAW_LINE fails with pre-LSTM models, but sometimes better with LSTM models
+            tessapi.SetPageSegMode(PSM.SINGLE_LINE)
+            #if line.get_primaryScript() not in tessapi.GetLoadedLanguages()...
+            LOG.debug("Recognizing text in line '%s'", line.id)
+            if self.parameter['textequiv_level'] == 'line':
                 line_text = tessapi.GetUTF8Text().rstrip("\n\f")
                 line_conf = tessapi.MeanTextConf()/100.0 # iterator scores are arithmetic averages, too
                 if line.get_TextEquiv():
-                    log.warning("Line '%s' already contained text results", line.id)
+                    LOG.warning("Line '%s' already contained text results", line.id)
                     line.set_TextEquiv([])
                 # todo: consider BlankBeforeWord, SetLineSeparator
                 line.add_TextEquiv(TextEquivType(Unicode=line_text, conf=line_conf))
@@ -200,61 +207,75 @@ class TesserocrRecognize(Processor):
             words = line.get_Word()
             if words:
                 ## external word layout:
-                log.warning("Line '%s' contains words already, recognition might be suboptimal", line.id)
-                self._process_existing_words(words, maxlevel, tessapi)
+                LOG.warning("Line '%s' contains words already, recognition might be suboptimal", line.id)
+                self._process_existing_words(tessapi, words, line_image, line_xywh)
             else:
                 ## internal word and glyph layout:
                 tessapi.Recognize()
-                self._process_words_in_line(line, maxlevel, tessapi.GetIterator())
+                self._process_words_in_line(tessapi.GetIterator(), line, line_xywh)
 
-    def _process_words_in_line(self, line, maxlevel, result_it):
-        for word_no in range(0, MAX_ELEMENTS): # iterate until IsAtFinalElement(RIL.LINE, RIL.WORD)
-            if not result_it:
-                log.error("No iterator at '%s'", line.id)
-                break
-            if result_it.Empty(RIL.WORD):
-                log.warning("No word in line '%s'", line.id)
-                break
+    def _process_words_in_line(self, result_it, line, line_xywh):
+        if not result_it or result_it.Empty(RIL.WORD):
+            LOG.warning("No text in line '%s'", line.id)
+            return
+        # iterate until IsAtFinalElement(RIL.LINE, RIL.WORD):
+        word_no = 0
+        while result_it and not result_it.Empty(RIL.WORD):
             word_id = '%s_word%04d' % (line.id, word_no)
-            log.debug("Recognizing text in word '%s'", word_id)
-            word_bbox = result_it.BoundingBox(RIL.WORD)
-            word = WordType(id=word_id, Coords=CoordsType(points_from_x0y0x1y1(word_bbox)))
+            LOG.debug("Decoding text in word '%s'", word_id)
+            bbox = result_it.BoundingBox(RIL.WORD)
+            points = points_from_x0y0x1y1(bbox)
+            # add offset from image:
+            xywh = xywh_from_points(points)
+            xywh['x'] += line_xywh['x']
+            xywh['y'] += line_xywh['y']
+            points = points_from_xywh(xywh)
+            word = WordType(id=word_id, Coords=CoordsType(points))
             line.add_Word(word)
             # todo: determine if font attributes available for word level will work with LSTM models
             word_attributes = result_it.WordFontAttributes()
             if word_attributes:
-                word_style = TextStyleType(fontSize=word_attributes['pointsize'] if 'pointsize' in word_attributes else None,
-                                           fontFamily=word_attributes['font_name'] if 'font_name' in word_attributes else None,
-                                           bold=None if 'bold' not in word_attributes else word_attributes['bold'],
-                                           italic=None if 'italic' not in word_attributes else word_attributes['italic'],
-                                           underlined=None if 'underlined' not in word_attributes else word_attributes['underlined'],
-                                           monospace=None if 'monospace' not in word_attributes else word_attributes['monospace'],
-                                           serif=None if 'serif' not in word_attributes else word_attributes['serif']
-                                           )
+                word_style = TextStyleType(
+                    fontSize=word_attributes['pointsize']
+                    if 'pointsize' in word_attributes else None,
+                    fontFamily=word_attributes['font_name']
+                    if 'font_name' in word_attributes else None,
+                    bold=word_attributes['bold']
+                    if 'bold' in word_attributes else None,
+                    italic=word_attributes['italic']
+                    if 'italic' in word_attributes else None,
+                    underlined=word_attributes['underlined']
+                    if 'underlined' in word_attributes else None,
+                    monospace=word_attributes['monospace']
+                    if 'monospace' in word_attributes else None,
+                    serif=word_attributes['serif']
+                    if 'serif' in word_attributes else None)
                 word.set_TextStyle(word_style) # (or somewhere in custom attribute?)
             # add word annotation unconditionally (i.e. even for glyph level):
-            word.add_TextEquiv(TextEquivType(Unicode=result_it.GetUTF8Text(RIL.WORD), conf=result_it.Confidence(RIL.WORD)/100))
-            if maxlevel == 'word':
-                pass
-            else:
-                self._process_glyphs_in_word(word, result_it)
+            word.add_TextEquiv(TextEquivType(
+                Unicode=result_it.GetUTF8Text(RIL.WORD),
+                conf=result_it.Confidence(RIL.WORD)/100))
+            if self.parameter['textequiv_level'] != 'word':
+                self._process_glyphs_in_word(result_it, word, xywh)
             if result_it.IsAtFinalElement(RIL.TEXTLINE, RIL.WORD):
                 break
             else:
+                word_no += 1
                 result_it.Next(RIL.WORD)
 
-    def _process_existing_words(self, words, maxlevel, tessapi):
+    def _process_existing_words(self, tessapi, words, line_image, line_xywh):
         for word in words:
-            log.debug("Recognizing text in word '%s'", word.id)
-            word_xywh = xywh_from_points(word.get_Coords().points)
-            tessapi.SetRectangle(word_xywh['x'], word_xywh['y'], word_xywh['w'], word_xywh['h'])
+            word_image, word_xywh = image_from_word(
+                self.workspace, word, line_image, line_xywh)
+            tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
-            if maxlevel == 'word':
+            if self.parameter['textequiv_level'] == 'word':
+                LOG.debug("Recognizing text in word '%s'", word.id)
                 word_text = tessapi.GetUTF8Text().rstrip("\n\f")
                 word_conf = tessapi.AllWordConfidences()
                 word_conf = word_conf[0]/100.0 if word_conf else 0.0
                 if word.get_TextEquiv():
-                    log.warning("Word '%s' already contained text results", word.id)
+                    LOG.warning("Word '%s' already contained text results", word.id)
                     word.set_TextEquiv([])
                 # todo: consider WordFontAttributes (TextStyle) etc (if not word.get_TextStyle())
                 word.add_TextEquiv(TextEquivType(Unicode=word_text, conf=word_conf))
@@ -263,62 +284,68 @@ class TesserocrRecognize(Processor):
             glyphs = word.get_Glyph()
             if glyphs:
                 ## external glyph layout:
-                log.warning("Word '%s' contains glyphs already, recognition might be suboptimal", word.id)
-                self._process_existing_glyphs(glyphs, tessapi)
+                LOG.warning("Word '%s' contains glyphs already, recognition might be suboptimal", word.id)
+                self._process_existing_glyphs(tessapi, glyphs, word_image, word_xywh)
             else:
                 ## internal glyph layout:
                 tessapi.Recognize()
-                self._process_glyphs_in_word(word, tessapi.GetIterator())
+                self._process_glyphs_in_word(tessapi.GetIterator(), word, word_xywh)
 
-    def _process_existing_glyphs(self, glyphs, tessapi):
+    def _process_existing_glyphs(self, tessapi, glyphs, word_image, word_xywh):
         for glyph in glyphs:
-            log.debug("Recognizing glyph in word '%s'", glyph.id)
-            glyph_xywh = xywh_from_points(glyph.get_Coords().points)
-            tessapi.SetRectangle(glyph_xywh['x'], glyph_xywh['y'], glyph_xywh['w'], glyph_xywh['h'])
+            glyph_image, glyph_xywh = image_from_glyph(
+                self.workspace, glyph, word_image, word_xywh)
+            tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
+            LOG.debug("Recognizing text in glyph '%s'", glyph.id)
             if glyph.get_TextEquiv():
-                log.warning("Glyph '%s' already contained text results", glyph.id)
+                LOG.warning("Glyph '%s' already contained text results", glyph.id)
                 glyph.set_TextEquiv([])
             #glyph_text = tessapi.GetUTF8Text().rstrip("\n\f")
             glyph_conf = tessapi.AllWordConfidences()
             glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 0.0
-            #log.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
+            #LOG.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
             result_it = tessapi.GetIterator()
             if not result_it or result_it.Empty(RIL.SYMBOL):
-                log.error("No glyph here")
+                LOG.error("No text in glyph '%s'", glyph.id)
                 continue
             choice_it = result_it.GetChoiceIterator()
             for (choice_no, choice) in enumerate(choice_it):
                 alternative_text = choice.GetUTF8Text()
                 alternative_conf = choice.Confidence()/100
-                #log.debug('alternative glyph: "%s" [%f]', alternative_text, alternative_conf)
+                #LOG.debug('alternative glyph: "%s" [%f]', alternative_text, alternative_conf)
                 if (glyph_conf - alternative_conf > CHOICE_THRESHOLD_CONF or
                     choice_no > CHOICE_THRESHOLD_NUM):
                     break
                 # todo: consider SymbolIsSuperscript (TextStyle), SymbolIsDropcap (RelationType) etc
                 glyph.add_TextEquiv(TextEquivType(index=choice_no, Unicode=alternative_text, conf=alternative_conf))
     
-    def _process_glyphs_in_word(self, word, result_it):
-        for glyph_no in range(0, MAX_ELEMENTS): # iterate until IsAtFinalElement(RIL.WORD, RIL.SYMBOL)
-            if not result_it:
-                log.error("No iterator at '%s'", word.id)
-                break
-            if result_it.Empty(RIL.SYMBOL):
-                log.debug("No glyph here")
-                break
+    def _process_glyphs_in_word(self, result_it, word, word_xywh):
+        if not result_it or result_it.Empty(RIL.SYMBOL):
+            LOG.debug("No glyph in word '%s'", word.id)
+            return
+        # iterate until IsAtFinalElement(RIL.WORD, RIL.SYMBOL):
+        glyph_no = 0
+        while result_it and not result_it.Empty(RIL.SYMBOL):
             glyph_id = '%s_glyph%04d' % (word.id, glyph_no)
-            log.debug("Recognizing text in glyph '%s'", glyph_id)
+            LOG.debug("Decoding text in glyph '%s'", glyph_id)
             #  glyph_text = result_it.GetUTF8Text(RIL.SYMBOL) # equals first choice?
             glyph_conf = result_it.Confidence(RIL.SYMBOL)/100 # equals first choice?
-            #log.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
-            glyph_bbox = result_it.BoundingBox(RIL.SYMBOL)
-            glyph = GlyphType(id=glyph_id, Coords=CoordsType(points_from_x0y0x1y1(glyph_bbox)))
+            #LOG.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
+            bbox = result_it.BoundingBox(RIL.SYMBOL)
+            points = points_from_x0y0x1y1(bbox)
+            # add offset from image:
+            xywh = xywh_from_points(points)
+            xywh['x'] += word_xywh['x']
+            xywh['y'] += word_xywh['y']
+            points = points_from_xywh(xywh)
+            glyph = GlyphType(id=glyph_id, Coords=CoordsType(points))
             word.add_Glyph(glyph)
             choice_it = result_it.GetChoiceIterator()
             for (choice_no, choice) in enumerate(choice_it):
                 alternative_text = choice.GetUTF8Text()
                 alternative_conf = choice.Confidence()/100
-                #log.debug('alternative glyph: "%s" [%f]', alternative_text, alternative_conf)
+                #LOG.debug('alternative glyph: "%s" [%f]', alternative_text, alternative_conf)
                 if (glyph_conf - alternative_conf > CHOICE_THRESHOLD_CONF or
                     choice_no > CHOICE_THRESHOLD_NUM):
                     break
@@ -327,6 +354,7 @@ class TesserocrRecognize(Processor):
             if result_it.IsAtFinalElement(RIL.WORD, RIL.SYMBOL):
                 break
             else:
+                glyph_no += 1
                 result_it.Next(RIL.SYMBOL)
 
 def page_update_higher_textequiv_levels(level, pcgts):

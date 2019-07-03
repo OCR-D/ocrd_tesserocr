@@ -5,6 +5,26 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.2.3] - 2019-06-28
+
+Changed:
+  * Use basename of input file for output name
+  * Use .xml filename extension for PAGE output
+  * Warn about existing border or regions in `crop`
+  * Use `PSM.SPARSE_TEXT` without tables in `crop`
+  * Filter unreliable regions in `crop`
+  * Add padding around border in `crop`
+  * Delete existing regions in `segment_region`
+  * Cover vertical text and tables in `segment_region`
+  * Add parameter `find_tables` in `segment_region`
+  * Add parameter `crop_polygons` in `segment_region`
+  * Add parameter `overwrite_regions` in `segment_region`
+  * Add parameter `overwrite_lines` in `segment_line`
+  * Add parameter `overwrite_words` in `segment_word`
+  * Add page/region-level processor `deskew`
+  * Add page/region/line-level processor `binarize`
+  * Respect AlternativeImage on all levels
+
 ## [0.2.2] - 2019-05-20
 
 Changed:

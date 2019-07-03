@@ -6,6 +6,8 @@ from ocrd_tesserocr.segment_region import TesserocrSegmentRegion
 from ocrd_tesserocr.segment_line import TesserocrSegmentLine
 from ocrd_tesserocr.segment_word import TesserocrSegmentWord
 from ocrd_tesserocr.crop import TesserocrCrop
+from ocrd_tesserocr.deskew import TesserocrDeskew
+from ocrd_tesserocr.binarize import TesserocrBinarize
 
 @click.command()
 @ocrd_cli_options
@@ -31,3 +33,13 @@ def ocrd_tesserocr_recognize(*args, **kwargs):
 @ocrd_cli_options
 def ocrd_tesserocr_crop(*args, **kwargs):
     return ocrd_cli_wrap_processor(TesserocrCrop, *args, **kwargs)
+
+@click.command()
+@ocrd_cli_options
+def ocrd_tesserocr_deskew(*args, **kwargs):
+    return ocrd_cli_wrap_processor(TesserocrDeskew, *args, **kwargs)
+
+@click.command()
+@ocrd_cli_options
+def ocrd_tesserocr_binarize(*args, **kwargs):
+    return ocrd_cli_wrap_processor(TesserocrBinarize, *args, **kwargs)
