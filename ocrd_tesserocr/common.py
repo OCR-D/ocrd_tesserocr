@@ -11,10 +11,6 @@ from ocrd_utils import getLogger, xywh_from_points, polygon_from_points
 
 LOG = getLogger('') # to be refined by importer
 
-# dummy (not available without ocrolib)
-def resegment(mask_image, labels):
-    return mask_image
-
 # to be refactored into core (as function in ocrd_utils):
 def polygon_mask(image, coordinates):
     mask = Image.new('L', image.size, 0)
@@ -207,10 +203,6 @@ def image_from_line(workspace, line,
                                       orig={'x': 0.5 * region_image.width,
                                             'y': 0.5 * region_image.height})
         line_mask = polygon_mask(region_image, line_polygon)
-        if isinstance(segmentation, np.ndarray):
-            # modify mask from (ad-hoc) line segmentation of region
-            # (shrink to largest label spread in that area):
-            line_mask = resegment(line_mask, segmentation)
         # create a background image from its median color
         # (in case it has not been binarized yet):
         region_array = np.asarray(region_image)
