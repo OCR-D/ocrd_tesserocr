@@ -43,10 +43,10 @@ class TesserocrBinarize(Processor):
     def process(self):
         """Performs binarization with Tesseract on the workspace.
         
-        Open and deserialise PAGE input files and their respective images,
+        Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the requested level.
         
-        Set up Tesseract to recognise the segment image's layout, and get
+        Set up Tesseract to recognize the segment image's layout, and get
         the binarized image. Create an image file, and reference it as
         AlternativeImage in the element and as file with a fileGrp USE
         equal `OCR-D-IMG-BIN` in the workspace.

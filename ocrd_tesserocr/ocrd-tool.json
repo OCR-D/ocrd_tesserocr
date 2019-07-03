@@ -5,7 +5,7 @@
   "tools": {
     "ocrd-tesserocr-deskew": {
       "executable": "ocrd-tesserocr-deskew",
-      "categories": ["Deskewing"],
+      "categories": ["Image preprocessing"],
       "description": "Deskew pages or regions",
       "input_file_grp": [
         "OCR-D-IMG",
@@ -73,6 +73,12 @@
           "default": true,
           "description": "remove existing layout and text annotation below the Page level"
         },
+        "padding": {
+          "type": "number",
+          "format": "integer",
+          "description": "extend detected region rectangles by this many (true) pixels",
+          "default": 8
+        },
         "crop_polygons": {
           "type": "boolean",
           "default": false,
@@ -134,11 +140,18 @@
 	"OCR-D-IMG-CROPPED"
       ],
       "steps": ["preprocessing/optimization/cropping"],
-      "parameters" : {}
+      "parameters" : {
+        "padding": {
+          "type": "number",
+          "format": "integer",
+          "description": "extend detected border by this many (true) pixels on every side",
+          "default": 4
+        }
+      }
     },
     "ocrd-tesserocr-binarize": {
       "executable": "ocrd-tesserocr-binarize",
-      "categories": ["Binarization"],
+      "categories": ["Image preprocessing"],
       "description": "Binarize pages, regions or lines",
       "input_file_grp": [
         "OCR-D-IMG",

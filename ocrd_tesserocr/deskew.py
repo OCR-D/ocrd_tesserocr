@@ -44,7 +44,7 @@ class TesserocrDeskew(Processor):
         super(TesserocrDeskew, self).__init__(*args, **kwargs)
 
     def process(self):
-        """Performs region-level deskewing with Tesseract on the workspace.
+        """Performs deskewing of the page / region with Tesseract on the workspace.
         
         Open and deserialise PAGE input files and their respective images,
         then iterate over the element hierarchy down to the region level
@@ -54,9 +54,9 @@ class TesserocrDeskew(Processor):
         and script (with both OSD and AnalyseLayout). Rotate the image
         accordingly, and annotate the angle, readingDirection and textlineOrder.
         
-        Create a cropped (and possibly deskewed) image file, and reference it
-        as AlternativeImage in the region element and as file with a fileGrp USE
-        equal `OCR-D-IMG-DESKEW` in the workspace.
+        Create a corresponding image file, and reference it as AlternativeImage
+        in the region element and as file with a fileGrp USE `OCR-D-IMG-DESKEW`
+        in the workspace.
         
         Produce a new output file by serialising the resulting hierarchy.
         """
@@ -172,6 +172,14 @@ class TesserocrDeskew(Processor):
             deskew_angle *= - 180 / math.pi
             if int(deskew_angle):
                 comments += ',deskewed'
+            # We could rotate the image by transposition (which is more accurate
+            # than the general method below), but then the coordinates –
+            # which are still relative to `imageFilename` – of all the elements
+            # contained in this segment (i.e. any TextLine if `segment` is TextRegion,
+            # and any TextRegion if `segment` is Page) will have to be _transposed_
+            # (instead of rotated) as well. But PAGE consumers have little chance
+            # of knowing which method producers chose, so here we generally decide
+            # to drop this mechanism:
             # if angle:
             #     image = image.transpose({
             #         90: Image.ROTATE_90,

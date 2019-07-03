@@ -25,8 +25,6 @@ from .common import (
 TOOL = 'ocrd-tesserocr-crop'
 LOG = getLogger('processor.TesserocrCrop')
 
-PADDING = 4 # extend detected border by how many (true) pixels on every side?
-
 class TesserocrCrop(Processor):
 
     def __init__(self, *args, **kwargs):
@@ -35,15 +33,17 @@ class TesserocrCrop(Processor):
         super(TesserocrCrop, self).__init__(*args, **kwargs)
 
     def process(self):
-        """Performs crude page cropping with Tesseract on the workspace.
+        """Performs page cropping with Tesseract on the workspace.
         
-        Open and deserialise PAGE input files and their respective images.
+        Open and deserialize PAGE input files and their respective images.
         Set up Tesseract to detect text blocks on each page, and find
         the largest coordinate extent spanning all of them. Use this
         extent in defining a Border, and add that to the page.
         
         Produce new output files by serialising the resulting hierarchy.
         """
+        padding = self.parameter['padding']
+
         with tesserocr.PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             # disable table detection here (tables count as text blocks),
             # because we do not want to risk confusing the spine with
@@ -131,10 +131,10 @@ class TesserocrCrop(Processor):
                 #
                 if min_x < max_x and min_y < max_y:
                     # add padding:
-                    min_x = max(min_x - PADDING, 0)
-                    max_x = min(max_x + PADDING, page_image.width)
-                    min_y = max(min_y - PADDING, 0)
-                    max_y = min(max_y + PADDING, page_image.height)
+                    min_x = max(min_x - padding, 0)
+                    max_x = min(max_x + padding, page_image.width)
+                    min_y = max(min_y - padding, 0)
+                    max_y = min(max_y + padding, page_image.height)
                     LOG.debug("Padded page border: %i:%i,%i:%i", min_x, max_x, min_y, max_y)
                     border = BorderType(Coords=CoordsType(
                         points_from_bbox(min_x, min_y, max_x, max_y)))

@@ -38,7 +38,7 @@ class TesserocrSegmentWord(Processor):
     def process(self):
         """Performs word segmentation with Tesseract on the workspace.
         
-        Open and deserialise PAGE input files and their respective images,
+        Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the textline level,
         and remove any existing Word elements (unless `overwrite_words`
         is False).

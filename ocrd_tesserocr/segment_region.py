@@ -39,7 +39,6 @@ TOOL = 'ocrd-tesserocr-segment-region'
 LOG = getLogger('processor.TesserocrSegmentRegion')
 FILEGRP_IMG = 'OCR-D-IMG-CROP'
 
-PADDING = 8 # extend detected region rectangles by how many (true) pixels?
 # (will be passed as padding to both BoundingBox and GetImage)
 # (actually, Tesseract honours padding only on the left and bottom,
 #  whereas right and top are increased less)
@@ -54,7 +53,7 @@ class TesserocrSegmentRegion(Processor):
     def process(self):
         """Performs (text) region segmentation with Tesseract on the workspace.
         
-        Open and deserialise PAGE input files and their respective images,
+        Open and deserialize PAGE input files and their respective images,
         and remove any existing Region and ReadingOrder elements
         (unless `overwrite_regions` is False).
         
@@ -153,7 +152,7 @@ class TesserocrSegmentRegion(Processor):
         # and its BlockPolygon()
         index = 0
         while it and not it.Empty(RIL.BLOCK):
-            bbox = it.BoundingBox(RIL.BLOCK, padding=PADDING)
+            bbox = it.BoundingBox(RIL.BLOCK, padding=self.parameter['padding'])
             points = points_from_x0y0x1y1(bbox)
             # add offset from any Border:
             xywh = xywh_from_points(points)
@@ -249,7 +248,7 @@ class TesserocrSegmentRegion(Processor):
                 #  GetBinaryImage).
                 # You have been warned!
                 # get the raw image (masked by white space along the block polygon):
-                region_image, top, left = it.GetImage(RIL.BLOCK, PADDING, page_image)
+                region_image, top, left = it.GetImage(RIL.BLOCK, self.parameter['padding'], page_image)
                 # update METS (add the image file):
                 file_path = save_image_file(self.workspace, region_image,
                                             file_id + '_' + ID,

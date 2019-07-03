@@ -38,7 +38,7 @@ class TesserocrSegmentLine(Processor):
     def process(self):
         """Performs (text) line segmentation with Tesseract on the workspace.
         
-        Open and deserialise PAGE input files and their respective images,
+        Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the region level,
         and remove any existing TextLine elements (unless `overwrite_lines`
         is False).
