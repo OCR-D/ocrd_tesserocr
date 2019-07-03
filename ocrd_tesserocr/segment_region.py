@@ -73,7 +73,12 @@ class TesserocrSegmentRegion(Processor):
         find_tables = self.parameter['find_tables']
         
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
-            if not find_tables:
+            if find_tables:
+                tessapi.SetVariable("textord_tabfind_find_tables", "1") # (default)
+                # this should yield additional blocks within the table blocks
+                # from the page iterator, but does not in fact (yet?):
+                tessapi.SetVariable("textord_tablefind_recognize_tables", "1")
+            else:
                 # disable table detection here, so tables will be
                 # analysed as independent text/line blocks:
                 tessapi.SetVariable("textord_tabfind_find_tables", "0")
