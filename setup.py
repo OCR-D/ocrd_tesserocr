@@ -16,11 +16,11 @@ from setuptools import setup, find_packages
 
 setup(
     name='ocrd_tesserocr',
-    version='0.2.3',
+    version='0.3.0',
     description='Tesserocr bindings',
     long_description=codecs.open('README.rst', encoding='utf-8').read(),
-    author='Konstantin Baierer, Kay-Michael Würzner',
-    author_email='unixprog@gmail.com, wuerzner@gmail.com',
+    author='Konstantin Baierer, Kay-Michael Würzner, Robert Sachunsky',
+    author_email='unixprog@gmail.com, wuerzner@gmail.com, sachunsky@informatik.uni-leipzig.de',
     url='https://github.com/OCR-D/ocrd_tesserocr',
     license='Apache License 2.0',
     packages=find_packages(exclude=('tests', 'docs')),
