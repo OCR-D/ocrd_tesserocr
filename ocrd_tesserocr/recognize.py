@@ -345,7 +345,7 @@ class TesserocrRecognize(Processor):
             for (choice_no, choice) in enumerate(choice_it):
                 alternative_text = choice.GetUTF8Text()
                 alternative_conf = choice.Confidence()/100
-                LOG.trace('alternative glyph: "%s" [%f]', alternative_text, alternative_conf)
+                #LOG.debug('alternative glyph: "%s" [%f]', alternative_text, alternative_conf)
                 if (glyph_conf - alternative_conf > CHOICE_THRESHOLD_CONF or
                     choice_no > CHOICE_THRESHOLD_NUM):
                     break
