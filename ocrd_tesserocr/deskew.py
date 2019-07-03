@@ -146,7 +146,8 @@ class TesserocrDeskew(Processor):
             else:
                 LOG.info('applying OSD script  result "%s" with high confidence %.0f in %s',
                          osr['script_name'], osr['script_conf'], where)
-                segment.set_primaryScript(osr['script_name'])
+                if isinstance(segment, (TextRegionType, PageType)):
+                    segment.set_primaryScript(osr['script_name'])
         else:
             LOG.warning('no OSD result in %s', where)
         #
