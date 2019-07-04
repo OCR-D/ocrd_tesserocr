@@ -5,7 +5,7 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-## [0.2.3] - 2019-06-28
+## [0.3.0] - 2019-06-28
 
 Changed:
   * Use basename of input file for output name
