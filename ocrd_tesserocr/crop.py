@@ -87,6 +87,8 @@ class TesserocrCrop(Processor):
                                 min_x, max_x, min_y, max_y)
                 
                 page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
+                dpi = page_image.info.get('dpi', (300,300))[0]
+                zoom = 300 / dpi
                 LOG.debug("Cropping with tesseract")
                 tessapi.SetImage(page_image)
                 # PSM.SPARSE_TEXT: get as much text as possible in no particular order
@@ -116,9 +118,15 @@ class TesserocrCrop(Processor):
                         # this does happen!
                         LOG.info("Ignoring region '%s' because its binarization is empty", ID)
                         continue
-                    if bin_bbox[2]-bin_bbox[0] < 30 or bin_bbox[3]-bin_bbox[1] < 30:
+                    width = bin_bbox[2]-bin_bbox[0]
+                    if width < 30 / zoom:
                         # we must be conservative here: page numbers are tiny regions, too!
-                        LOG.info("Ignoring region '%s' because its binarization is too small", ID)
+                        LOG.info("Ignoring region '%s' because its width is too small (%d)", ID, width)
+                        continue
+                    height = bin_bbox[3]-bin_bbox[1]
+                    if height < 30 / zoom:
+                        # we must be conservative here: page numbers are tiny regions, too!
+                        LOG.info("Ignoring region '%s' because its height is too small (%d)", ID, height)
                         continue
                     min_x = min(min_x, left)
                     min_y = min(min_y, top)
