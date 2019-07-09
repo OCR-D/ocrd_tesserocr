@@ -87,8 +87,12 @@ class TesserocrCrop(Processor):
                                 min_x, max_x, min_y, max_y)
                 
                 page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
-                dpi = page_image.info.get('dpi', (300,300))[0]
-                zoom = 300 / dpi
+                dpi = page_image.info.get('dpi', (0,0))[0]
+                if dpi:
+                    tessapi.SetVariable('user_defined_dpi', str(dpi))
+                    zoom = 300 / dpi
+                else:
+                    zoom = 1
                 LOG.debug("Cropping with tesseract")
                 tessapi.SetImage(page_image)
                 # PSM.SPARSE_TEXT: get as much text as possible in no particular order

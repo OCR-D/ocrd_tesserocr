@@ -126,6 +126,9 @@ class TesserocrSegmentRegion(Processor):
                     else:
                         LOG.warning('keeping existing ReadingOrder')
                 page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
+                dpi = page_image.info.get('dpi', (0,0))[0]
+                if dpi:
+                    tessapi.SetVariable('user_defined_dpi', str(dpi))
                 page_image, page_xywh = image_from_page(
                     self.workspace, page, page_image, page_id)
                 LOG.info("Detecting regions in page '%s'", page_id)

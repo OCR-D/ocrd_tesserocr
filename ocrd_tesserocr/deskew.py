@@ -85,6 +85,9 @@ class TesserocrDeskew(Processor):
                                                                for name in self.parameter.keys()])]))
                 page = pcgts.get_Page()
                 page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
+                dpi = page_image.info.get('dpi', (0,0))[0]
+                if dpi:
+                    tessapi.SetVariable('user_defined_dpi', str(dpi))
                 LOG.info("Deskewing on '%s' level in page '%s'", oplevel, page_id)
 
                 page_image, page_xywh = image_from_page(
