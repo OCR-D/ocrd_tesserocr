@@ -127,7 +127,7 @@ class TesserocrDeskew(Processor):
         #
         osr = tessapi.DetectOrientationScript()
         if osr:
-            assert osr['orient_conf'] and not math.isnan(osr['orient_conf']), \
+            assert not math.isnan(osr['orient_conf']), \
                 "orientation detection failed (Tesseract probably compiled without legacy OEM, or osd model not installed)"
             if osr['orient_conf'] < 10:
                 LOG.info('ignoring OSD orientation result %d° due to low confidence %.0f in %s',
@@ -138,7 +138,7 @@ class TesserocrDeskew(Processor):
                 angle = osr['orient_deg']
                 if angle:
                     comments += ',rotated-%d' % angle
-            assert osr['script_conf'] and not math.isnan(osr['script_conf']), \
+            assert not math.isnan(osr['script_conf']), \
                 "script detection failed (Tesseract probably compiled without legacy OEM, or osd model not installed)"
             if osr['script_conf'] < 10:
                 LOG.info('ignoring OSD script result "%s" due to low confidence %.0f in %s',
