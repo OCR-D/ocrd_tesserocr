@@ -41,7 +41,7 @@ class TesserocrBinarize(Processor):
         super(TesserocrBinarize, self).__init__(*args, **kwargs)
 
     def process(self):
-        """Performs binarization with Tesseract on the workspace.
+        """Performs binarization of the region / line with Tesseract on the workspace.
         
         Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the requested level.
@@ -77,35 +77,29 @@ class TesserocrBinarize(Processor):
 
                 page_image, page_xywh = image_from_page(
                     self.workspace, page, page_image, page_id)
-                if oplevel == 'page':
-                    tessapi.SetPageSegMode(PSM.AUTO)
-                    self._process_segment(tessapi, RIL.BLOCK, page, page_image, page_xywh,
-                                          "page '%s'" % page_id, input_file.pageId,
-                                          file_id)
-                else:
-                    regions = page.get_TextRegion() + page.get_TableRegion()
-                    if not regions:
-                        LOG.warning("Page '%s' contains no text regions", page_id)
-                    for region in regions:
-                        region_image, region_xywh = image_from_region(
-                            self.workspace, region, page_image, page_xywh)
-                        if oplevel == 'region':
-                            tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
-                            self._process_segment(tessapi, RIL.BLOCK, region, region_image, region_xywh,
-                                                  "region '%s'" % region.id, input_file.pageId,
-                                                  file_id + '_' + region.id)
-                        elif isinstance(region, TextRegionType):
-                            lines = region.get_TextLine()
-                            if not lines:
-                                LOG.warning("Page '%s' region '%s' contains no text lines",
-                                            page_id, region.id)
-                            for line in lines:
-                                line_image, line_xywh = image_from_line(
-                                    self.workspace, line, region_image, region_xywh)
-                                tessapi.SetPageSegMode(PSM.SINGLE_LINE)
-                                self._process_segment(tessapi, RIL.TEXTLINE, line, line_image, line_xywh,
-                                                      "line '%s'" % line.id, input_file.pageId,
-                                                      file_id + '_' + region.id + '_' + line.id)
+                regions = page.get_TextRegion() + page.get_TableRegion()
+                if not regions:
+                    LOG.warning("Page '%s' contains no text regions", page_id)
+                for region in regions:
+                    region_image, region_xywh = image_from_region(
+                        self.workspace, region, page_image, page_xywh)
+                    if oplevel == 'region':
+                        tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
+                        self._process_segment(tessapi, RIL.BLOCK, region, region_image, region_xywh,
+                                              "region '%s'" % region.id, input_file.pageId,
+                                              file_id + '_' + region.id)
+                    elif isinstance(region, TextRegionType):
+                        lines = region.get_TextLine()
+                        if not lines:
+                            LOG.warning("Page '%s' region '%s' contains no text lines",
+                                        page_id, region.id)
+                        for line in lines:
+                            line_image, line_xywh = image_from_line(
+                                self.workspace, line, region_image, region_xywh)
+                            tessapi.SetPageSegMode(PSM.SINGLE_LINE)
+                            self._process_segment(tessapi, RIL.TEXTLINE, line, line_image, line_xywh,
+                                                  "line '%s'" % line.id, input_file.pageId,
+                                                  file_id + '_' + region.id + '_' + line.id)
 
                 # Use input_file's basename for the new file -
                 # this way the files retain the same basenames:

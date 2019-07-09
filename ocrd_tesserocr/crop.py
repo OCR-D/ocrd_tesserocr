@@ -116,17 +116,17 @@ class TesserocrCrop(Processor):
                     bin_bbox = image.getbbox()
                     if not bin_bbox:
                         # this does happen!
-                        LOG.info("Ignoring region '%s' because its binarization is empty", ID)
+                        LOG.debug("Ignoring region '%s' because its binarization is empty", ID)
                         continue
                     width = bin_bbox[2]-bin_bbox[0]
-                    if width < 30 / zoom:
+                    if width < 25 / zoom:
                         # we must be conservative here: page numbers are tiny regions, too!
-                        LOG.info("Ignoring region '%s' because its width is too small (%d)", ID, width)
+                        LOG.debug("Ignoring region '%s' because its width is too small (%d)", ID, width)
                         continue
                     height = bin_bbox[3]-bin_bbox[1]
-                    if height < 30 / zoom:
+                    if height < 25 / zoom:
                         # we must be conservative here: page numbers are tiny regions, too!
-                        LOG.info("Ignoring region '%s' because its height is too small (%d)", ID, height)
+                        LOG.debug("Ignoring region '%s' because its height is too small (%d)", ID, height)
                         continue
                     min_x = min(min_x, left)
                     min_y = min(min_y, top)

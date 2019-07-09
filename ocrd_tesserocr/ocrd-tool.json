@@ -166,7 +166,7 @@
       "parameters": {
         "operation_level": {
           "type": "string",
-          "enum": ["page", "region", "line"],
+          "enum": ["region", "line"],
           "default": "region",
           "description": "PAGE XML hierarchy level to operate on"
         }
