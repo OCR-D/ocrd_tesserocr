@@ -121,7 +121,11 @@ class TesserocrDeskew(Processor):
                     content=to_xml(pcgts))
 
     def _process_segment(self, tessapi, segment, image, xywh, where, page_id, file_id):
-        comments = 'cropped'
+        if (isinstance(segment, PageType) and
+            not xywh['x'] and not xywh['y']):
+            comments = ''
+        else:
+            comments = 'cropped'
         angle = 0.
         tessapi.SetImage(image)
         #tessapi.SetPageSegMode(PSM.AUTO_OSD)
