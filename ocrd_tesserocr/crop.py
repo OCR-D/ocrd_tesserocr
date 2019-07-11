@@ -14,6 +14,7 @@ from ocrd_models.ocrd_page import (
     to_xml
 )
 from ocrd_models.ocrd_page_generateds import BorderType
+from ocrd_models import OcrdExif
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
@@ -88,8 +89,11 @@ class TesserocrCrop(Processor):
                                 min_x, max_x, min_y, max_y)
                 
                 page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
-                dpi = page_image.info.get('dpi', (0,0))[0]
-                if dpi:
+                page_image_info = OcrdExif(page_image)
+                if page_image_info.xResolution != 1:
+                    dpi = page_image_info.xResolution
+                    if page_image_info.resolutionUnit == 'cm':
+                        dpi = round(dpi * 2.54)
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                     zoom = 300 / dpi
                 else:

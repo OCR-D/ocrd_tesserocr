@@ -17,6 +17,7 @@ from ocrd_models.ocrd_page import (
     WordType,
     to_xml
 )
+from ocrd_models import OcrdExif
 
 from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
 from .common import (
@@ -71,8 +72,11 @@ class TesserocrSegmentWord(Processor):
                                                                for name in self.parameter.keys()])]))
                 page = pcgts.get_Page()
                 page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
-                dpi = page_image.info.get('dpi', (0,0))[0]
-                if dpi:
+                page_image_info = OcrdExif(page_image)
+                if page_image_info.xResolution != 1:
+                    dpi = page_image_info.xResolution
+                    if page_image_info.resolutionUnit == 'cm':
+                        dpi = round(dpi * 2.54)
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                 page_image, page_xywh = image_from_page(
                     self.workspace, page, page_image, page_id)
