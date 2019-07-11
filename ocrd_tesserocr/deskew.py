@@ -22,6 +22,7 @@ from ocrd_models.ocrd_page import (
     TextRegionType, PageType,
     to_xml
 )
+from ocrd_models import OcrdExif
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
@@ -85,6 +86,12 @@ class TesserocrDeskew(Processor):
                                                                for name in self.parameter.keys()])]))
                 page = pcgts.get_Page()
                 page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
+                page_image_info = OcrdExif(page_image)
+                if page_image_info.xResolution != 1:
+                    dpi = page_image_info.xResolution
+                    if page_image_info.resolutionUnit == 'cm':
+                        dpi = round(dpi * 2.54)
+                    tessapi.SetVariable('user_defined_dpi', str(dpi))
                 LOG.info("Deskewing on '%s' level in page '%s'", oplevel, page_id)
 
                 page_image, page_xywh = image_from_page(
@@ -118,7 +125,11 @@ class TesserocrDeskew(Processor):
                     content=to_xml(pcgts))
 
     def _process_segment(self, tessapi, segment, image, xywh, where, page_id, file_id):
-        comments = 'cropped'
+        if (isinstance(segment, PageType) and
+            not xywh['x'] and not xywh['y']):
+            comments = ''
+        else:
+            comments = 'cropped'
         angle = 0.
         tessapi.SetImage(image)
         #tessapi.SetPageSegMode(PSM.AUTO_OSD)
@@ -127,7 +138,7 @@ class TesserocrDeskew(Processor):
         #
         osr = tessapi.DetectOrientationScript()
         if osr:
-            assert osr['orient_conf'] and not math.isnan(osr['orient_conf']), \
+            assert not math.isnan(osr['orient_conf']), \
                 "orientation detection failed (Tesseract probably compiled without legacy OEM, or osd model not installed)"
             if osr['orient_conf'] < 10:
                 LOG.info('ignoring OSD orientation result %d° due to low confidence %.0f in %s',
@@ -138,7 +149,7 @@ class TesserocrDeskew(Processor):
                 angle = osr['orient_deg']
                 if angle:
                     comments += ',rotated-%d' % angle
-            assert osr['script_conf'] and not math.isnan(osr['script_conf']), \
+            assert not math.isnan(osr['script_conf']), \
                 "script detection failed (Tesseract probably compiled without legacy OEM, or osd model not installed)"
             if osr['script_conf'] < 10:
                 LOG.info('ignoring OSD script result "%s" due to low confidence %.0f in %s',

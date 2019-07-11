@@ -10,20 +10,22 @@ from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
     MetadataItemType,
     LabelsType, LabelType,
-    CoordsType,
+    CoordsType, AlternativeImageType,
     to_xml
 )
 from ocrd_models.ocrd_page_generateds import BorderType
+from ocrd_models import OcrdExif
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .common import (
     bbox_from_points, points_from_bbox,
-    bbox_from_xywh
+    bbox_from_xywh, save_image_file
 )
 
 TOOL = 'ocrd-tesserocr-crop'
 LOG = getLogger('processor.TesserocrCrop')
+FILEGRP_IMG = 'OCR-D-IMG-CROP'
 
 class TesserocrCrop(Processor):
 
@@ -87,8 +89,15 @@ class TesserocrCrop(Processor):
                                 min_x, max_x, min_y, max_y)
                 
                 page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
-                dpi = page_image.info.get('dpi', (300,300))[0]
-                zoom = 300 / dpi
+                page_image_info = OcrdExif(page_image)
+                if page_image_info.xResolution != 1:
+                    dpi = page_image_info.xResolution
+                    if page_image_info.resolutionUnit == 'cm':
+                        dpi = round(dpi * 2.54)
+                    tessapi.SetVariable('user_defined_dpi', str(dpi))
+                    zoom = 300 / dpi
+                else:
+                    zoom = 1
                 LOG.debug("Cropping with tesseract")
                 tessapi.SetImage(page_image)
                 # PSM.SPARSE_TEXT: get as much text as possible in no particular order
@@ -146,7 +155,21 @@ class TesserocrCrop(Processor):
                     LOG.debug("Padded page border: %i:%i,%i:%i", min_x, max_x, min_y, max_y)
                     border = BorderType(Coords=CoordsType(
                         points_from_bbox(min_x, min_y, max_x, max_y)))
+                    # update PAGE (annotate border):
                     page.set_Border(border)
+                    # update METS (add the image file):
+                    page_image = page_image.crop(
+                        box=(min_x, min_y, max_x, max_y))
+                    file_id = input_file.ID.replace(self.input_file_grp, FILEGRP_IMG)
+                    if file_id == input_file.ID:
+                        file_id = concat_padded(FILEGRP_IMG, n)
+                    file_path = save_image_file(self.workspace, page_image,
+                                                file_id,
+                                                page_id=page_id,
+                                                file_grp=FILEGRP_IMG)
+                    # update PAGE (reference the image file):
+                    page.add_AlternativeImage(AlternativeImageType(
+                        filename=file_path, comments="cropped"))
                 else:
                     LOG.error("Cannot find valid extent for page '%s'", page_id)
 
