@@ -33,7 +33,7 @@ def image_from_polygon(image, polygon):
     """"Mask an image with a polygon.
     
     Given a PIL.Image `image` and a numpy array `polygon`
-    of relative coordinates into the image, fill everything
+    of relative coordinates into the image, put everything
     outside the polygon hull to the background. Since `image`
     is not necessarily binarized yet, determine the background
     from the median color (instead of white).
@@ -178,7 +178,7 @@ def image_from_page(workspace, page,
     # page_xywh['angle'] = -(page.get_orientation() or 0)
     # FIXME: remove PrintSpace here as soon as GT abides by the PAGE standard:
     border = page.get_Border() or page.get_PrintSpace()
-    if border and border.get_Coords():
+    if border:
         page_points = border.get_Coords().points
         LOG.debug("Using explictly set page border '%s' for page '%s'",
                   page_points, page_id)
