@@ -33,6 +33,7 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .common import (
     image_from_page,
     save_image_file,
+    points_from_polygon,
     membername
 )
 
@@ -171,18 +172,19 @@ class TesserocrSegmentRegion(Processor):
             xywh['x'] += page_xywh['x']
             xywh['y'] += page_xywh['y']
             points = points_from_xywh(xywh)
-            # this crashes due to tesserocr issue #184 (fixed in PR #185);
-            # also, sometimes these polygons are not planar (probably a
-            # bug in Tesseract itself):
-            # TODO: uncomment as soon as a merged tesserocr release is out:
-            # polygon = it.BlockPolygon()
-            # if self.parameter['crop_polygons'] and polygon and list(polygon):
-            #     # add offset from any Border, and
-            #     # avoid negative results (invalid in PAGE):
-            #     polygon = [(max(0, x + page_xywh['x']),
-            #                 max(0, y + page_xywh['y']))
-            #                for x, y in polygon]
-            #     points = points_from_polygon(polygon)
+            # sometimes these polygons are not planar, which causes
+            # PIL.ImageDraw.Draw.polygon (and likely others as well)
+            # to misbehave; unfortunately, we do not have coordinate
+            # semantics in PAGE (left/right inner/outer, multi-path etc)
+            # (probably a bug in Tesseract itself):
+            polygon = it.BlockPolygon()
+            if self.parameter['crop_polygons'] and polygon and list(polygon):
+                # add offset from any Border, and
+                # avoid negative results (invalid in PAGE):
+                polygon = [(max(0, x + page_xywh['x']),
+                            max(0, y + page_xywh['y']))
+                           for x, y in polygon]
+                points = points_from_polygon(polygon)
             coords = CoordsType(points=points)
             # if xywh['w'] < 30 or xywh['h'] < 30:
             #     LOG.info('Ignoring too small region: %s', points)

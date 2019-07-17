@@ -125,12 +125,12 @@ class TesserocrCrop(Processor):
                     bin_bbox = image.getbbox()
                     if not bin_bbox:
                         # this does happen!
-                        LOG.debug("Ignoring region '%s' because its binarization is empty", ID)
+                        LOG.info("Ignoring region '%s' because its binarization is empty", ID)
                         continue
                     width = bin_bbox[2]-bin_bbox[0]
                     if width < 25 / zoom:
                         # we must be conservative here: page numbers are tiny regions, too!
-                        LOG.debug("Ignoring region '%s' because its width is too small (%d)", ID, width)
+                        LOG.info("Ignoring region '%s' because its width is too small (%d)", ID, width)
                         continue
                     height = bin_bbox[3]-bin_bbox[1]
                     if height < 25 / zoom:
@@ -141,7 +141,7 @@ class TesserocrCrop(Processor):
                     min_y = min(min_y, top)
                     max_x = max(max_x, right)
                     max_y = max(max_y, bottom)
-                    LOG.debug("Updated page border: %i:%i,%i:%i", min_x, max_x, min_y, max_y)
+                    LOG.info("Updated page border: %i:%i,%i:%i", min_x, max_x, min_y, max_y)
 
                 #
                 # set the identified page border
@@ -152,7 +152,7 @@ class TesserocrCrop(Processor):
                     max_x = min(max_x + padding, page_image.width)
                     min_y = max(min_y - padding, 0)
                     max_y = min(max_y + padding, page_image.height)
-                    LOG.debug("Padded page border: %i:%i,%i:%i", min_x, max_x, min_y, max_y)
+                    LOG.info("Padded page border: %i:%i,%i:%i", min_x, max_x, min_y, max_y)
                     border = BorderType(Coords=CoordsType(
                         points_from_bbox(min_x, min_y, max_x, max_y)))
                     # update PAGE (annotate border):
