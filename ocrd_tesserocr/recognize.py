@@ -23,6 +23,10 @@ from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .common import (
+    points_from_polygon,
+    xywh_from_polygon,
+    polygon_from_x0y0x1y1,
+    coordinates_for_segment,
     image_from_page,
     image_from_region,
     image_from_line,
@@ -231,12 +235,10 @@ class TesserocrRecognize(Processor):
             word_id = '%s_word%04d' % (line.id, word_no)
             LOG.debug("Decoding text in word '%s'", word_id)
             bbox = result_it.BoundingBox(RIL.WORD)
-            points = points_from_x0y0x1y1(bbox)
-            # add offset from image:
-            xywh = xywh_from_points(points)
-            xywh['x'] += line_xywh['x']
-            xywh['y'] += line_xywh['y']
-            points = points_from_xywh(xywh)
+            # convert to absolute coordinates:
+            polygon = coordinates_for_segment(polygon_from_x0y0x1y1(bbox),
+                                              None, line_xywh)
+            points = points_from_polygon(polygon)
             word = WordType(id=word_id, Coords=CoordsType(points))
             line.add_Word(word)
             # todo: determine if font attributes available for word level will work with LSTM models
@@ -263,7 +265,7 @@ class TesserocrRecognize(Processor):
                 Unicode=result_it.GetUTF8Text(RIL.WORD),
                 conf=result_it.Confidence(RIL.WORD)/100))
             if self.parameter['textequiv_level'] != 'word':
-                self._process_glyphs_in_word(result_it, word, xywh)
+                self._process_glyphs_in_word(result_it, word, line_xywh)
             if result_it.IsAtFinalElement(RIL.TEXTLINE, RIL.WORD):
                 break
             else:
@@ -340,12 +342,10 @@ class TesserocrRecognize(Processor):
             glyph_conf = result_it.Confidence(RIL.SYMBOL)/100 # equals first choice?
             #LOG.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
             bbox = result_it.BoundingBox(RIL.SYMBOL)
-            points = points_from_x0y0x1y1(bbox)
-            # add offset from image:
-            xywh = xywh_from_points(points)
-            xywh['x'] += word_xywh['x']
-            xywh['y'] += word_xywh['y']
-            points = points_from_xywh(xywh)
+            # convert to absolute coordinates:
+            polygon = coordinates_for_segment(polygon_from_x0y0x1y1(bbox),
+                                              None, word_xywh)
+            points = points_from_polygon(polygon)
             glyph = GlyphType(id=glyph_id, Coords=CoordsType(points))
             word.add_Glyph(glyph)
             choice_it = result_it.GetChoiceIterator()
