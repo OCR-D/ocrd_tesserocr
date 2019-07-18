@@ -1,3 +1,3 @@
 ocrd >= 1.0.0b10
 click
-tesserocr@git+https://github.com/sirfz/tesserocr#egg=tesserocr-2.4.0
+ocrd-fork-tesserocr==3.0.0rc2
