@@ -23,8 +23,7 @@ from ocrd import Processor
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .common import (
     image_from_page,
-    image_from_region,
-    image_from_line,
+    image_from_segment,
     save_image_file,
     membername
 )
@@ -72,16 +71,15 @@ class TesserocrBinarize(Processor):
                                                                          value=self.parameter[name])
                                                                for name in self.parameter.keys()])]))
                 page = pcgts.get_Page()
-                page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
+                page_image, page_xywh, _ = image_from_page(
+                    self.workspace, page, page_id)
                 LOG.info("Binarizing on '%s' level in page '%s'", oplevel, page_id)
-
-                page_image, page_xywh = image_from_page(
-                    self.workspace, page, page_image, page_id)
+                
                 regions = page.get_TextRegion() + page.get_TableRegion()
                 if not regions:
                     LOG.warning("Page '%s' contains no text regions", page_id)
                 for region in regions:
-                    region_image, region_xywh = image_from_region(
+                    region_image, region_xywh = image_from_segment(
                         self.workspace, region, page_image, page_xywh)
                     if oplevel == 'region':
                         tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
@@ -94,7 +92,7 @@ class TesserocrBinarize(Processor):
                             LOG.warning("Page '%s' region '%s' contains no text lines",
                                         page_id, region.id)
                         for line in lines:
-                            line_image, line_xywh = image_from_line(
+                            line_image, line_xywh = image_from_segment(
                                 self.workspace, line, region_image, region_xywh)
                             tessapi.SetPageSegMode(PSM.SINGLE_LINE)
                             self._process_segment(tessapi, RIL.TEXTLINE, line, line_image, line_xywh,

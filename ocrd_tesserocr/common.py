@@ -7,6 +7,7 @@ import io
 import numpy as np
 from PIL import Image, ImageDraw, ImageStat
 
+from ocrd_models import OcrdExif
 from ocrd_utils import getLogger, xywh_from_points, polygon_from_points
 
 LOG = getLogger('') # to be refined by importer
@@ -146,28 +147,28 @@ def coordinates_for_segment(polygon, parent_image, parent_xywh):
     return np.round(polygon).astype(np.uint32)
 
 # to be refactored into core (as method of ocrd.workspace.Workspace):
-def image_from_page(workspace, page,
-                    page_image,
-                    page_id):
+def image_from_page(workspace, page, page_id):
     """Extract the Page image from the workspace.
     
-    Given a PIL.Image of the page, `page_image`,
-    and the Page object logically associated with it, `page`,
-    extract its PIL.Image from AlternativeImage (if it exists),
-    or via cropping from `page_image` (if a Border exists),
-    or by just returning `page_image` (otherwise).
+    Given a PageType object, `page`, extract its PIL.Image from
+    AlternativeImage if it exists. Otherwise extract the PIL.Image
+    from imageFilename and crop it if a Border exists. Otherwise
+    just return it.
     
     When cropping, respect any orientation angle annotated for
     the page (from page-level deskewing) by rotating the
     cropped image, respectively.
     
-    If the resulting page image is larger than the annotated page,
-    pass down the page's box coordinates with an offset of half
-    the width/height difference.
+    If the resulting page image is larger than the bounding box of
+    `page`, pass down the page's box coordinates with an offset of
+    half the width/height difference.
     
-    Return the extracted image, and the page's box coordinates,
-    relative to the source image (for passing down).
+    Return the extracted image, and the absolute coordinates of
+    the page's bounding box / border (for passing down), and
+    an OcrdExif instance associated with the original image.
     """
+    page_image = workspace.resolve_image_as_pil(page.imageFilename)
+    page_image_info = OcrdExif(page_image)
     page_xywh = {'x': 0,
                  'y': 0,
                  'w': page_image.width,
@@ -183,7 +184,6 @@ def image_from_page(workspace, page,
         LOG.debug("Using explictly set page border '%s' for page '%s'",
                   page_points, page_id)
         page_xywh = xywh_from_points(page_points)
-        page_polygon = np.array(polygon_from_points(page_points))
     
     alternative_image = page.get_AlternativeImage()
     if alternative_image:
@@ -195,6 +195,8 @@ def image_from_page(workspace, page,
         page_image = workspace.resolve_image_as_pil(
             alternative_image[-1].get_filename())
     elif border:
+        # get polygon outline of page border:
+        page_polygon = np.array(polygon_from_points(page_points))
         # create a mask from the page polygon:
         page_image = image_from_polygon(page_image, page_polygon)
         # recrop into page rectangle:
@@ -214,241 +216,89 @@ def image_from_page(workspace, page,
     # subtract offset from any increase in binary region size over source:
     page_xywh['x'] -= round(0.5 * max(0, page_image.width  - page_xywh['w']))
     page_xywh['y'] -= round(0.5 * max(0, page_image.height - page_xywh['h']))
-    return page_image, page_xywh
+    return page_image, page_xywh, page_image_info
 
 # to be refactored into core (as method of ocrd.workspace.Workspace):
-def image_from_region(workspace, region,
-                      page_image, page_xywh):
-    """Extract the TextRegion image from a Page image.
+def image_from_segment(workspace, segment, parent_image, parent_xywh):
+    """Extract a segment image from its parent's image.
     
-    Given a PIL.Image of the page, `page_image`,
-    and its coordinates relative to the border, `page_xywh`,
-    and a TextRegion object logically contained in it, `region`,
-    extract its PIL.Image from AlternativeImage (if it exists),
-    or via cropping from `page_image`.
+    Given a PIL.Image of the parent, `parent_image`, and
+    its absolute coordinates, `parent_xywh`, and a PAGE
+    segment (TextRegion / TextLine / Word / Glyph) object
+    logically contained in it, `segment`, extract its PIL.Image
+    from AlternativeImage (if it exists), or via cropping from
+    `parent_image`.
     
     When cropping, respect any orientation angle annotated for
-    the page (from page-level deskewing) by compensating the
-    region coordinates in an inverse transformation (translation
+    the parent (from parent-level deskewing) by compensating the
+    segment coordinates in an inverse transformation (translation
     to center, rotation, re-translation).
     Also, mind the difference between annotated and actual size
-    of the page (usually from deskewing), by a respective offset
+    of the parent (usually from deskewing), by a respective offset
     into the image. Cropping uses a polygon mask (not just the
     rectangle).
     
     When cropping, respect any orientation angle annotated for
-    the region (from region-level deskewing) by rotating the
+    the segment (from segment-level deskewing) by rotating the
     cropped image, respectively.
-
-    If the resulting region image is larger than the annotated region,
-    pass down the region's box coordinates with an offset of half
-    the width/height difference.
     
-    Return the extracted image, and the region's box coordinates,
-    relative to the page image (for passing down).
+    If the resulting segment image is larger than the bounding box of
+    `segment`, pass down the segment's box coordinates with an offset
+    of half the width/height difference.
+    
+    Return the extracted image, and the absolute coordinates of
+    the segment's bounding box (for passing down).
     """
-    region_xywh = xywh_from_points(region.get_Coords().points)
-    region_polygon = coordinates_of_segment(region, page_image, page_xywh)
-    # region angle: PAGE orientation is defined clockwise,
+    segment_xywh = xywh_from_points(segment.get_Coords().points)
+    # angle: PAGE orientation is defined clockwise,
     # whereas PIL/ndimage rotation is in mathematical direction:
-    region_xywh['angle'] = -(region.get_orientation() or 0)
-    alternative_image = region.get_AlternativeImage()
+    segment_xywh['angle'] = (-(segment.get_orientation() or 0)
+                             if 'orientation' in segment.__dict__
+                             else 0)
+    alternative_image = segment.get_AlternativeImage()
     if alternative_image:
-        # (e.g. from region-level cropping, binarization, deskewing or despeckling)
-        LOG.debug("Using AlternativeImage %d (%s) for region '%s'",
+        # (e.g. from segment-level cropping, binarization, deskewing or despeckling)
+        LOG.debug("Using AlternativeImage %d (%s) for segment '%s'",
                   len(alternative_image), alternative_image[-1].get_comments(),
-                  region.id)
-        region_image = workspace.resolve_image_as_pil(
+                  segment.id)
+        segment_image = workspace.resolve_image_as_pil(
             alternative_image[-1].get_filename())
     else:
-        # create a mask from the region polygon:
-        region_image = image_from_polygon(page_image, region_polygon)
-        # recrop into region rectangle:
-        region_image = crop_image(region_image,
-            box=(region_xywh['x'] - page_xywh['x'],
-                 region_xywh['y'] - page_xywh['y'],
-                 region_xywh['x'] - page_xywh['x'] + region_xywh['w'],
-                 region_xywh['y'] - page_xywh['y'] + region_xywh['h']))
-        # note: We should mask overlapping neighbouring regions here
-        # (especially Separator/Noise/GraphicRegion, but also TextRegion),
+        # get polygon outline of segment relative to parent image:
+        segment_polygon = coordinates_of_segment(segment, parent_image, parent_xywh)
+        # create a mask from the segment polygon:
+        segment_image = image_from_polygon(parent_image, segment_polygon)
+        # recrop into segment rectangle:
+        segment_image = crop_image(segment_image,
+            box=(segment_xywh['x'] - parent_xywh['x'],
+                 segment_xywh['y'] - parent_xywh['y'],
+                 segment_xywh['x'] - parent_xywh['x'] + segment_xywh['w'],
+                 segment_xywh['y'] - parent_xywh['y'] + segment_xywh['h']))
+        # note: We should mask overlapping neighbouring segments here,
         # but finding the right clipping rules can be difficult if operating
-        # on the raw (non-binary) image data alone: e.g. an ImageRegion which
-        # properly contains our TextRegion should be completely ignored, but
-        # an ImageRegion which is properly contained in our TextRegion should
-        # be completely masked, while partial overlap may be more difficult
-        # to decide. On the other hand, on the binary image, we can use
-        # connected component analysis to mask foreground areas which originate
-        # in the neighbouring regions. But that would introduce either the
-        # assumption that the input has already been binarized, or a dependency
+        # on the raw (non-binary) image data alone: for each intersection, it
+        # must be decided which one of either segment or neighbour to assign,
+        # e.g. an ImageRegion which properly contains our TextRegion should be
+        # completely ignored, but an ImageRegion which is properly contained
+        # in our TextRegion should be completely masked, while partial overlap
+        # may be more difficult to decide. On the other hand, on the binary image,
+        # we can use connected component analysis to mask foreground areas which
+        # originate in the neighbouring regions. But that would introduce either
+        # the assumption that the input has already been binarized, or a dependency
         # on some ad-hoc binarization method. Thus, it is preferable to use
         # a dedicated processor for this (which produces clipped AlternativeImage
         # or reduced polygon coordinates).
-        if region_xywh['angle']:
-            LOG.info("About to rotate region '%s' by %.2f°",
-                      region.id, region_xywh['angle'])
-            region_image = region_image.rotate(region_xywh['angle'],
-                                               expand=True,
-                                               #resample=Image.BILINEAR,
-                                               fillcolor='white')
+        if segment_xywh['angle']:
+            LOG.info("About to rotate segment '%s' by %.2f°",
+                      segment.id, segment_xywh['angle'])
+            segment_image = segment_image.rotate(segment_xywh['angle'],
+                                                 expand=True,
+                                                 #resample=Image.BILINEAR,
+                                                 fillcolor='white')
     # subtract offset from any increase in binary region size over source:
-    region_xywh['x'] -= round(0.5 * max(0, region_image.width  - region_xywh['w']))
-    region_xywh['y'] -= round(0.5 * max(0, region_image.height - region_xywh['h']))
-    return region_image, region_xywh
-
-# to be refactored into core (as method of ocrd.workspace.Workspace):
-def image_from_line(workspace, line,
-                    region_image, region_xywh):
-    """Extract the TextLine image from a TextRegion image.
-    
-    Given a PIL.Image of the region, `region_image`,
-    and its coordinates relative to the page, `region_xywh`,
-    and a TextLine object logically contained in it, `line`,
-    extract its PIL.Image from AlternativeImage (if it exists),
-    or via cropping from `region_image`.
-    
-    When cropping, respect any orientation angle annotated for
-    the region (from region-level deskewing) by compensating the
-    line coordinates in an inverse transformation (translation
-    to center, rotation, re-translation).
-    Also, mind the difference between annotated and actual size
-    of the region (usually from deskewing), by a respective offset
-    into the image. Cropping uses a polygon mask (not just the
-    rectangle).
-    
-    If the resulting line image is larger than the annotated line,
-    pass down the line's box coordinates with an offset of half
-    the width/height difference.
-    
-    Return the extracted image, and the line's box coordinates,
-    relative to the region image (for passing down).
-    """
-    line_xywh = xywh_from_points(line.get_Coords().points)
-    line_polygon = coordinates_of_segment(line, region_image, region_xywh)
-    alternative_image = line.get_AlternativeImage()
-    if alternative_image:
-        # (e.g. from line-level cropping, deskewing or despeckling)
-        LOG.debug("Using AlternativeImage %d (%s) for line '%s'",
-                  len(alternative_image), alternative_image[-1].get_comments(),
-                  line.id)
-        line_image = workspace.resolve_image_as_pil(
-            alternative_image[-1].get_filename())
-    else:
-        # create a mask from the line polygon:
-        line_image = image_from_polygon(region_image, line_polygon)
-        # recrop into line rectangle:
-        line_image = crop_image(line_image,
-            box=(line_xywh['x'] - region_xywh['x'],
-                 line_xywh['y'] - region_xywh['y'],
-                 line_xywh['x'] - region_xywh['x'] + line_xywh['w'],
-                 line_xywh['y'] - region_xywh['y'] + line_xywh['h']))
-        # note: We should mask overlapping neighbouring lines here,
-        # but finding the right clipping rules can be difficult if operating
-        # on the raw (non-binary) image data alone: for each intersection, it
-        # must be decided which one of either textline to assign. On the other
-        # hand, on the binary image, we can use connected component analysis
-        # to mask foreground areas which originate in the neighbouring regions.
-        # But that would introduce either the assumption that the input has
-        # already been binarized, or a dependency on some ad-hoc binarization
-        # method. Thus, it is preferable to use a dedicated processor for this
-        # (which produces clipped AlternativeImage or reduced polygon coordinates).
-    # subtract offset from any increase in binary line size over source:
-    line_xywh['x'] -= round(0.5 * max(0, line_image.width  - line_xywh['w']))
-    line_xywh['y'] -= round(0.5 * max(0, line_image.height - line_xywh['h']))
-    return line_image, line_xywh
-                
-# to be refactored into core (as method of ocrd.workspace.Workspace):
-def image_from_word(workspace, word,
-                    line_image, line_xywh):
-    """Extract the Word image from a TextLine image.
-    
-    Given a PIL.Image of the line, `line_image`,
-    and its coordinates relative to the region, `line_xywh`,
-    and a Word object logically contained in it, `word`,
-    extract its PIL.Image from AlternativeImage (if it exists),
-    or via cropping from `line_image`.
-    
-    When cropping, mind the difference between annotated
-    and actual size of the line (usually from deskewing), by
-    a respective offset into the image. Cropping uses a polygon
-    mask (not just the rectangle).
-    
-    If the resulting word image is larger than the annotated word,
-    pass down the word's box coordinates with an offset of half
-    the width/height difference.
-    
-    Return the extracted image, and the word's box coordinates,
-    relative to the line image (for passing down).
-    """
-    word_xywh = xywh_from_points(word.get_Coords().points)
-    word_polygon = coordinates_of_segment(word, line_image, line_xywh)
-    alternative_image = word.get_AlternativeImage()
-    if alternative_image:
-        # (e.g. from word-level cropping or binarization)
-        LOG.debug("Using AlternativeImage %d (%s) for word '%s'",
-                  len(alternative_image), alternative_image[-1].get_comments(),
-                  word.id)
-        word_image = workspace.resolve_image_as_pil(
-            alternative_image[-1].get_filename())
-    else:
-        # create a mask from the word polygon:
-        word_image = image_from_polygon(line_image, word_polygon)
-        # recrop into word rectangle:
-        word_image = crop_image(word_image,
-            box=(word_xywh['x'] - line_xywh['x'],
-                 word_xywh['y'] - line_xywh['y'],
-                 word_xywh['x'] - line_xywh['x'] + word_xywh['w'],
-                 word_xywh['y'] - line_xywh['y'] + word_xywh['h']))
-    # subtract offset from any increase in binary line size over source:
-    word_xywh['x'] -= round(0.5 * max(0, word_image.width  - word_xywh['w']))
-    word_xywh['y'] -= round(0.5 * max(0, word_image.height - word_xywh['h']))
-    return word_image, word_xywh
-
-# to be refactored into core (as method of ocrd.workspace.Workspace):
-def image_from_glyph(workspace, glyph,
-                    word_image, word_xywh):
-    """Extract the Glyph image from a Word image.
-    
-    Given a PIL.Image of the word, `word_image`,
-    and its coordinates relative to the line, `word_xywh`,
-    and a Glyph object logically contained in it, `glyph`,
-    extract its PIL.Image from AlternativeImage (if it exists),
-    or via cropping from `word_image`.
-    
-    When cropping, mind the difference between annotated
-    and actual size of the word (usually from deskewing), by
-    a respective offset into the image. Cropping uses a polygon
-    mask (not just the rectangle).
-    
-    If the resulting glyph image is larger than the annotated glyph,
-    pass down the glyph's box coordinates with an offset of half
-    the width/height difference.
-    
-    Return the extracted image, and the glyph's box coordinates,
-    relative to the word image (for passing down).
-    """
-    glyph_xywh = xywh_from_points(glyph.get_Coords().points)
-    glyph_polygon = coordinates_of_segment(glyph, word_image, word_xywh)
-    alternative_image = glyph.get_AlternativeImage()
-    if alternative_image:
-        # (e.g. from glyph-level cropping or binarization)
-        LOG.debug("Using AlternativeImage %d (%s) for glyph '%s'",
-                  len(alternative_image), alternative_image[-1].get_comments(),
-                  glyph.id)
-        glyph_image = workspace.resolve_image_as_pil(
-            alternative_image[-1].get_filename())
-    else:
-        # create a mask from the glyph polygon:
-        glyph_image = image_from_polygon(word_image, glyph_polygon)
-        # recrop into glyph rectangle:
-        glyph_image = crop_image(glyph_image,
-            box=(glyph_xywh['x'] - word_xywh['x'],
-                 glyph_xywh['y'] - word_xywh['y'],
-                 glyph_xywh['x'] - word_xywh['x'] + glyph_xywh['w'],
-                 glyph_xywh['y'] - word_xywh['y'] + glyph_xywh['h']))
-    # subtract offset from any increase in binary word size over source:
-    glyph_xywh['x'] -= round(0.5 * max(0, glyph_image.width  - glyph_xywh['w']))
-    glyph_xywh['y'] -= round(0.5 * max(0, glyph_image.height - glyph_xywh['h']))
-    return glyph_image, glyph_xywh
+    segment_xywh['x'] -= round(0.5 * max(0, segment_image.width  - segment_xywh['w']))
+    segment_xywh['y'] -= round(0.5 * max(0, segment_image.height - segment_xywh['h']))
+    return segment_image, segment_xywh
 
 # to be refactored into core (as method of ocrd.workspace.Workspace):
 def save_image_file(workspace, image,

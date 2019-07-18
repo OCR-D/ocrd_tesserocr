@@ -17,13 +17,11 @@ from ocrd_models.ocrd_page import (
     WordType,
     to_xml
 )
-from ocrd_models import OcrdExif
 
 from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
 from .common import (
     image_from_page,
-    image_from_region,
-    image_from_line
+    image_from_segment
 )
 
 TOOL = 'ocrd-tesserocr-segment-word'
@@ -71,18 +69,16 @@ class TesserocrSegmentWord(Processor):
                                                                          value=self.parameter[name])
                                                                for name in self.parameter.keys()])]))
                 page = pcgts.get_Page()
-                page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
-                page_image_info = OcrdExif(page_image)
+                page_image, page_xywh, page_image_info = image_from_page(
+                    self.workspace, page, page_id)
                 if page_image_info.xResolution != 1:
                     dpi = page_image_info.xResolution
                     if page_image_info.resolutionUnit == 'cm':
                         dpi = round(dpi * 2.54)
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
-                page_image, page_xywh = image_from_page(
-                    self.workspace, page, page_image, page_id)
                 
                 for region in page.get_TextRegion():
-                    region_image, region_xywh = image_from_region(
+                    region_image, region_xywh = image_from_segment(
                         self.workspace, region, page_image, page_xywh)
                     for line in region.get_TextLine():
                         if line.get_Word():
@@ -92,7 +88,7 @@ class TesserocrSegmentWord(Processor):
                             else:
                                 LOG.warning('keeping existing Words in line "%s"', line.id)
                         LOG.debug("Detecting words in line '%s'", line.id)
-                        line_image, line_xywh = image_from_line(
+                        line_image, line_xywh = image_from_segment(
                             self.workspace, line, region_image, region_xywh)
                         tessapi.SetImage(line_image)
                         for word_no, component in enumerate(tessapi.GetComponentImages(RIL.WORD, True, raw_image=True)):
