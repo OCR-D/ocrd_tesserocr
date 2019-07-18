@@ -1,7 +1,7 @@
 ocrd_tesserocr
 ==============
 
-    Segment into regions or lines, deskew, or recognize with tesserocr
+    Crop, deskew, segment into regions / lines / words, or recognize with tesserocr
 
 .. image:: https://circleci.com/gh/OCR-D/ocrd_tesserocr.svg?style=svg
     :target: https://circleci.com/gh/OCR-D/ocrd_tesserocr
@@ -18,7 +18,7 @@ Introduction
 
 This offers `OCR-D`_ compliant workspace processors for (much of) the functionality of `Tesseract`_ via its Python API wrapper `tesserocr`_ . (Each processor is a step in the OCR-D functional model, and can be replaced with an alternative implementation. Data is represented within METS/PAGE.)
 
-This includes image preprocessing (cropping, binarization, deskewing), layout analysis (region, line, word segmentation) and OCR proper. Most processors can operate on different levels of the PAGE hierarchy, depending on the workflow configuration. Image results are referenced (read and written) via ``AlternativeImage``, text results via ``TextEquiv``.
+This includes image preprocessing (cropping, binarization, deskewing), layout analysis (region, line, word segmentation) and OCR proper. Most processors can operate on different levels of the PAGE hierarchy, depending on the workflow configuration. Image results are referenced (read and written) via ``AlternativeImage``, text results via ``TextEquiv``, deskewing via ``@orientation``, cropping via ``Border`` and segmentation via ``Region`` / ``TextLine`` / ``Word`` elements with ``Coords/@points``.
 
 .. _OCR-D: https://ocr-d.github.io
 .. _Tesseract: https://github.com/tesseract-ocr
