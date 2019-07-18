@@ -159,7 +159,49 @@ class TesserocrDeskew(Processor):
                 LOG.info('applying OSD script  result "%s" with high confidence %.0f in %s',
                          osr['script_name'], osr['script_conf'], where)
                 if isinstance(segment, (TextRegionType, PageType)):
-                    segment.set_primaryScript(osr['script_name'])
+                    segment.set_primaryScript({
+                        "Arabic": "Arab - Arabic",
+                        "Armenian": "Armn - Armenian",
+                        "Bengali": "Armn - Armenian",
+                        "Canadian_Aboriginal": "Cans - Unified Canadian Aboriginal Syllabics",
+                        "Cherokee": "Cher - Cherokee",
+                        "Common": "Latn - Latin", # not in scripts/
+                        "Cyrillic": "Cyrl - Cyrillic",
+                        "Devanagari": "Deva - Devanagari (Nagari)",
+                        "Ethiopic": "Ethi - Ethiopic",
+                        "Fraktur": "Latf - Latin (Fraktur variant)",
+                        "Georgian": "Geor - Georgian (Mkhedruli)",
+                        "Greek": "Grek - Greek",
+                        "Gujarati": "Gujr - Gujarati",
+                        "Gurmukhi": "Guru - Gurmukhi",
+                        "Han": "Hant - Han (Traditional variant)", # not in scripts/
+                        "Hangul": "Hang - Hangul",
+                        "Hangul_vert": "Hang - Hangul",
+                        "HanS": "Hans - Han (Simplified variant)",
+                        "HanS_vert": "Hans - Han (Simplified variant)",
+                        "HanT": "Hant - Han (Traditional variant)",
+                        "HanT_vert": "Hant - Han (Traditional variant)",
+                        "Hebrew": "Hebr - Hebrew",
+                        "Hiragana": "Jpan - Japanese", # not in scripts/
+                        "Japanese": "Jpan - Japanese",
+                        "Japanese_vert": "Jpan - Japanese",
+                        "Kannada": "Knda - Kannada",
+                        "Katakana": "Jpan - Japanese", # not in scripts/
+                        "Khmer": "Khmr - Khmer",
+                        "Lao": "Laoo - Lao",
+                        "Latin": "Latn - Latin",
+                        "Malayalam": "Mlym - Malayalam",
+                        "Myanmar": "Mymr - Myanmar (Burmese)",
+                        "Oriya": "Orya - Oriya",
+                        "Sinhala": "Sinh - Sinhala",
+                        "Syriac": "Syrc - Syriac",
+                        "Tamil": "Taml - Tamil",
+                        "Telugu": "Telu - Telugu",
+                        "Thaana": "Thaa - Thaana",
+                        "Thai": "Thai - Thai",
+                        "Tibetan": "Tibt - Tibetan",
+                        "Vietnamese": "Tavt - Tai Viet",
+                    }.get(osr['script_name'], "Latn - Latin"))
         else:
             LOG.warning('no OSD result in %s', where)
         #
