@@ -525,6 +525,11 @@ def xywh_from_polygon(polygon):
     return xywh_from_bbox(*bbox_from_polygon(polygon))
 
 # to be refactored into core (as function in ocrd_utils):
+def polygon_from_xywh(xywh):
+    """Construct polygon coordinates in numeric list representation from numeric dict representing a bounding box."""
+    return polygon_from_bbox(*bbox_from_xywh(xywh))
+
+# to be refactored into core (as function in ocrd_utils):
 def bbox_from_polygon(polygon):
     """Construct a numeric list representing a bounding box from polygon coordinates in numeric list representation."""
     minx = sys.maxsize
@@ -541,6 +546,20 @@ def bbox_from_polygon(polygon):
         if xy[1] > maxy:
             maxy = xy[1]
     return minx, miny, maxx, maxy
+
+# to be refactored into core (as function in ocrd_utils):
+def polygon_from_bbox(minx, miny, maxx, maxy):
+    """Construct polygon coordinates in numeric list representation from a numeric list representing a bounding box."""
+    return [[minx, miny], [maxx, miny], [maxx, maxy], [minx, maxy]]
+
+# to be refactored into core (as function in ocrd_utils):
+def polygon_from_x0y0x1y1(x0y0x1y1):
+    """Construct polygon coordinates in numeric list representation from a string list representing a bounding box."""
+    minx = int(x0y0x1y1[0])
+    miny = int(x0y0x1y1[1])
+    maxx = int(x0y0x1y1[2])
+    maxy = int(x0y0x1y1[3])
+    return [[minx, miny], [maxx, miny], [maxx, maxy], [minx, maxy]]
 
 def membername(class_, val):
     """Convert a member variable/constant into a member name string."""
