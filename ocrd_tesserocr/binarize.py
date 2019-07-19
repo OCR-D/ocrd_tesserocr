@@ -30,7 +30,7 @@ from .common import (
 
 TOOL = 'ocrd-tesserocr-binarize'
 LOG = getLogger('processor.TesserocrBinarize')
-FILEGRP_IMG = 'OCR-D-IMG-BIN'
+FALLBACK_IMAGE_GRP = 'OCR-D-IMG-BIN'
 
 class TesserocrBinarize(Processor):
 
@@ -56,7 +56,8 @@ class TesserocrBinarize(Processor):
             self.page_grp, self.image_grp = self.output_file_grp.split(',')
         except ValueError:
             self.page_grp = self.output_file_grp
-            self.image_grp = FILEGRP_IMG
+            self.image_grp = FALLBACK_IMAGE_GRP
+            LOG.info("No output file group for images specified, falling back to '%s'", FALLBACK_IMAGE_GRP)
         oplevel = self.parameter['operation_level']
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             for n, input_file in enumerate(self.input_files):
