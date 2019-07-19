@@ -17,12 +17,11 @@ from ocrd_models.ocrd_page import (
     TextLineType,
     to_xml
 )
-from ocrd_models import OcrdExif
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .common import (
     image_from_page,
-    image_from_region
+    image_from_segment
 )
 
 TOOL = 'ocrd-tesserocr-segment-line'
@@ -71,15 +70,13 @@ class TesserocrSegmentLine(Processor):
                                                                          value=self.parameter[name])
                                                                for name in self.parameter.keys()])]))
                 page = pcgts.get_Page()
-                page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
-                page_image_info = OcrdExif(page_image)
+                page_image, page_xywh, page_image_info = image_from_page(
+                    self.workspace, page, page_id)
                 if page_image_info.xResolution != 1:
                     dpi = page_image_info.xResolution
                     if page_image_info.resolutionUnit == 'cm':
                         dpi = round(dpi * 2.54)
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
-                page_image, page_xywh = image_from_page(
-                    self.workspace, page, page_image, page_id)
                 
                 for region in page.get_TextRegion():
                     if region.get_TextLine():
@@ -89,7 +86,7 @@ class TesserocrSegmentLine(Processor):
                         else:
                             LOG.warning('keeping existing TextLines in region "%s"', region.id)
                     LOG.debug("Detecting lines in region '%s'", region.id)
-                    region_image, region_xywh = image_from_region(
+                    region_image, region_xywh = image_from_segment(
                         self.workspace, region, page_image, page_xywh)
                     tessapi.SetImage(region_image)
                     for line_no, component in enumerate(tessapi.GetComponentImages(RIL.TEXTLINE, True, raw_image=True)):

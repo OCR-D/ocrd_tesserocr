@@ -26,7 +26,6 @@ from ocrd_models.ocrd_page import (
     NoiseRegionType,
     to_xml)
 from ocrd_models.ocrd_page_generateds import TableRegionType
-from ocrd_models import OcrdExif
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
@@ -127,15 +126,13 @@ class TesserocrSegmentRegion(Processor):
                         page.set_ReadingOrder([])
                     else:
                         LOG.warning('keeping existing ReadingOrder')
-                page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
-                page_image_info = OcrdExif(page_image)
+                page_image, page_xywh, page_image_info = image_from_page(
+                    self.workspace, page, page_id)
                 if page_image_info.xResolution != 1:
                     dpi = page_image_info.xResolution
                     if page_image_info.resolutionUnit == 'cm':
                         dpi = round(dpi * 2.54)
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
-                page_image, page_xywh = image_from_page(
-                    self.workspace, page, page_image, page_id)
                 LOG.info("Detecting regions in page '%s'", page_id)
                 tessapi.SetImage(page_image) # is already cropped to Border
                 tessapi.SetPageSegMode(PSM.AUTO) # (default)

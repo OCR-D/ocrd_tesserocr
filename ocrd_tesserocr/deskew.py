@@ -22,13 +22,12 @@ from ocrd_models.ocrd_page import (
     TextRegionType, PageType,
     to_xml
 )
-from ocrd_models import OcrdExif
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .common import (
     image_from_page,
-    image_from_region,
+    image_from_segment,
     save_image_file,
     membername
 )
@@ -85,8 +84,8 @@ class TesserocrDeskew(Processor):
                                                                          value=self.parameter[name])
                                                                for name in self.parameter.keys()])]))
                 page = pcgts.get_Page()
-                page_image = self.workspace.resolve_image_as_pil(page.imageFilename)
-                page_image_info = OcrdExif(page_image)
+                page_image, page_xywh, page_image_info = image_from_page(
+                    self.workspace, page, page_id)
                 if page_image_info.xResolution != 1:
                     dpi = page_image_info.xResolution
                     if page_image_info.resolutionUnit == 'cm':
@@ -94,8 +93,6 @@ class TesserocrDeskew(Processor):
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                 LOG.info("Deskewing on '%s' level in page '%s'", oplevel, page_id)
 
-                page_image, page_xywh = image_from_page(
-                    self.workspace, page, page_image, page_id)
                 if oplevel == 'page':
                     self._process_segment(tessapi, page, page_image, page_xywh,
                                           "page '%s'" % page_id, input_file.pageId,
@@ -105,7 +102,7 @@ class TesserocrDeskew(Processor):
                     if not regions:
                         LOG.warning("Page '%s' contains no text regions", page_id)
                     for region in regions:
-                        region_image, region_xywh = image_from_region(
+                        region_image, region_xywh = image_from_segment(
                             self.workspace, region, page_image, page_xywh)
                         self._process_segment(tessapi, region, region_image, region_xywh,
                                               "region '%s'" % region.id, input_file.pageId,
