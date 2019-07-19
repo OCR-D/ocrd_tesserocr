@@ -52,10 +52,15 @@ class TesserocrBinarize(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        try:
+            self.page_grp, self.image_grp = self.output_file_grp.split(',')
+        except ValueError:
+            self.page_grp = self.output_file_grp
+            self.image_grp = FILEGRP_IMG
         oplevel = self.parameter['operation_level']
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             for n, input_file in enumerate(self.input_files):
-                file_id = input_file.ID.replace(self.input_file_grp, FILEGRP_IMG)
+                file_id = input_file.ID.replace(self.input_file_grp, self.image_grp)
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
@@ -101,15 +106,15 @@ class TesserocrBinarize(Processor):
 
                 # Use input_file's basename for the new file -
                 # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
+                file_id = input_file.ID.replace(self.input_file_grp, self.page_grp)
                 if file_id == input_file.ID:
-                    file_id = concat_padded(self.output_file_grp, n)
+                    file_id = concat_padded(self.page_grp, n)
                 self.workspace.add_file(
                     ID=file_id,
-                    file_grp=self.output_file_grp,
+                    file_grp=self.page_grp,
                     pageId=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
-                    local_filename=os.path.join(self.output_file_grp,
+                    local_filename=os.path.join(self.page_grp,
                                                 file_id + '.xml'),
                     content=to_xml(pcgts))
 
@@ -126,7 +131,7 @@ class TesserocrBinarize(Processor):
         file_path = save_image_file(self.workspace, image_bin,
                                     file_id,
                                     page_id=page_id,
-                                    file_grp=FILEGRP_IMG)
+                                    file_grp=self.image_grp)
         # update PAGE (reference the image file):
         segment.add_AlternativeImage(AlternativeImageType(
             filename=file_path, comments="binarized"))
