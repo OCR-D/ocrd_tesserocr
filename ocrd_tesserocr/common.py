@@ -250,11 +250,10 @@ def image_from_segment(workspace, segment, parent_image, parent_xywh):
     the segment's bounding box (for passing down).
     """
     segment_xywh = xywh_from_points(segment.get_Coords().points)
-    # angle: PAGE orientation is defined clockwise,
-    # whereas PIL/ndimage rotation is in mathematical direction:
-    segment_xywh['angle'] = (-(segment.get_orientation() or 0)
-                             if 'orientation' in segment.__dict__
-                             else 0)
+    if 'orientation' in segment.__dict__:
+        # angle: PAGE orientation is defined clockwise,
+        # whereas PIL/ndimage rotation is in mathematical direction:
+        segment_xywh['angle'] = -(segment.get_orientation() or 0)
     alternative_image = segment.get_AlternativeImage()
     if alternative_image:
         # (e.g. from segment-level cropping, binarization, deskewing or despeckling)
@@ -288,7 +287,7 @@ def image_from_segment(workspace, segment, parent_image, parent_xywh):
         # on some ad-hoc binarization method. Thus, it is preferable to use
         # a dedicated processor for this (which produces clipped AlternativeImage
         # or reduced polygon coordinates).
-        if segment_xywh['angle']:
+        if 'angle' in segment_xywh and segment_xywh['angle']:
             LOG.info("About to rotate segment '%s' by %.2f°",
                       segment.id, segment_xywh['angle'])
             segment_image = segment_image.rotate(segment_xywh['angle'],
