@@ -248,9 +248,7 @@ class TesserocrDeskew(Processor):
                 # So we must do it here from the original image ourself:
                 image = image.rotate(-angle, expand=True, fillcolor='white')
                 angle = 180 - (180 - angle) % 360 # map to [-179.999,180]
-                # FIXME: remove that condition as soon as PAGE has orientation on PageType:
-                if not isinstance(segment, PageType):
-                    segment.set_orientation(angle)
+                segment.set_orientation(angle)
             if isinstance(segment, (TextRegionType, PageType)):
                 segment.set_readingDirection({
                     WritingDirection.LEFT_TO_RIGHT: 'left-to-right',
