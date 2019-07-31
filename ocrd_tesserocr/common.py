@@ -204,7 +204,7 @@ def image_from_page(workspace, page, page_id):
                  page_xywh['y'],
                  page_xywh['x'] + page_xywh['w'],
                  page_xywh['y'] + page_xywh['h']))
-        if page_xywh['angle']:
+        if 'angle' in page_xywh and page_xywh['angle']:
             LOG.info("About to rotate page '%s' by %.2f°",
                       page_id, page_xywh['angle'])
             page_image = page_image.rotate(page_xywh['angle'],
