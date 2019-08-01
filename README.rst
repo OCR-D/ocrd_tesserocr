@@ -9,8 +9,8 @@ ocrd_tesserocr
 .. image:: https://img.shields.io/pypi/v/ocrd_tesserocr.svg
     :target: https://pypi.org/project/ocrd_tesserocr/
 
-.. image:: https://codecov.io/gh/OCR-D/core/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/OCR-D/core
+.. image:: https://codecov.io/gh/OCR-D/ocrd_tesserocr/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/OCR-D/ocrd_tesserocr
 
 .. image:: https://img.shields.io/docker/automated/ocrd/tesserocr.svg
     :target: https://hub.docker.com/r/ocrd/tesserocr/tags/
