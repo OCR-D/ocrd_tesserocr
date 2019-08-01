@@ -12,6 +12,7 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger, concat_padded,
+    membername,
     MIMETYPE_PAGE
 )
 from ocrd_modelfactory import page_from_file
@@ -29,7 +30,6 @@ from .common import (
     image_from_page,
     image_from_segment,
     save_image_file,
-    membername
 )
 
 TOOL = 'ocrd-tesserocr-deskew'

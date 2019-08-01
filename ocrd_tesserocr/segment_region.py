@@ -7,10 +7,15 @@ from tesserocr import (
 )
 
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
+    concat_padded,
     points_from_x0y0x1y1,
-    points_from_xywh, xywh_from_points,
-    MIMETYPE_PAGE)
+    points_from_xywh,
+    xywh_from_points,
+    MIMETYPE_PAGE,
+    points_from_polygon,
+    membername
+)
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
     MetadataItemType,
@@ -29,12 +34,7 @@ from ocrd_models.ocrd_page_generateds import TableRegionType
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
-from .common import (
-    image_from_page,
-    save_image_file,
-    points_from_polygon,
-    membername
-)
+from .common import save_image_file, image_from_page
 
 TOOL = 'ocrd-tesserocr-segment-region'
 LOG = getLogger('processor.TesserocrSegmentRegion')

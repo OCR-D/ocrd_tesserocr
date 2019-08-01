@@ -6,10 +6,17 @@ from tesserocr import (
     PyTessBaseAPI, get_languages)
 
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
+    concat_padded,
     points_from_x0y0x1y1,
-    xywh_from_points, points_from_xywh,
-    MIMETYPE_PAGE)
+    xywh_from_points,
+    points_from_xywh,
+    points_from_polygon,
+    xywh_from_polygon,
+    polygon_from_x0y0x1y1,
+    coordinates_for_segment,
+    MIMETYPE_PAGE
+)
 from ocrd_models.ocrd_page import (
     CoordsType,
     GlyphType, WordType,
@@ -22,10 +29,6 @@ from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .common import (
-    points_from_polygon,
-    xywh_from_polygon,
-    polygon_from_x0y0x1y1,
-    coordinates_for_segment,
     image_from_page,
     image_from_segment
 )

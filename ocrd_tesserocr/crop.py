@@ -4,6 +4,7 @@ import os.path
 import tesserocr
 from ocrd_utils import (
     getLogger, concat_padded,
+    bbox_from_points, points_from_bbox, bbox_from_xywh,
     MIMETYPE_PAGE
 )
 from ocrd_modelfactory import page_from_file
@@ -19,8 +20,7 @@ from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .common import (
-    bbox_from_points, points_from_bbox,
-    bbox_from_xywh, save_image_file
+    save_image_file
 )
 
 TOOL = 'ocrd-tesserocr-crop'

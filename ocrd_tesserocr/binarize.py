@@ -8,7 +8,8 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger, concat_padded,
-    MIMETYPE_PAGE
+    MIMETYPE_PAGE,
+    membername
 )
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
@@ -24,8 +25,7 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .common import (
     image_from_page,
     image_from_segment,
-    save_image_file,
-    membername
+    save_image_file
 )
 
 TOOL = 'ocrd-tesserocr-binarize'
