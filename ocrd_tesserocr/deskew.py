@@ -207,7 +207,10 @@ class TesserocrDeskew(Processor):
         layout = tessapi.AnalyseLayout()
         if layout:
             orientation, writing_direction, textline_order, deskew_angle = layout.Orientation()
-            LOG.info('orientation/deskewing for %s: %s / %s / %s / %.3f', where,
+            deskew_angle *= - 180 / math.pi
+            if int(deskew_angle):
+                comments += ',deskewed'
+            LOG.info('orientation/deskewing for %s: %s / %s / %s / %.3f°', where,
                       membername(Orientation, orientation),
                       membername(WritingDirection, writing_direction),
                       membername(TextlineOrder, textline_order),
@@ -219,11 +222,11 @@ class TesserocrDeskew(Processor):
                 Orientation.PAGE_LEFT: 90
             }.get(orientation, 0)
             if angle2 != angle:
+                # This effectively ignores Orientation from AnalyseLayout,
+                # because it is usually wrong when it deviates from OSD results.
+                # (We do keep deskew_angle, though – see below.)
                 LOG.warning('inconsistent angles from layout analysis (%d) and orientation detection (%d) in %s',
                             angle2, angle, where)
-            deskew_angle *= - 180 / math.pi
-            if int(deskew_angle):
-                comments += ',deskewed'
             # We could rotate the image by transposition (which is more accurate
             # than the general method below), but then the coordinates –
             # which are still relative to `imageFilename` – of all the elements
@@ -238,7 +241,7 @@ class TesserocrDeskew(Processor):
             #         180: Image.ROTATE_180,
             #         270: Image.ROTATE_270
             #     }.get(angle)) # no default
-            # angle += deskew_angle
+            angle += deskew_angle
             if angle:
                 # Tesseract layout analysis already rotates the image, even for each
                 # sub-segment (depending on RIL), but the accuracy is not as good
@@ -246,6 +249,7 @@ class TesserocrDeskew(Processor):
                 # (These images can be queried via GetBinaryImage/GetImage, cf. segment_region)
                 # Unfortunately, it does _not_ use expand=True, but chops off corners.
                 # So we must do it here from the original image ourself:
+                LOG.debug('About to rotate %s by %.2f° clockwise', where, angle)
                 image = image.rotate(-angle, expand=True, fillcolor='white')
                 angle = 180 - (180 - angle) % 360 # map to [-179.999,180]
                 # FIXME: remove that condition as soon as PAGE has orientation on PageType:
