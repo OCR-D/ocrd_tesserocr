@@ -173,10 +173,9 @@ def image_from_page(workspace, page, page_id):
                  'y': 0,
                  'w': page_image.width,
                  'h': page_image.height}
-    # FIXME: uncomment as soon as we get @orientation in PageType:
-    # # region angle: PAGE orientation is defined clockwise,
-    # # whereas PIL/ndimage rotation is in mathematical direction:
-    # page_xywh['angle'] = -(page.get_orientation() or 0)
+    # region angle: PAGE orientation is defined clockwise,
+    # whereas PIL/ndimage rotation is in mathematical direction:
+    page_xywh['angle'] = -(page.get_orientation() or 0)
     # FIXME: remove PrintSpace here as soon as GT abides by the PAGE standard:
     border = page.get_Border() or page.get_PrintSpace()
     if border:
@@ -205,14 +204,13 @@ def image_from_page(workspace, page, page_id):
                  page_xywh['y'],
                  page_xywh['x'] + page_xywh['w'],
                  page_xywh['y'] + page_xywh['h']))
-        # FIXME: uncomment as soon as we get @orientation in PageType:
-        # if page_xywh['angle']:
-        #     LOG.info("About to rotate page '%s' by %.2f°",
-        #               page_id, page_xywh['angle'])
-        #     page_image = page_image.rotate(page_xywh['angle'],
-        #                                        expand=True,
-        #                                        #resample=Image.BILINEAR,
-        #                                        fillcolor='white')
+        if 'angle' in page_xywh and page_xywh['angle']:
+            LOG.info("About to rotate page '%s' by %.2f°",
+                      page_id, page_xywh['angle'])
+            page_image = page_image.rotate(page_xywh['angle'],
+                                               expand=True,
+                                               #resample=Image.BILINEAR,
+                                               fillcolor='white')
     # subtract offset from any increase in binary region size over source:
     page_xywh['x'] -= round(0.5 * max(0, page_image.width  - page_xywh['w']))
     page_xywh['y'] -= round(0.5 * max(0, page_image.height - page_xywh['h']))
