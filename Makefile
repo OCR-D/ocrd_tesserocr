@@ -82,10 +82,17 @@ install:
 docker:
 	docker build -t $(DOCKER_TAG) .
 
-# Run test
+# Run unit tests
 test: test/assets
 	# declare -p HTTP_PROXY
-	$(PYTHON) -m pytest test $(PYTEST_ARGS)
+	$(PYTHON) -m pytest --continue-on-collection-errors test $(PYTEST_ARGS)
+
+# Run unit tests and determine test coverage
+coverage:
+	coverage erase
+	make test PYTHON="coverage run"
+	coverage report
+	coverage html
 
 # Test the command line tools
 test-cli: test/assets

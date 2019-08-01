@@ -10,3 +10,5 @@ test/assets
 /dist
 test-workspace
 *.swp
+/.coverage
+/htmlcov
