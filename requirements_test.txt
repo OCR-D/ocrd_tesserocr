@@ -1,1 +1,2 @@
-pytest
+pytest >= 4.4.0
+coverage >= 4.5.2
