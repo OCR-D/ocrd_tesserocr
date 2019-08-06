@@ -144,7 +144,7 @@ def coordinates_for_segment(polygon, parent_image, parent_xywh):
                            0.5 * parent_image.height]))
     # offset correction (shift coordinates from base of segment):
     polygon += np.array([parent_xywh['x'], parent_xywh['y']])
-    return np.round(polygon).astype(np.uint32)
+    return np.round(polygon).astype(np.int32)
 
 # to be refactored into core (as method of ocrd.workspace.Workspace):
 def image_from_page(workspace, page, page_id):
