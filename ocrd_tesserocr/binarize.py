@@ -8,8 +8,7 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger, concat_padded,
-    MIMETYPE_PAGE,
-    membername
+    MIMETYPE_PAGE
 )
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
@@ -22,11 +21,6 @@ from ocrd_models.ocrd_page import (
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
-from .common import (
-    image_from_page,
-    image_from_segment,
-    save_image_file
-)
 
 TOOL = 'ocrd-tesserocr-binarize'
 LOG = getLogger('processor.TesserocrBinarize')
@@ -52,6 +46,7 @@ class TesserocrBinarize(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        # pylint: disable=attribute-defined-outside-init
         try:
             self.page_grp, self.image_grp = self.output_file_grp.split(',')
         except ValueError:
@@ -77,16 +72,16 @@ class TesserocrBinarize(Processor):
                                                                          value=self.parameter[name])
                                                                for name in self.parameter.keys()])]))
                 page = pcgts.get_Page()
-                page_image, page_xywh, _ = image_from_page(
-                    self.workspace, page, page_id)
+                page_image, page_xywh, _ = self.workspace.image_from_page(
+                    page, page_id)
                 LOG.info("Binarizing on '%s' level in page '%s'", oplevel, page_id)
                 
                 regions = page.get_TextRegion() + page.get_TableRegion()
                 if not regions:
                     LOG.warning("Page '%s' contains no text regions", page_id)
                 for region in regions:
-                    region_image, region_xywh = image_from_segment(
-                        self.workspace, region, page_image, page_xywh)
+                    region_image, region_xywh = self.workspace.image_from_segment(
+                        region, page_image, page_xywh)
                     if oplevel == 'region':
                         tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
                         self._process_segment(tessapi, RIL.BLOCK, region, region_image, region_xywh,
@@ -98,8 +93,8 @@ class TesserocrBinarize(Processor):
                             LOG.warning("Page '%s' region '%s' contains no text lines",
                                         page_id, region.id)
                         for line in lines:
-                            line_image, line_xywh = image_from_segment(
-                                self.workspace, line, region_image, region_xywh)
+                            line_image, line_xywh = self.workspace.image_from_segment(
+                                line, region_image, region_xywh)
                             tessapi.SetPageSegMode(PSM.SINGLE_LINE)
                             self._process_segment(tessapi, RIL.TEXTLINE, line, line_image, line_xywh,
                                                   "line '%s'" % line.id, input_file.pageId,
@@ -129,7 +124,7 @@ class TesserocrBinarize(Processor):
             LOG.error('Cannot binarize %s', where)
             return
         # update METS (add the image file):
-        file_path = save_image_file(self.workspace, image_bin,
+        file_path = self.workspace.save_image_file(image_bin,
                                     file_id,
                                     page_id=page_id,
                                     file_grp=self.image_grp)

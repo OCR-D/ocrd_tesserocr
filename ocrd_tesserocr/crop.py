@@ -19,9 +19,6 @@ from ocrd_models import OcrdExif
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
-from .common import (
-    save_image_file
-)
 
 TOOL = 'ocrd-tesserocr-crop'
 LOG = getLogger('processor.TesserocrCrop')
@@ -113,7 +110,7 @@ class TesserocrCrop(Processor):
                 # iterate over all text blocks and compare their
                 # bbox extent to the running min and max values
                 for component in tessapi.GetComponentImages(tesserocr.RIL.BLOCK, True):
-                    image, xywh, index, para = component
+                    image, xywh, index, _ = component
                     #
                     # the region reference in the reading order element
                     #
@@ -163,7 +160,7 @@ class TesserocrCrop(Processor):
                     file_id = input_file.ID.replace(self.input_file_grp, FILEGRP_IMG)
                     if file_id == input_file.ID:
                         file_id = concat_padded(FILEGRP_IMG, n)
-                    file_path = save_image_file(self.workspace, page_image,
+                    file_path = self.workspace.save_image_file(page_image,
                                                 file_id,
                                                 page_id=page_id,
                                                 file_grp=FILEGRP_IMG)
