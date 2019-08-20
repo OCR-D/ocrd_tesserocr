@@ -17,8 +17,7 @@ disable =
     too-many-locals,
     too-few-public-methods,
     wrong-import-order,
-    duplicate-code,
-    fixme
+    duplicate-code
 
 # allow indented whitespace (as required by interpreter):
 no-space-check=empty-line
