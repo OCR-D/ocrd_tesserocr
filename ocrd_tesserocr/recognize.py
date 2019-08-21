@@ -6,10 +6,13 @@ from tesserocr import (
     PyTessBaseAPI, get_languages)
 
 from ocrd_utils import (
-    getLogger, concat_padded,
-    points_from_x0y0x1y1,
-    xywh_from_points, points_from_xywh,
-    MIMETYPE_PAGE)
+    getLogger,
+    concat_padded,
+    points_from_polygon,
+    polygon_from_x0y0x1y1,
+    coordinates_for_segment,
+    MIMETYPE_PAGE
+)
 from ocrd_models.ocrd_page import (
     CoordsType,
     GlyphType, WordType,
@@ -21,14 +24,6 @@ from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
-from .common import (
-    points_from_polygon,
-    xywh_from_polygon,
-    polygon_from_x0y0x1y1,
-    coordinates_for_segment,
-    image_from_page,
-    image_from_segment
-)
 
 TOOL = 'ocrd-tesserocr-recognize'
 LOG = getLogger('processor.TesserocrRecognize')
@@ -133,8 +128,8 @@ class TesserocrRecognize(Processor):
                                                                          value=self.parameter[name])
                                                                for name in self.parameter.keys()])]))
                 page = pcgts.get_Page()
-                page_image, page_xywh, page_image_info = image_from_page(
-                    self.workspace, page, page_id)
+                page_image, page_xywh, page_image_info = self.workspace.image_from_page(
+                    page, page_id)
                 if page_image_info.xResolution != 1:
                     dpi = page_image_info.xResolution
                     if page_image_info.resolutionUnit == 'cm':
@@ -165,8 +160,8 @@ class TesserocrRecognize(Processor):
 
     def _process_regions(self, tessapi, regions, page_image, page_xywh):
         for region in regions:
-            region_image, region_xywh = image_from_segment(
-                self.workspace, region, page_image, page_xywh)
+            region_image, region_xywh = self.workspace.image_from_segment(
+                region, page_image, page_xywh)
             if self.parameter['textequiv_level'] == 'region':
                 tessapi.SetImage(region_image)
                 tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
@@ -191,8 +186,8 @@ class TesserocrRecognize(Processor):
         for line in textlines:
             if self.parameter['overwrite_words']:
                 line.set_Word([])
-            line_image, line_xywh = image_from_segment(
-                self.workspace, line, region_image, region_xywh)
+            line_image, line_xywh = self.workspace.image_from_segment(
+                line, region_image, region_xywh)
             # todo: Tesseract works better if the line images have a 5px margin everywhere
             tessapi.SetImage(line_image)
             # RAW_LINE fails with pre-LSTM models, but sometimes better with LSTM models
@@ -268,8 +263,8 @@ class TesserocrRecognize(Processor):
 
     def _process_existing_words(self, tessapi, words, line_image, line_xywh):
         for word in words:
-            word_image, word_xywh = image_from_segment(
-                self.workspace, word, line_image, line_xywh)
+            word_image, word_xywh = self.workspace.image_from_segment(
+                word, line_image, line_xywh)
             tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
             if self.parameter['textequiv_level'] == 'word':
@@ -296,8 +291,8 @@ class TesserocrRecognize(Processor):
 
     def _process_existing_glyphs(self, tessapi, glyphs, word_image, word_xywh):
         for glyph in glyphs:
-            glyph_image, glyph_xywh = image_from_segment(
-                self.workspace, glyph, word_image, word_xywh)
+            glyph_image, _ = self.workspace.image_from_segment(
+                glyph, word_image, word_xywh)
             tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
             LOG.debug("Recognizing text in glyph '%s'", glyph.id)

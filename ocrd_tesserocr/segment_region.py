@@ -7,10 +7,15 @@ from tesserocr import (
 )
 
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
+    concat_padded,
     points_from_x0y0x1y1,
-    points_from_xywh, xywh_from_points,
-    MIMETYPE_PAGE)
+    points_from_xywh,
+    xywh_from_points,
+    MIMETYPE_PAGE,
+    points_from_polygon,
+    membername
+)
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
     MetadataItemType,
@@ -29,12 +34,6 @@ from ocrd_models.ocrd_page_generateds import TableRegionType
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
-from .common import (
-    image_from_page,
-    save_image_file,
-    points_from_polygon,
-    membername
-)
 
 TOOL = 'ocrd-tesserocr-segment-region'
 LOG = getLogger('processor.TesserocrSegmentRegion')
@@ -106,7 +105,7 @@ class TesserocrSegmentRegion(Processor):
                         page.set_TextRegion([])
                     else:
                         LOG.warning('keeping existing TextRegions')
-                # todo: also make non-text regions protected?
+                # TODO: also make non-text regions protected?
                 page.set_AdvertRegion([])
                 page.set_ChartRegion([])
                 page.set_ChemRegion([])
@@ -126,8 +125,8 @@ class TesserocrSegmentRegion(Processor):
                         page.set_ReadingOrder([])
                     else:
                         LOG.warning('keeping existing ReadingOrder')
-                page_image, page_xywh, page_image_info = image_from_page(
-                    self.workspace, page, page_id)
+                page_image, page_xywh, page_image_info = self.workspace.image_from_page(
+                    page, page_id)
                 if page_image_info.xResolution != 1:
                     dpi = page_image_info.xResolution
                     if page_image_info.resolutionUnit == 'cm':
@@ -259,9 +258,9 @@ class TesserocrSegmentRegion(Processor):
                 #  GetBinaryImage).
                 # You have been warned!
                 # get the raw image (masked by white space along the block polygon):
-                region_image, top, left = it.GetImage(RIL.BLOCK, self.parameter['padding'], page_image)
+                region_image, _, _ = it.GetImage(RIL.BLOCK, self.parameter['padding'], page_image)
                 # update METS (add the image file):
-                file_path = save_image_file(self.workspace, region_image,
+                file_path = self.workspace.save_image_file(region_image,
                                             file_id + '_' + ID,
                                             page_id=page_id,
                                             file_grp=FILEGRP_IMG)

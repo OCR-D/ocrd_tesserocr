@@ -12,6 +12,7 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger, concat_padded,
+    membername,
     MIMETYPE_PAGE
 )
 from ocrd_modelfactory import page_from_file
@@ -25,12 +26,6 @@ from ocrd_models.ocrd_page import (
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
-from .common import (
-    image_from_page,
-    image_from_segment,
-    save_image_file,
-    membername
-)
 
 TOOL = 'ocrd-tesserocr-deskew'
 LOG = getLogger('processor.TesserocrDeskew')
@@ -45,19 +40,19 @@ class TesserocrDeskew(Processor):
 
     def process(self):
         """Performs deskewing of the page / region with Tesseract on the workspace.
-        
+
         Open and deserialise PAGE input files and their respective images,
         then iterate over the element hierarchy down to the region level
         for all text and table regions.
-        
+
         Set up Tesseract to recognise the region image's orientation, skew
         and script (with both OSD and AnalyseLayout). Rotate the image
         accordingly, and annotate the angle, readingDirection and textlineOrder.
-        
+
         Create a corresponding image file, and reference it as AlternativeImage
         in the region element and as file with a fileGrp USE `OCR-D-IMG-DESKEW`
         in the workspace.
-        
+
         Produce a new output file by serialising the resulting hierarchy.
         """
         oplevel = self.parameter['operation_level']
@@ -84,8 +79,8 @@ class TesserocrDeskew(Processor):
                                                                          value=self.parameter[name])
                                                                for name in self.parameter.keys()])]))
                 page = pcgts.get_Page()
-                page_image, page_xywh, page_image_info = image_from_page(
-                    self.workspace, page, page_id)
+                page_image, page_xywh, page_image_info = self.workspace.image_from_page(
+                    page, page_id)
                 if page_image_info.xResolution != 1:
                     dpi = page_image_info.xResolution
                     if page_image_info.resolutionUnit == 'cm':
@@ -102,8 +97,8 @@ class TesserocrDeskew(Processor):
                     if not regions:
                         LOG.warning("Page '%s' contains no text regions", page_id)
                     for region in regions:
-                        region_image, region_xywh = image_from_segment(
-                            self.workspace, region, page_image, page_xywh)
+                        region_image, region_xywh = self.workspace.image_from_segment(
+                            region, page_image, page_xywh)
                         self._process_segment(tessapi, region, region_image, region_xywh,
                                               "region '%s'" % region.id, input_file.pageId,
                                               file_id + '_' + region.id)
@@ -269,7 +264,7 @@ class TesserocrDeskew(Processor):
             #     points = points_from_x0y0x1y1(list(baseline[0]) + list(baseline[1]))
             #     segment.add_Baseline(BaselineType(points=points))
         # update METS (add the image file):
-        file_path = save_image_file(self.workspace, image,
+        file_path = self.workspace.save_image_file(image,
                                     file_id,
                                     page_id=page_id,
                                     file_grp=FILEGRP_IMG)
