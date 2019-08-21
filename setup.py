@@ -16,7 +16,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='ocrd_tesserocr',
-    version='0.3.0',
+    version='0.4.0',
     description='Tesserocr bindings',
     long_description=codecs.open('README.rst', encoding='utf-8').read(),
     author='Konstantin Baierer, Kay-Michael Würzner, Robert Sachunsky',

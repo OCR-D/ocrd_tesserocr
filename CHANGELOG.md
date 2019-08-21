@@ -5,6 +5,16 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.4.0] - 2019-08-21
+
+Changed:
+
+  * :fire: `common.py` is now part of OCR-D/core's ocrd_utils, OCR-D/core#268, #49
+  * many fixes and improvements to crop, deskew, binarize
+  * proper handling of orientaton on page level
+  * updated requirements
+
+
 ## [0.3.0] - 2019-06-28
 
 Changed:
