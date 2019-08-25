@@ -152,7 +152,7 @@
     "ocrd-tesserocr-binarize": {
       "executable": "ocrd-tesserocr-binarize",
       "categories": ["Image preprocessing"],
-      "description": "Binarize pages, regions or lines",
+      "description": "Binarize regions or lines",
       "input_file_grp": [
         "OCR-D-IMG",
         "OCR-D-SEG-BLOCK",
