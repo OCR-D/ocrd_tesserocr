@@ -29,7 +29,7 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-deskew'
 LOG = getLogger('processor.TesserocrDeskew')
-FILEGRP_IMG = 'OCR-D-IMG-DESKEW'
+FALLBACK_FILEGRP_IMG = 'OCR-D-IMG-DESKEW'
 
 class TesserocrDeskew(Processor):
 
@@ -37,6 +37,14 @@ class TesserocrDeskew(Processor):
         kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrDeskew, self).__init__(*args, **kwargs)
+        if hasattr(self, 'output_file_grp'):
+            try:
+                self.page_grp, self.image_grp = self.output_file_grp.split(',')
+            except ValueError:
+                self.page_grp = self.output_file_grp
+                self.image_grp = FALLBACK_FILEGRP_IMG
+                LOG.info("No output file group for images specified, falling back to '%s'",
+                         FALLBACK_FILEGRP_IMG)
 
     def process(self):
         """Performs deskewing of the page / region with Tesseract on the workspace.
@@ -48,14 +56,16 @@ class TesserocrDeskew(Processor):
         Set up Tesseract to recognise the region image's orientation, skew
         and script (with both OSD and AnalyseLayout). Rotate the image
         accordingly, and annotate the angle, readingDirection and textlineOrder.
-
+        
         Create a corresponding image file, and reference it as AlternativeImage
-        in the region element and as file with a fileGrp USE `OCR-D-IMG-DESKEW`
-        in the workspace.
-
+        in the element. Add the new image file to the workspace with the fileGrp USE
+        given in the second position of the output fileGrp, or ``OCR-D-IMG-DESKEW``,
+        and an ID based on input file and input element.
+        
         Produce a new output file by serialising the resulting hierarchy.
         """
         oplevel = self.parameter['operation_level']
+        
         with PyTessBaseAPI(
                 path=TESSDATA_PREFIX,
                 lang="osd", # osd required for legacy init!
@@ -63,66 +73,96 @@ class TesserocrDeskew(Processor):
                 psm=PSM.AUTO_OSD
         ) as tessapi:
             for n, input_file in enumerate(self.input_files):
-                file_id = input_file.ID.replace(self.input_file_grp, FILEGRP_IMG)
+                file_id = input_file.ID.replace(self.input_file_grp, self.image_grp)
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                page = pcgts.get_Page()
+                
+                # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
                     MetadataItemType(type_="processingStep",
                                      name=self.ocrd_tool['steps'][0],
                                      value=TOOL,
-                                     # FIXME: externalRef is invalid by pagecontent.xsd, but ocrd does not reflect this
-                                     # what we want here is `externalModel="ocrd-tool" externalId="parameters"`
-                                     Labels=[LabelsType(#externalRef="parameters",
-                                                        Label=[LabelType(type_=name,
-                                                                         value=self.parameter[name])
-                                                               for name in self.parameter.keys()])]))
-                page = pcgts.get_Page()
+                                     Labels=[LabelsType(
+                                         externalModel="ocrd-tool",
+                                         externalId="parameters",
+                                         Label=[LabelType(type_=name,
+                                                          value=self.parameter[name])
+                                                for name in self.parameter.keys()])]))
+                
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
-                    page, page_id)
-                if page_image_info.xResolution != 1:
-                    dpi = page_image_info.xResolution
+                    page, page_id,
+                    # image must not have been rotated already,
+                    # (we will overwrite @orientation anyway,)
+                    # (This is true even if oplevel is region
+                    #  and page-level deskewing has been applied,
+                    #  because we still need to rule out rotated
+                    #  images on the region level, so better
+                    #  rotate the page level ourselves!)
+                    # abort if no such image can be produced:
+                    feature_filter='deskewed')
+                if page_image_info.resolution != 1:
+                    dpi = page_image_info.resolution
                     if page_image_info.resolutionUnit == 'cm':
                         dpi = round(dpi * 2.54)
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                 LOG.info("Deskewing on '%s' level in page '%s'", oplevel, page_id)
-
+                
                 if oplevel == 'page':
                     self._process_segment(tessapi, page, page_image, page_xywh,
                                           "page '%s'" % page_id, input_file.pageId,
                                           file_id)
                 else:
+                    if page_xywh['angle']:
+                        log.info("About to rotate page '%s' by %.2f°",
+                          page_id, page_xywh['angle'])
+                        page_image = page_image.rotate(page_xywh['angle'],
+                                                       expand=True,
+                                                       #resample=Image.BILINEAR,
+                                                       fillcolor='white')
+                        # pretend to image_from_segment that this has *not*
+                        # been rotated yet (so we can rule out images rotated
+                        # on the region level):
+                        #page_xywh['features'] += ',deskewed'
+                        page_xywh['x'] -= round(0.5 * max(0, page_image.width  - page_xywh['w']))
+                        page_xywh['y'] -= round(0.5 * max(0, page_image.height - page_xywh['h']))
+                    
                     regions = page.get_TextRegion() + page.get_TableRegion()
                     if not regions:
                         LOG.warning("Page '%s' contains no text regions", page_id)
                     for region in regions:
                         region_image, region_xywh = self.workspace.image_from_segment(
-                            region, page_image, page_xywh)
+                            region, page_image, page_xywh,
+                            # image must not have been rotated already,
+                            # (we will overwrite @orientation anyway,)
+                            # abort if no such image can be produced:
+                            feature_filter='deskewed')
                         self._process_segment(tessapi, region, region_image, region_xywh,
                                               "region '%s'" % region.id, input_file.pageId,
                                               file_id + '_' + region.id)
-
+                    
+                    if page_xywh['angle']:
+                        # no pretense! (regardless of region results)
+                        page_xywh['features'] += ',deskewed'
+                
                 # Use input_file's basename for the new file -
                 # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
+                file_id = input_file.ID.replace(self.input_file_grp, self.page_grp)
                 if file_id == input_file.ID:
-                    file_id = concat_padded(self.output_file_grp, n)
+                    file_id = concat_padded(self.page_grp, n)
                 self.workspace.add_file(
                     ID=file_id,
-                    file_grp=self.output_file_grp,
+                    file_grp=self.page_grp,
                     pageId=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
-                    local_filename=os.path.join(self.output_file_grp,
+                    local_filename=os.path.join(self.page_grp,
                                                 file_id + '.xml'),
                     content=to_xml(pcgts))
-
+    
     def _process_segment(self, tessapi, segment, image, xywh, where, page_id, file_id):
-        if (isinstance(segment, PageType) and
-            not xywh['x'] and not xywh['y']):
-            comments = ''
-        else:
-            comments = 'cropped'
+        features = xywh['features']
         angle = 0.
         tessapi.SetImage(image)
         #tessapi.SetPageSegMode(PSM.AUTO_OSD)
@@ -141,7 +181,7 @@ class TesserocrDeskew(Processor):
                          osr['orient_deg'], osr['orient_conf'], where)
                 angle = osr['orient_deg']
                 if angle:
-                    comments += ',rotated-%d' % angle
+                    features += ',rotated-%d' % angle
             assert not math.isnan(osr['script_conf']), \
                 "script detection failed (Tesseract probably compiled without legacy OEM, or osd model not installed)"
             if osr['script_conf'] < 10:
@@ -204,7 +244,7 @@ class TesserocrDeskew(Processor):
             orientation, writing_direction, textline_order, deskew_angle = layout.Orientation()
             deskew_angle *= - 180 / math.pi
             if int(deskew_angle):
-                comments += ',deskewed'
+                features += ',deskewed'
             LOG.info('orientation/deskewing for %s: %s / %s / %s / %.3f°', where,
                       membername(Orientation, orientation),
                       membername(WritingDirection, writing_direction),
@@ -237,17 +277,16 @@ class TesserocrDeskew(Processor):
             #         270: Image.ROTATE_270
             #     }.get(angle)) # no default
             angle += deskew_angle
-            if angle:
-                # Tesseract layout analysis already rotates the image, even for each
-                # sub-segment (depending on RIL), but the accuracy is not as good
-                # as setting the image to the sub-segments and running without iterator.
-                # (These images can be queried via GetBinaryImage/GetImage, cf. segment_region)
-                # Unfortunately, it does _not_ use expand=True, but chops off corners.
-                # So we must do it here from the original image ourself:
-                LOG.debug('About to rotate %s by %.2f° clockwise', where, angle)
-                image = image.rotate(-angle, expand=True, fillcolor='white')
-                angle = 180 - (180 - angle) % 360 # map to [-179.999,180]
-                segment.set_orientation(angle)
+            # Tesseract layout analysis already rotates the image, even for each
+            # sub-segment (depending on RIL), but the accuracy is not as good
+            # as setting the image to the sub-segments and running without iterator.
+            # (These images can be queried via GetBinaryImage/GetImage, cf. segment_region)
+            # Unfortunately, it does _not_ use expand=True, but chops off corners.
+            # So we must do it here from the original image ourself:
+            LOG.debug('About to rotate %s by %.2f° clockwise', where, angle)
+            image = image.rotate(-angle, expand=True, fillcolor='white')
+            angle = 180 - (180 - angle) % 360 # map to [-179.999,180]
+            segment.set_orientation(angle)
             if isinstance(segment, (TextRegionType, PageType)):
                 segment.set_readingDirection({
                     WritingDirection.LEFT_TO_RIGHT: 'left-to-right',
@@ -267,7 +306,7 @@ class TesserocrDeskew(Processor):
         file_path = self.workspace.save_image_file(image,
                                     file_id,
                                     page_id=page_id,
-                                    file_grp=FILEGRP_IMG)
+                                    file_grp=self.image_grp)
         # update PAGE (reference the image file):
         segment.add_AlternativeImage(AlternativeImageType(
-            filename=file_path, comments=comments))
+            filename=file_path, comments=features))
