@@ -133,7 +133,7 @@ class TesserocrSegmentRegion(Processor):
                     if overwrite_regions:
                         LOG.info('overwriting existing ReadingOrder')
                         # (cannot sustain old regionrefs)
-                        page.set_ReadingOrder([])
+                        page.set_ReadingOrder(None)
                     else:
                         LOG.warning('keeping existing ReadingOrder')
                 
