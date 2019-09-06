@@ -16,7 +16,6 @@ from ocrd_models.ocrd_page import (
     to_xml
 )
 from ocrd_models.ocrd_page_generateds import BorderType
-from ocrd_models import OcrdExif
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL

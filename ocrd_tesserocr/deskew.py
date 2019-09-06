@@ -116,7 +116,7 @@ class TesserocrDeskew(Processor):
                                           file_id)
                 else:
                     if page_xywh['angle']:
-                        log.info("About to rotate page '%s' by %.2f°",
+                        LOG.info("About to rotate page '%s' by %.2f°",
                           page_id, page_xywh['angle'])
                         page_image = page_image.rotate(page_xywh['angle'],
                                                        expand=True,

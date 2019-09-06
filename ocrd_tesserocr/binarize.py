@@ -49,7 +49,7 @@ class TesserocrBinarize(Processor):
         Set up Tesseract to recognize the segment image's layout, and get
         the binarized image. Create an image file, and reference it as
         AlternativeImage in the segment element. Add the new image file
-        to the workspace with with the fileGrp USE given in the second position
+        to the workspace with the fileGrp USE given in the second position
         of the output fileGrp, or ``OCR-D-IMG-BIN``, and an ID based on input
         file and input element.
         
