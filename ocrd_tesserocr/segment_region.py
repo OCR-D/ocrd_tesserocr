@@ -59,19 +59,19 @@ class TesserocrSegmentRegion(Processor):
         
         Open and deserialize PAGE input files and their respective images,
         and remove any existing Region and ReadingOrder elements
-        (unless `overwrite_regions` is False).
+        (unless ``overwrite_regions`` is False).
         
         Set up Tesseract to detect blocks, and add each one to the page
         as a region according to BlockType at the detected coordinates.
-        If `find_tables` is True, try to detect table blocks and add them
+        If ``find_tables`` is True, try to detect table blocks and add them
         as (atomic) TableRegion.
         
-        If `crop_polygons` is True, create a cropped (and possibly deskewed)
+        If ``crop_polygons`` is True, create a cropped (and possibly deskewed)
         image (without extra binarization) for each region (which gets
         clipped to white outside its polygon outline), and reference th
         resulting image file as AlternativeImage in the region element.
         Add the new image to the workspace with the fileGrp USE given
-        in the second position of the output fileGrp, or `OCR-D-IMG-CROP`,
+        in the second position of the output fileGrp, or ``OCR-D-IMG-CROP``,
         and an ID based on input file and input element.
         
         Produce a new output file by serialising the resulting hierarchy.

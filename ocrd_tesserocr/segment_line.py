@@ -36,7 +36,7 @@ class TesserocrSegmentLine(Processor):
         
         Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the region level,
-        and remove any existing TextLine elements (unless `overwrite_lines`
+        and remove any existing TextLine elements (unless ``overwrite_lines``
         is False).
         
         Set up Tesseract to detect lines, and add each one to the region

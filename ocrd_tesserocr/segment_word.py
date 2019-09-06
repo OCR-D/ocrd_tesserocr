@@ -35,7 +35,7 @@ class TesserocrSegmentWord(Processor):
         
         Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the textline level,
-        and remove any existing Word elements (unless `overwrite_words`
+        and remove any existing Word elements (unless ``overwrite_words``
         is False).
         
         Set up Tesseract to detect words, and add each one to the line

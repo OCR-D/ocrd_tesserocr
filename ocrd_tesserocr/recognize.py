@@ -43,13 +43,13 @@ class TesserocrRecognize(Processor):
         
         Open and deserialise PAGE input files and their respective images,
         then iterate over the element hierarchy down to the requested
-        `textequiv_level`. If `overwrite_words` is enabled and any layout
+        ``textequiv_level``. If ``overwrite_words`` is enabled and any layout
         annotation below the line level already exists, then remove it
-        (regardless of `textequiv_level`).
+        (regardless of ``textequiv_level``).
         Set up Tesseract to recognise each segment's image rectangle with
-        the appropriate mode and `model`. Create new elements below the line
+        the appropriate mode and ``model``. Create new elements below the line
         level if necessary. Put text results and confidence values into new
-        TextEquiv at `textequiv_level`, and make the higher levels consistent
+        TextEquiv at ``textequiv_level``, and make the higher levels consistent
         with that (by concatenation joined by whitespace).
 
         Produce new output files by serialising the resulting hierarchy.
@@ -358,7 +358,7 @@ class TesserocrRecognize(Processor):
                 result_it.Next(RIL.SYMBOL)
 
 def page_update_higher_textequiv_levels(level, pcgts):
-    '''Update the TextEquivs of all PAGE-XML hierarchy levels above `level` for consistency.
+    '''Update the TextEquivs of all PAGE-XML hierarchy levels above ``level`` for consistency.
     
     Starting with the hierarchy level chosen for processing,
     join all first TextEquiv (by the rules governing the respective level)
