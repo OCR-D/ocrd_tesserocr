@@ -243,7 +243,7 @@ class TesserocrDeskew(Processor):
         if layout:
             orientation, writing_direction, textline_order, deskew_angle = layout.Orientation()
             deskew_angle *= - 180 / math.pi
-            if int(deskew_angle):
+            if deskew_angle:
                 features += ',deskewed'
             LOG.info('orientation/deskewing for %s: %s / %s / %s / %.3f°', where,
                       membername(Orientation, orientation),
