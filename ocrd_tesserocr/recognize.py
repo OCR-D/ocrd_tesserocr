@@ -132,7 +132,13 @@ class TesserocrRecognize(Processor):
                                                           value=self.parameter[name])
                                                 for name in self.parameter.keys()])]))
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
-                    page, page_id)
+                    page, page_id,
+                    # the internal ImageData representation of Tesseract LSTMs
+                    # is 8 bit grayscale (input is always converted to that);
+                    # its binarization is only used for non-LSTMs and for the
+                    # layout analysis components;
+                    # therefore, using binarization degrades performance:
+                    feature_filter='binarized')
                 if page_image_info.resolution != 1:
                     dpi = page_image_info.resolution
                     if page_image_info.resolutionUnit == 'cm':
@@ -165,7 +171,13 @@ class TesserocrRecognize(Processor):
     def _process_regions(self, tessapi, regions, page_image, page_xywh):
         for region in regions:
             region_image, region_xywh = self.workspace.image_from_segment(
-                region, page_image, page_xywh)
+                region, page_image, page_xywh,
+                # the internal ImageData representation of Tesseract LSTMs
+                # is 8 bit grayscale (input is always converted to that);
+                # its binarization is only used for non-LSTMs and for the
+                # layout analysis components;
+                # therefore, using binarization degrades performance:
+                feature_filter='binarized')
             if self.parameter['textequiv_level'] == 'region':
                 tessapi.SetImage(region_image)
                 tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
@@ -191,7 +203,13 @@ class TesserocrRecognize(Processor):
             if self.parameter['overwrite_words']:
                 line.set_Word([])
             line_image, line_xywh = self.workspace.image_from_segment(
-                line, region_image, region_xywh)
+                line, region_image, region_xywh,
+                # the internal ImageData representation of Tesseract LSTMs
+                # is 8 bit grayscale (input is always converted to that);
+                # its binarization is only used for non-LSTMs and for the
+                # layout analysis components;
+                # therefore, using binarization degrades performance:
+                feature_filter='binarized')
             # todo: Tesseract works better if the line images have a 5px margin everywhere
             tessapi.SetImage(line_image)
             # RAW_LINE fails with pre-LSTM models, but sometimes better with LSTM models
@@ -203,6 +221,8 @@ class TesserocrRecognize(Processor):
                 line_conf = tessapi.MeanTextConf()/100.0 # iterator scores are arithmetic averages, too
                 if line.get_TextEquiv():
                     LOG.warning("Line '%s' already contained text results", line.id)
+                    LOG.debug("old '%s': '%s'", line.id, line.get_TextEquiv()[0].Unicode)
+                    LOG.debug("new '%s': '%s'", line.id, line_text)
                     line.set_TextEquiv([])
                 # todo: consider BlankBeforeWord, SetLineSeparator
                 line.add_TextEquiv(TextEquivType(Unicode=line_text, conf=line_conf))
@@ -268,7 +288,13 @@ class TesserocrRecognize(Processor):
     def _process_existing_words(self, tessapi, words, line_image, line_xywh):
         for word in words:
             word_image, word_xywh = self.workspace.image_from_segment(
-                word, line_image, line_xywh)
+                word, line_image, line_xywh,
+                # the internal ImageData representation of Tesseract LSTMs
+                # is 8 bit grayscale (input is always converted to that);
+                # its binarization is only used for non-LSTMs and for the
+                # layout analysis components;
+                # therefore, using binarization degrades performance:
+                feature_filter='binarized')
             tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
             if self.parameter['textequiv_level'] == 'word':
@@ -296,7 +322,13 @@ class TesserocrRecognize(Processor):
     def _process_existing_glyphs(self, tessapi, glyphs, word_image, word_xywh):
         for glyph in glyphs:
             glyph_image, _ = self.workspace.image_from_segment(
-                glyph, word_image, word_xywh)
+                glyph, word_image, word_xywh,
+                # the internal ImageData representation of Tesseract LSTMs
+                # is 8 bit grayscale (input is always converted to that);
+                # its binarization is only used for non-LSTMs and for the
+                # layout analysis components;
+                # therefore, using binarization degrades performance:
+                feature_filter='binarized')
             tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
             LOG.debug("Recognizing text in glyph '%s'", glyph.id)
