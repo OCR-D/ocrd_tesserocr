@@ -35,7 +35,7 @@ class TesserocrSegmentWord(Processor):
         
         Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the textline level,
-        and remove any existing Word elements (unless `overwrite_words`
+        and remove any existing Word elements (unless ``overwrite_words``
         is False).
         
         Set up Tesseract to detect words, and add each one to the line
@@ -53,22 +53,24 @@ class TesserocrSegmentWord(Processor):
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                page = pcgts.get_Page()
+                
+                # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
                     MetadataItemType(type_="processingStep",
                                      name=self.ocrd_tool['steps'][0],
                                      value=TOOL,
-                                     # FIXME: externalRef is invalid by pagecontent.xsd, but ocrd does not reflect this
-                                     # what we want here is `externalModel="ocrd-tool" externalId="parameters"`
-                                     Labels=[LabelsType(#externalRef="parameters",
-                                                        Label=[LabelType(type_=name,
-                                                                         value=self.parameter[name])
-                                                               for name in self.parameter.keys()])]))
-                page = pcgts.get_Page()
+                                     Labels=[LabelsType(
+                                         externalModel="ocrd-tool",
+                                         externalId="parameters",
+                                         Label=[LabelType(type_=name,
+                                                          value=self.parameter[name])
+                                                for name in self.parameter.keys()])]))
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id)
-                if page_image_info.xResolution != 1:
-                    dpi = page_image_info.xResolution
+                if page_image_info.resolution != 1:
+                    dpi = page_image_info.resolution
                     if page_image_info.resolutionUnit == 'cm':
                         dpi = round(dpi * 2.54)
                     tessapi.SetVariable('user_defined_dpi', str(dpi))

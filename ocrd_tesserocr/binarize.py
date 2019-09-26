@@ -32,6 +32,13 @@ class TesserocrBinarize(Processor):
         kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrBinarize, self).__init__(*args, **kwargs)
+        if hasattr(self, 'output_file_grp'):
+            try:
+                self.page_grp, self.image_grp = self.output_file_grp.split(',')
+            except ValueError:
+                self.page_grp = self.output_file_grp
+                self.image_grp = FALLBACK_IMAGE_GRP
+                LOG.info("No output file group for images specified, falling back to '%s'", FALLBACK_IMAGE_GRP)
 
     def process(self):
         """Performs binarization of the region / line with Tesseract on the workspace.
@@ -41,37 +48,36 @@ class TesserocrBinarize(Processor):
         
         Set up Tesseract to recognize the segment image's layout, and get
         the binarized image. Create an image file, and reference it as
-        AlternativeImage in the element and as file with a fileGrp USE
-        equal `OCR-D-IMG-BIN` in the workspace.
+        AlternativeImage in the segment element. Add the new image file
+        to the workspace with the fileGrp USE given in the second position
+        of the output fileGrp, or ``OCR-D-IMG-BIN``, and an ID based on input
+        file and input element.
         
         Produce a new output file by serialising the resulting hierarchy.
         """
-        # pylint: disable=attribute-defined-outside-init
-        try:
-            self.page_grp, self.image_grp = self.output_file_grp.split(',')
-        except ValueError:
-            self.page_grp = self.output_file_grp
-            self.image_grp = FALLBACK_IMAGE_GRP
-            LOG.info("No output file group for images specified, falling back to '%s'", FALLBACK_IMAGE_GRP)
         oplevel = self.parameter['operation_level']
+        
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             for n, input_file in enumerate(self.input_files):
                 file_id = input_file.ID.replace(self.input_file_grp, self.image_grp)
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                page = pcgts.get_Page()
+                
+                # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
                     MetadataItemType(type_="processingStep",
                                      name=self.ocrd_tool['steps'][0],
                                      value=TOOL,
-                                     # FIXME: externalRef is invalid by pagecontent.xsd, but ocrd does not reflect this
-                                     # what we want here is `externalModel="ocrd-tool" externalId="parameters"`
-                                     Labels=[LabelsType(#externalRef="parameters",
-                                                        Label=[LabelType(type_=name,
-                                                                         value=self.parameter[name])
-                                                               for name in self.parameter.keys()])]))
-                page = pcgts.get_Page()
+                                     Labels=[LabelsType(
+                                         externalModel="ocrd-tool",
+                                         externalId="parameters",
+                                         Label=[LabelType(type_=name,
+                                                          value=self.parameter[name])
+                                                for name in self.parameter.keys()])]))
+                
                 page_image, page_xywh, _ = self.workspace.image_from_page(
                     page, page_id)
                 LOG.info("Binarizing on '%s' level in page '%s'", oplevel, page_id)
@@ -129,5 +135,6 @@ class TesserocrBinarize(Processor):
                                     page_id=page_id,
                                     file_grp=self.image_grp)
         # update PAGE (reference the image file):
+        features = xywh['features'] + ",binarized"
         segment.add_AlternativeImage(AlternativeImageType(
-            filename=file_path, comments="binarized"))
+            filename=file_path, comments=features))

@@ -37,11 +37,7 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-segment-region'
 LOG = getLogger('processor.TesserocrSegmentRegion')
-FILEGRP_IMG = 'OCR-D-IMG-CROP'
-
-# (will be passed as padding to both BoundingBox and GetImage)
-# (actually, Tesseract honours padding only on the left and bottom,
-#  whereas right and top are increased less)
+FALLBACK_FILEGRP_IMG = 'OCR-D-IMG-CROP'
 
 class TesserocrSegmentRegion(Processor):
 
@@ -49,23 +45,34 @@ class TesserocrSegmentRegion(Processor):
         kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrSegmentRegion, self).__init__(*args, **kwargs)
+        if hasattr(self, 'output_file_grp'):
+            try:
+                self.page_grp, self.image_grp = self.output_file_grp.split(',')
+            except ValueError:
+                self.page_grp = self.output_file_grp
+                self.image_grp = FALLBACK_FILEGRP_IMG
+                LOG.info("No output file group for images specified, falling back to '%s'",
+                         FALLBACK_FILEGRP_IMG)
 
     def process(self):
         """Performs (text) region segmentation with Tesseract on the workspace.
         
         Open and deserialize PAGE input files and their respective images,
         and remove any existing Region and ReadingOrder elements
-        (unless `overwrite_regions` is False).
+        (unless ``overwrite_regions`` is False).
         
         Set up Tesseract to detect blocks, and add each one to the page
         as a region according to BlockType at the detected coordinates.
-        If `find_tables` is True, try to detect table blocks and add them
+        If ``find_tables`` is True, try to detect table blocks and add them
         as (atomic) TableRegion.
         
-        If `crop_polygons` is True, create a cropped (and possibly deskewed)
-        raw image file for each region (masked along its polygon outline),
-        and reference it as AlternativeImage in the region element and
-        as file with a fileGrp USE equal `OCR-D-IMG-CROP` in the workspace.
+        If ``crop_polygons`` is True, create a cropped (and possibly deskewed)
+        image (without extra binarization) for each region (which gets
+        clipped to white outside its polygon outline), and reference th
+        resulting image file as AlternativeImage in the region element.
+        Add the new image to the workspace with the fileGrp USE given
+        in the second position of the output fileGrp, or ``OCR-D-IMG-CROP``,
+        and an ID based on input file and input element.
         
         Produce a new output file by serialising the resulting hierarchy.
         """
@@ -83,22 +90,26 @@ class TesserocrSegmentRegion(Processor):
                 # analysed as independent text/line blocks:
                 tessapi.SetVariable("textord_tabfind_find_tables", "0")
             for (n, input_file) in enumerate(self.input_files):
-                file_id = input_file.ID.replace(self.input_file_grp, FILEGRP_IMG)
+                file_id = input_file.ID.replace(self.input_file_grp, self.image_grp)
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                page = pcgts.get_Page()
+                
+                # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
                     MetadataItemType(type_="processingStep",
                                      name=self.ocrd_tool['steps'][0],
                                      value=TOOL,
-                                     # FIXME: externalRef is invalid by pagecontent.xsd, but ocrd does not reflect this
-                                     # what we want here is `externalModel="ocrd-tool" externalId="parameters"`
-                                     Labels=[LabelsType(#externalRef="parameters",
-                                                        Label=[LabelType(type_=name,
-                                                                         value=self.parameter[name])
-                                                               for name in self.parameter.keys()])]))
-                page = pcgts.get_Page()
+                                     Labels=[LabelsType(
+                                         externalModel="ocrd-tool",
+                                         externalId="parameters",
+                                         Label=[LabelType(type_=name,
+                                                          value=self.parameter[name])
+                                                for name in self.parameter.keys()])]))
+
+                # delete or warn of existing regions:
                 if page.get_TextRegion():
                     if overwrite_regions:
                         LOG.info('removing existing TextRegions')
@@ -122,16 +133,18 @@ class TesserocrSegmentRegion(Processor):
                     if overwrite_regions:
                         LOG.info('overwriting existing ReadingOrder')
                         # (cannot sustain old regionrefs)
-                        page.set_ReadingOrder([])
+                        page.set_ReadingOrder(None)
                     else:
                         LOG.warning('keeping existing ReadingOrder')
+                
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id)
-                if page_image_info.xResolution != 1:
-                    dpi = page_image_info.xResolution
+                if page_image_info.resolution != 1:
+                    dpi = page_image_info.resolution
                     if page_image_info.resolutionUnit == 'cm':
                         dpi = round(dpi * 2.54)
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
+                
                 LOG.info("Detecting regions in page '%s'", page_id)
                 tessapi.SetImage(page_image) # is already cropped to Border
                 tessapi.SetPageSegMode(PSM.AUTO) # (default)
@@ -142,15 +155,15 @@ class TesserocrSegmentRegion(Processor):
                 
                 # Use input_file's basename for the new file -
                 # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
+                file_id = input_file.ID.replace(self.input_file_grp, self.page_grp)
                 if file_id == input_file.ID:
-                    file_id = concat_padded(self.output_file_grp, n)
+                    file_id = concat_padded(self.page_grp, n)
                 self.workspace.add_file(
                     ID=file_id,
-                    file_grp=self.output_file_grp,
+                    file_grp=self.page_grp,
                     pageId=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
-                    local_filename=os.path.join(self.output_file_grp,
+                    local_filename=os.path.join(self.page_grp,
                                                 file_id + '.xml'),
                     content=to_xml(pcgts))
 
@@ -161,17 +174,20 @@ class TesserocrSegmentRegion(Processor):
         # and its BlockPolygon()
         index = 0
         while it and not it.Empty(RIL.BLOCK):
+            # (padding will be passed to both BoundingBox and GetImage)
+            # (actually, Tesseract honours padding only on the left and bottom,
+            #  whereas right and top are increased less!)
             bbox = it.BoundingBox(RIL.BLOCK, padding=self.parameter['padding'])
             points = points_from_x0y0x1y1(bbox)
-            # add offset from any Border:
+            # add offset from Border, if any:
             xywh = xywh_from_points(points)
             xywh['x'] += page_xywh['x']
             xywh['y'] += page_xywh['y']
             points = points_from_xywh(xywh)
             # sometimes these polygons are not planar, which causes
             # PIL.ImageDraw.Draw.polygon (and likely others as well)
-            # to misbehave; unfortunately, we do not have coordinate
-            # semantics in PAGE (left/right inner/outer, multi-path etc)
+            # to misbehave; however, PAGE coordinate semantics prohibit
+            # multi-path polygons!
             # (probably a bug in Tesseract itself):
             polygon = it.BlockPolygon()
             if self.parameter['crop_polygons'] and polygon and list(polygon):
@@ -216,7 +232,8 @@ class TesserocrSegmentRegion(Processor):
                               # it is a bad idea to create a TextRegion
                               # for it (better set `find_tables` False):
                               # PT.TABLE,
-                              # will always yield a 90° deskew angle below:
+                              # should actually get a 90° @orientation
+                              # (but that's ultimately for deskewing to decide):
                               PT.VERTICAL_TEXT]:
                 region = TextRegionType(id=ID, Coords=coords)
                 page.add_TextRegion(region)
@@ -259,14 +276,15 @@ class TesserocrSegmentRegion(Processor):
                 # You have been warned!
                 # get the raw image (masked by white space along the block polygon):
                 region_image, _, _ = it.GetImage(RIL.BLOCK, self.parameter['padding'], page_image)
+                page_xywh['features'] += ',cropped'
                 # update METS (add the image file):
                 file_path = self.workspace.save_image_file(region_image,
                                             file_id + '_' + ID,
                                             page_id=page_id,
-                                            file_grp=FILEGRP_IMG)
+                                            file_grp=self.image_grp)
                 # update PAGE (reference the image file):
                 region.add_AlternativeImage(AlternativeImageType(
-                    filename=file_path, comments="cropped"))
+                    filename=file_path, comments=page_xywh['features']))
             #
             # iterator increment
             #
