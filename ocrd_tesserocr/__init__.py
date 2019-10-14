@@ -10,7 +10,7 @@ import locale
 # is an exception.
 # pylint: disable=wrong-import-position
 try:
-    locale.setlocale(locale.LC_ALL, 'C.UTF-8')
+    locale.setlocale(locale.LC_ALL, 'C')
 except locale.Error:
     pass
 
