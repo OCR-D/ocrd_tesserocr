@@ -6,7 +6,7 @@
     "ocrd-tesserocr-deskew": {
       "executable": "ocrd-tesserocr-deskew",
       "categories": ["Image preprocessing"],
-      "description": "Deskew pages or regions",
+      "description": "Detect script, orientation and skew angle for pages or regions",
       "input_file_grp": [
         "OCR-D-IMG",
         "OCR-D-SEG-BLOCK"
@@ -21,6 +21,12 @@
           "enum": ["page","region"],
           "default": "region",
           "description": "PAGE XML hierarchy level to operate on"
+        },
+        "min_orientation_confidence": {
+          "type": "number",
+          "format": "float",
+          "default": 1.5,
+          "description": "Minimum confidence score to apply orientation as detected by OSD"
         }
       }
     },
