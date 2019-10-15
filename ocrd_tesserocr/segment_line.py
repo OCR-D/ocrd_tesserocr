@@ -6,7 +6,9 @@ from tesserocr import PyTessBaseAPI, RIL, PSM
 from ocrd import Processor
 from ocrd_utils import (
     getLogger, concat_padded,
-    points_from_xywh,
+    polygon_from_xywh,
+    points_from_polygon,
+    coordinates_for_segment,
     MIMETYPE_PAGE
 )
 from ocrd_modelfactory import page_from_file
@@ -69,7 +71,7 @@ class TesserocrSegmentLine(Processor):
                                                           value=self.parameter[name])
                                                 for name in self.parameter.keys()])]))
                 
-                page_image, page_xywh, page_image_info = self.workspace.image_from_page(
+                page_image, page_coords, page_image_info = self.workspace.image_from_page(
                     page, page_id)
                 if page_image_info.resolution != 1:
                     dpi = page_image_info.resolution
@@ -85,15 +87,14 @@ class TesserocrSegmentLine(Processor):
                         else:
                             LOG.warning('keeping existing TextLines in region "%s"', region.id)
                     LOG.debug("Detecting lines in region '%s'", region.id)
-                    region_image, region_xywh = self.workspace.image_from_segment(
-                        region, page_image, page_xywh)
+                    region_image, region_coords = self.workspace.image_from_segment(
+                        region, page_image, page_coords)
                     tessapi.SetImage(region_image)
                     for line_no, component in enumerate(tessapi.GetComponentImages(RIL.TEXTLINE, True, raw_image=True)):
                         line_id = '%s_line%04d' % (region.id, line_no)
-                        line_xywh = component[1]
-                        line_xywh['x'] += region_xywh['x']
-                        line_xywh['y'] += region_xywh['y']
-                        line_points = points_from_xywh(line_xywh)
+                        line_polygon = polygon_from_xywh(component[1])
+                        line_polygon = coordinates_for_segment(line_polygon, region_image, region_coords)
+                        line_points = points_from_polygon(line_polygon)
                         region.add_TextLine(TextLineType(
                             id=line_id, Coords=CoordsType(line_points)))
                 

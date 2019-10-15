@@ -6,7 +6,9 @@ from tesserocr import RIL, PyTessBaseAPI, PSM
 from ocrd import Processor
 from ocrd_utils import (
     getLogger, concat_padded,
-    points_from_xywh,
+    polygon_from_xywh,
+    points_from_polygon,
+    coordinates_for_segment,
     MIMETYPE_PAGE
 )
 from ocrd_modelfactory import page_from_file
@@ -67,7 +69,7 @@ class TesserocrSegmentWord(Processor):
                                          Label=[LabelType(type_=name,
                                                           value=self.parameter[name])
                                                 for name in self.parameter.keys()])]))
-                page_image, page_xywh, page_image_info = self.workspace.image_from_page(
+                page_image, page_coords, page_image_info = self.workspace.image_from_page(
                     page, page_id)
                 if page_image_info.resolution != 1:
                     dpi = page_image_info.resolution
@@ -76,8 +78,8 @@ class TesserocrSegmentWord(Processor):
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                 
                 for region in page.get_TextRegion():
-                    region_image, region_xywh = self.workspace.image_from_segment(
-                        region, page_image, page_xywh)
+                    region_image, region_coords = self.workspace.image_from_segment(
+                        region, page_image, page_coords)
                     for line in region.get_TextLine():
                         if line.get_Word():
                             if overwrite_words:
@@ -86,15 +88,14 @@ class TesserocrSegmentWord(Processor):
                             else:
                                 LOG.warning('keeping existing Words in line "%s"', line.id)
                         LOG.debug("Detecting words in line '%s'", line.id)
-                        line_image, line_xywh = self.workspace.image_from_segment(
-                            line, region_image, region_xywh)
+                        line_image, line_coords = self.workspace.image_from_segment(
+                            line, region_image, region_coords)
                         tessapi.SetImage(line_image)
                         for word_no, component in enumerate(tessapi.GetComponentImages(RIL.WORD, True, raw_image=True)):
                             word_id = '%s_word%04d' % (line.id, word_no)
-                            word_xywh = component[1]
-                            word_xywh['x'] += line_xywh['x']
-                            word_xywh['y'] += line_xywh['y']
-                            word_points = points_from_xywh(word_xywh)
+                            word_polygon = polygon_from_xywh(component[1])
+                            word_polygon = coordinates_for_segment(word_polygon, line_image, line_coords)
+                            word_points = points_from_polygon(word_polygon)
                             line.add_Word(WordType(
                                 id=word_id, Coords=CoordsType(word_points)))
                             
