@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import os.path
 import math
+from PIL import Image
 from tesserocr import (
     PyTessBaseAPI,
     PSM, OEM,
@@ -12,6 +13,7 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger, concat_padded,
+    rotate_image, transpose_image,
     membername,
     MIMETYPE_PAGE
 )
@@ -96,13 +98,8 @@ class TesserocrDeskew(Processor):
                     page, page_id,
                     # image must not have been rotated already,
                     # (we will overwrite @orientation anyway,)
-                    # (This is true even if oplevel is region
-                    #  and page-level deskewing has been applied,
-                    #  because we still need to rule out rotated
-                    #  images on the region level, so better
-                    #  rotate the page level ourselves!)
                     # abort if no such image can be produced:
-                    feature_filter='deskewed')
+                    feature_filter='deskewed' if oplevel == 'page' else '')
                 if page_image_info.resolution != 1:
                     dpi = page_image_info.resolution
                     if page_image_info.resolutionUnit == 'cm':
@@ -115,20 +112,6 @@ class TesserocrDeskew(Processor):
                                           "page '%s'" % page_id, input_file.pageId,
                                           file_id)
                 else:
-                    if page_xywh['angle']:
-                        LOG.info("About to rotate page '%s' by %.2f°",
-                          page_id, page_xywh['angle'])
-                        page_image = page_image.rotate(page_xywh['angle'],
-                                                       expand=True,
-                                                       #resample=Image.BILINEAR,
-                                                       fillcolor='white')
-                        # pretend to image_from_segment that this has *not*
-                        # been rotated yet (so we can rule out images rotated
-                        # on the region level):
-                        #page_xywh['features'] += ',deskewed'
-                        page_xywh['x'] -= round(0.5 * max(0, page_image.width  - page_xywh['w']))
-                        page_xywh['y'] -= round(0.5 * max(0, page_image.height - page_xywh['h']))
-                    
                     regions = page.get_TextRegion() + page.get_TableRegion()
                     if not regions:
                         LOG.warning("Page '%s' contains no text regions", page_id)
@@ -142,10 +125,6 @@ class TesserocrDeskew(Processor):
                         self._process_segment(tessapi, region, region_image, region_xywh,
                                               "region '%s'" % region.id, input_file.pageId,
                                               file_id + '_' + region.id)
-                    
-                    if page_xywh['angle']:
-                        # no pretense! (regardless of region results)
-                        page_xywh['features'] += ',deskewed'
                 
                 # Use input_file's basename for the new file -
                 # this way the files retain the same basenames:
@@ -162,8 +141,9 @@ class TesserocrDeskew(Processor):
                     content=to_xml(pcgts))
     
     def _process_segment(self, tessapi, segment, image, xywh, where, page_id, file_id):
-        features = xywh['features']
-        angle = 0.
+        features = xywh['features'] # features already applied to image
+        angle0 = xywh['angle'] # deskewing (w.r.t. top image) already applied to image
+        angle = 0. # additional angle to be applied at current level
         tessapi.SetImage(image)
         #tessapi.SetPageSegMode(PSM.AUTO_OSD)
         #
@@ -173,15 +153,15 @@ class TesserocrDeskew(Processor):
         if osr:
             assert not math.isnan(osr['orient_conf']), \
                 "orientation detection failed (Tesseract probably compiled without legacy OEM, or osd model not installed)"
-            if osr['orient_conf'] < 10:
-                LOG.info('ignoring OSD orientation result %d° due to low confidence %.0f in %s',
+            if osr['orient_conf'] < self.parameter['min_orientation_confidence']:
+                LOG.info('ignoring OSD orientation result %d° clockwise due to low confidence %.0f in %s',
                          osr['orient_deg'], osr['orient_conf'], where)
             else:
-                LOG.info('applying OSD orientation result %d° with high confidence %.0f in %s',
+                LOG.info('applying OSD orientation result %d° clockwise with high confidence %.0f in %s',
                          osr['orient_deg'], osr['orient_conf'], where)
+                # defined as 'the detected clockwise rotation of the input image'
+                # i.e. the same amount to be applied counter-clockwise for deskewing:
                 angle = osr['orient_deg']
-                if angle:
-                    features += ',rotated-%d' % angle
             assert not math.isnan(osr['script_conf']), \
                 "script detection failed (Tesseract probably compiled without legacy OEM, or osd model not installed)"
             if osr['script_conf'] < 10:
@@ -242,19 +222,21 @@ class TesserocrDeskew(Processor):
         layout = tessapi.AnalyseLayout()
         if layout:
             orientation, writing_direction, textline_order, deskew_angle = layout.Orientation()
-            deskew_angle *= - 180 / math.pi
-            if deskew_angle:
-                features += ',deskewed'
+            # defined as 'how many radians does one have to rotate the block anti-clockwise'
+            # i.e. positive amount to be applied counter-clockwise for deskewing:
+            deskew_angle *= 180 / math.pi
             LOG.info('orientation/deskewing for %s: %s / %s / %s / %.3f°', where,
                       membername(Orientation, orientation),
                       membername(WritingDirection, writing_direction),
                       membername(TextlineOrder, textline_order),
                       deskew_angle)
-            # clockwise rotation, as defined in Tesseract OrientationIdToValue:
+            # defined as 'the amount of clockwise rotation to be applied to the input image'
+            # i.e. the negative amount to be applied counter-clockwise for deskewing:
+            # (as defined in Tesseract OrientationIdToValue):
             angle2 = {
-                Orientation.PAGE_RIGHT: 270,
+                Orientation.PAGE_RIGHT: 90,
                 Orientation.PAGE_DOWN: 180,
-                Orientation.PAGE_LEFT: 90
+                Orientation.PAGE_LEFT: 270
             }.get(orientation, 0)
             if angle2 != angle:
                 # This effectively ignores Orientation from AnalyseLayout,
@@ -262,31 +244,32 @@ class TesserocrDeskew(Processor):
                 # (We do keep deskew_angle, though – see below.)
                 LOG.warning('inconsistent angles from layout analysis (%d) and orientation detection (%d) in %s',
                             angle2, angle, where)
-            # We could rotate the image by transposition (which is more accurate
-            # than the general method below), but then the coordinates –
-            # which are still relative to `imageFilename` – of all the elements
-            # contained in this segment (i.e. any TextLine if `segment` is TextRegion,
-            # and any TextRegion if `segment` is Page) will have to be _transposed_
-            # (instead of rotated) as well. But PAGE consumers have little chance
-            # of knowing which method producers chose, so here we generally decide
-            # to drop this mechanism:
-            # if angle:
-            #     image = image.transpose({
-            #         90: Image.ROTATE_90,
-            #         180: Image.ROTATE_180,
-            #         270: Image.ROTATE_270
-            #     }.get(angle)) # no default
-            angle += deskew_angle
+            # For the orientation parts of the angle, rotate the image by transposition
+            # (which is more accurate than the general method below):
+            if angle:
+                image = transpose_image(image, {
+                    90: Image.ROTATE_90,
+                    180: Image.ROTATE_180,
+                    270: Image.ROTATE_270
+                }.get(angle)) # no default
+                features += ',rotated-%d' % angle
             # Tesseract layout analysis already rotates the image, even for each
             # sub-segment (depending on RIL), but the accuracy is not as good
             # as setting the image to the sub-segments and running without iterator.
             # (These images can be queried via GetBinaryImage/GetImage, cf. segment_region)
             # Unfortunately, it does _not_ use expand=True, but chops off corners.
             # So we must do it here from the original image ourself:
-            LOG.debug('About to rotate %s by %.2f° clockwise', where, angle)
-            image = image.rotate(-angle, expand=True, fillcolor='white')
-            angle = 180 - (180 - angle) % 360 # map to [-179.999,180]
-            segment.set_orientation(angle)
+            if deskew_angle:
+                LOG.debug('About to rotate %s by %.2f° counter-clockwise', where, deskew_angle)
+                image = rotate_image(image, deskew_angle, fill='background', transparency=True)
+                features += ',deskewed'
+            # annotate result:
+            angle += deskew_angle
+            # page angle: PAGE @orientation is defined clockwise,
+            # whereas PIL/ndimage rotation is in mathematical direction:
+            orientation = -(angle + angle0)
+            orientation = 180 - (180 - orientation) % 360 # map to [-179.999,180]
+            segment.set_orientation(orientation)
             if isinstance(segment, (TextRegionType, PageType)):
                 segment.set_readingDirection({
                     WritingDirection.LEFT_TO_RIGHT: 'left-to-right',
