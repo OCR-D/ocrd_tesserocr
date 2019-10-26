@@ -9,8 +9,6 @@ WORKDIR /build-ocrd
 COPY setup.py .
 COPY requirements.txt .
 COPY requirements_test.txt .
-COPY README.md .
-COPY LICENSE .
 RUN apt-get update && \
     apt-get -y install --no-install-recommends \
     ca-certificates \
