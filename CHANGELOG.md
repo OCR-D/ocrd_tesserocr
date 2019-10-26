@@ -5,10 +5,13 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.5.0] - 2019-10-26
+
   * Adapt to feature selection/filtering mechanism for derived images in core
   * Fixes for image-feature-related corner cases in crop and deskew
   * Use explicit (second) output fileGrp when producing derived images
   * Upgrade to upstream tesserocr 2.4.1
+  * Adapt to new core image API, #80
 
 ## [0.4.0] - 2019-08-21
 
