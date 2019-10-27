@@ -15,18 +15,43 @@ This includes image preprocessing (cropping, binarization, deskewing), layout an
 
 ## Installation
 
-Required ubuntu packages:
+### Required ubuntu packages:
 
 - Tesseract headers (`libtesseract-dev`)
 - Some tesseract language models (`tesseract-ocr-{eng,deu,frk,...}` or script models (`tesseract-ocr-script-{latn,frak,...}`)
 - Leptonica headers (`libleptonica-dev`)
 
-Run:
+### From PyPI
+
+This is the best option if you want to use the stable, released version.
 
 ```sh
-make deps-ubuntu # or manually
-make deps # or pip install -r requirements
-make install # or pip install .
+sudo apt-get install git python3 python3-pip libtesseract-dev libleptonica-dev tesseract-ocr-eng tesseract-ocr wget
+pip install ocrd_tesserocr
+```
+
+### With docker
+
+This is the best option if you want to run the software in a container.
+
+You need to have [Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
+
+```sh
+docker pull ocrd/tesserocr
+```
+
+### From git 
+
+This is the best option if you want to change the source code or install the latest, unpublished changes.
+
+We strongly recommend to use a [virtualenv](https://virtualenv.pypa.io/en/stable/userguide/).
+
+```sh
+git clone https://github.com/OCR-D/ocrd_tesserocr
+cd ocrd_tesserocr
+make deps-ubuntu # or manually with apt-get
+make deps        # or pip install -r requirements
+make install     # or pip install .
 ```
 
 ## Usage
@@ -42,6 +67,12 @@ Available processors are:
 - [ocrd-tesserocr-segment-line](ocrd_tesserocr/segment_line.py)
 - [ocrd-tesserocr-segment-word](ocrd_tesserocr/segment_word.py)
 - [ocrd-tesserocr-recognize](ocrd_tesserocr/recognize.py)
+
+To run with docker:
+
+```
+docker run ocrd/tesserocr ocrd-tesserocrd-crop ...
+```
 
 ## Testing
 
