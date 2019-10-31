@@ -44,7 +44,7 @@ docker pull ocrd/tesserocr
 
 This is the best option if you want to change the source code or install the latest, unpublished changes.
 
-We strongly recommend to use a [virtualenv](https://virtualenv.pypa.io/en/stable/userguide/).
+We strongly recommend to use [venv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
 
 ```sh
 git clone https://github.com/OCR-D/ocrd_tesserocr
