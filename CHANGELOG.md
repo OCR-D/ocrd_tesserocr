@@ -5,6 +5,11 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.5.0] - 2019-10-26
+
+  * Adapt to new core image API, #80
+  * Use OCR core >= unstable 2.0.0a1
+
 ## [0.4.1] - 2019-10-29
 
   * Adapt to feature selection/filtering mechanism for derived images in core
@@ -100,6 +105,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.4.1]: v0.5.0...v0.4.1
 [0.4.1]: v0.4.1...v0.4.0
 [0.4.0]: v0.4.0...v0.3.0
 [0.3.0]: v0.3.0...v0.2.2

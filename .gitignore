@@ -12,3 +12,4 @@ test-workspace
 *.swp
 /.coverage
 /htmlcov
+/.cache
