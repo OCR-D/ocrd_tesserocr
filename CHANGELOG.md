@@ -5,6 +5,12 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.5.1] - 2019-10-31
+
+Fixed:
+
+  * Correct version in ocrd-tool.json, #76
+
 ## [0.5.0] - 2019-10-26
 
   * Adapt to new core image API, #80
