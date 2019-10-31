@@ -19,6 +19,7 @@ setup(
     version='0.4.1',
     description='Tesserocr bindings',
     long_description=codecs.open('README.md', encoding='utf-8').read(),
+    long_description_content_type='text/markdown',
     author='Konstantin Baierer, Kay-Michael Würzner, Robert Sachunsky',
     author_email='unixprog@gmail.com, wuerzner@gmail.com, sachunsky@informatik.uni-leipzig.de',
     url='https://github.com/OCR-D/ocrd_tesserocr',
