@@ -4,7 +4,7 @@
 !requirements.txt
 !requirements_test.txt
 !LICENSE
-!README.rst
+!README.md
 
 # avoid .git and __pycache__ etc:
 !ocrd_tesserocr/**/*.py
