@@ -5,6 +5,12 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.6.0] - 2019-11-05
+
+Changed:
+
+  * Depend on OCR-D/core v2.0.0
+
 ## [0.5.1] - 2019-10-31
 
 Fixed:
@@ -111,7 +117,9 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
-[0.4.1]: v0.5.0...v0.4.1
+[0.6.0]: v0.6.0...v0.5.1
+[0.5.1]: v0.5.1...v0.5.0
+[0.5.0]: v0.5.0...v0.4.1
 [0.4.1]: v0.4.1...v0.4.0
 [0.4.0]: v0.4.0...v0.3.0
 [0.3.0]: v0.3.0...v0.2.2
