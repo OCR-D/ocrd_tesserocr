@@ -25,6 +25,22 @@ This includes image preprocessing (cropping, binarization, deskewing), layout an
 
 This is the best option if you want to use the stable, released version.
 
+---
+
+**NOTE**
+
+ocrd_tesserocr requires **Tesseract >= 4.1.0**. The Tesseract packages
+bundled with **Ubuntu < 19.10** are too old. If you are on Ubuntu 18.04 LTS,
+please enable [Alexander Pozdnyakov PPA](https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr) which
+has up-to-date builds of Tesseract and its dependencies:
+
+```sh
+sudo add-apt-repository ppa:alex-p/tesseract-ocr
+sudo apt-get update
+```
+
+---
+
 ```sh
 sudo apt-get install git python3 python3-pip libtesseract-dev libleptonica-dev tesseract-ocr-eng tesseract-ocr wget
 pip install ocrd_tesserocr

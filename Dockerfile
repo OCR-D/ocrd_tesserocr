@@ -5,6 +5,7 @@ ENV PYTHONIOENCODING utf8
 
 WORKDIR /build-ocrd
 COPY setup.py .
+COPY README.md .
 COPY requirements.txt .
 COPY requirements_test.txt .
 COPY ocrd_tesserocr ./ocrd_tesserocr
@@ -13,8 +14,7 @@ RUN apt-get update && \
     apt-get -y install --no-install-recommends \
     libtesseract-dev \
     tesseract-ocr \
-    wget
-RUN pip3 install --upgrade pip
-RUN make PYTHON=python3 PIP=pip3 deps install
-
-ENTRYPOINT ["/bin/sh", "-c"]
+    build-essential \
+    && make deps install \
+    && rm -rf /build-ocrd \
+    && apt-get -y remove --auto-remove build-essential
