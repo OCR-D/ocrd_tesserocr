@@ -1,4 +1,4 @@
-FROM ocrd/core:edge
+FROM ocrd/core
 MAINTAINER OCR-D
 ENV DEBIAN_FRONTEND noninteractive
 ENV PYTHONIOENCODING utf8
