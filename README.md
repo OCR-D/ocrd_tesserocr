@@ -32,7 +32,7 @@ This is the best option if you want to use the stable, released version.
 ocrd_tesserocr requires **tesseract >= 4.1.0**. The tesseract packages
 bundled with **Ubuntu < 19.10** are too old. If you are on Ubuntu 18.04 LTS,
 please enable [Alexander Pozdnyakov PPA](https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr) which
-has up-to-date builds of tesseract and its dependecies:
+has up-to-date builds of Tesseract and its dependencies:
 
 ```sh
 sudo add-apt-repository ppa:alex-p/tesseract-ocr
