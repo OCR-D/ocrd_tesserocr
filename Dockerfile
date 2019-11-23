@@ -12,8 +12,7 @@ COPY ocrd_tesserocr ./ocrd_tesserocr
 COPY Makefile .
 RUN apt-get update && \
     apt-get install -y software-properties-common && \
-    add-apt-repository ppa:alex-p/tesseract-ocr && \
-    apt-get update && \
+    add-apt-repository -y ppa:alex-p/tesseract-ocr && \
     apt-get -y install --no-install-recommends \
     libtesseract-dev \
     tesseract-ocr \
