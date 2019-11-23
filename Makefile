@@ -21,12 +21,10 @@ help:
 	@echo "    deps-ubuntu   Dependencies for deployment in an ubuntu/debian linux"
 	@echo "                  (lib*-dev merely for building tesserocr with pip)"
 	@echo "                  (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0,"
-	@echo "                   but some beta, not the final release,"
-	@echo "                   on which tesserocr 2.4.0 depends;"
-	@echo "                   this downloads a tesseract build from git"
-	@echo "                   and installs it system-wide -"
-	@echo "                   intended for dockerfile and travis,"
-	@echo "                   not recommended for live systems!)"
+	@echo "                   which is unsupported. Add the tesseract-ocr PPA"
+	@echo "                   from Alexander Pozdnyakov which provides 4.1.0."
+	@echo "                   See https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr"
+	@echo "                   for details.)"
 	@echo "    deps          Install python deps via pip"
 	@echo "    deps-test     Install testing python deps via pip"
 	@echo "    install       Install"
@@ -46,13 +44,11 @@ help:
 
 # Dependencies for deployment in an ubuntu/debian linux
 # (lib*-dev merely for building tesserocr with pip)
-# (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0,
-#  but some beta, not the final release,
-#  on which tesserocr 2.4.0 depends;
-#  this downloads a tesseract build from git
-#  and installs it system-wide -
-#  intended for dockerfile and travis,
-#  not recommended for live systems!)
+# (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0
+#  which is unsupported. Add the tesseract-ocr PPA
+#  from Alexander Pozdnyakov which provides 4.1.0.
+#  See https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr
+#  for details.)
 deps-ubuntu:
 	apt-get install -y \
 		git \
@@ -63,8 +59,6 @@ deps-ubuntu:
 		tesseract-ocr-eng \
 		tesseract-ocr \
 		wget
-	wget -O - https://github.com/nijel/tesseract-ocr-build/releases/download/4.0.0-1/tesseract.tar.xz | tar -xJf -
-	cp -rt /usr .tesseract/*
 
 # Install python deps via pip
 deps:
