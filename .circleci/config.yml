@@ -9,8 +9,6 @@ jobs:
       - image: ubuntu:18.04
     steps:
       - run: apt-get update
-      - run: apt-get install -y --no-install-recommends software-properties-common
-      - run: add-apt-repository -y ppa:alex-p/tesseract-ocr
       - run: apt-get install -y --no-install-recommends make git curl
       - checkout
       - run: make deps-ubuntu deps-test deps install repo/assets

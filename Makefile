@@ -50,6 +50,8 @@ help:
 #  See https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr
 #  for details.)
 deps-ubuntu:
+	apt-get install -y --no-install-recommends software-properties-common
+	add-apt-repository -y ppa:alex-p/tesseract-ocr
 	apt-get install -y \
 		git \
 		python3 \
