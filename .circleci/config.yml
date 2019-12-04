@@ -8,8 +8,7 @@ jobs:
     docker:
       - image: ubuntu:18.04
     steps:
-      - run: apt-get update
-      - run: apt-get install -y --no-install-recommends make git curl
+      - run: apt-get update && apt-get install -y --no-install-recommends make git curl
       - checkout
       - run: make deps-ubuntu deps-test deps install repo/assets
       - run: make test-cli
