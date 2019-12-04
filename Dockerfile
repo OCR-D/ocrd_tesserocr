@@ -10,12 +10,9 @@ COPY requirements.txt .
 COPY requirements_test.txt .
 COPY ocrd_tesserocr ./ocrd_tesserocr
 COPY Makefile .
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends software-properties-common && \
-    add-apt-repository -y ppa:alex-p/tesseract-ocr && \
+RUN make deps-ubuntu && \
     apt-get install -y --no-install-recommends \
-    g++ libtesseract-dev make \
-    tesseract-ocr \
+    g++ make \
     tesseract-ocr-script-frak \
     tesseract-ocr-deu \
     && make deps install \
