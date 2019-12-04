@@ -12,7 +12,7 @@ COPY ocrd_tesserocr ./ocrd_tesserocr
 COPY Makefile .
 RUN make deps-ubuntu && \
     apt-get install -y --no-install-recommends \
-    g++ make \
+    g++ \
     tesseract-ocr-script-frak \
     tesseract-ocr-deu \
     && make deps install \
