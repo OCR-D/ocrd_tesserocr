@@ -59,8 +59,7 @@ deps-ubuntu:
 		libtesseract-dev \
 		libleptonica-dev \
 		tesseract-ocr-eng \
-		tesseract-ocr \
-		wget
+		tesseract-ocr
 
 # Install python deps via pip
 deps:
