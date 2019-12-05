@@ -53,6 +53,7 @@ deps-ubuntu:
 	apt-get install -y --no-install-recommends software-properties-common
 	add-apt-repository -y ppa:alex-p/tesseract-ocr
 	apt-get install -y \
+		g++ \
 		git \
 		python3 \
 		python3-pip \
