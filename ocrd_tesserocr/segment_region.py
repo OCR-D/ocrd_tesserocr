@@ -170,6 +170,20 @@ class TesserocrSegmentRegion(Processor):
         # except we are also interested in the iterator's BlockType() here,
         # and its BlockPolygon()
         index = 0
+        ro = page.get_ReadingOrder()
+        if not ro:
+            ro = ReadingOrderType()
+            page.set_ReadingOrder(ro)
+        og = ro.get_OrderedGroup()
+        if og:
+            for elem in (og.get_RegionRefIndexed() +
+                         og.get_OrderedGroupIndexed() +
+                         og.get_UnorderedGroupIndexed()):
+                if elem.index >= index:
+                    index = elem.index + 1
+        else:
+            og = OrderedGroupType(id="reading-order")
+            ro.set_OrderedGroup(og)
         while it and not it.Empty(RIL.BLOCK):
             # (padding will be passed to both BoundingBox and GetImage)
             # (actually, Tesseract honours padding only on the left and bottom,
@@ -200,14 +214,6 @@ class TesserocrSegmentRegion(Processor):
             # the region reference in the reading order element
             #
             ID = "region%04d" % index
-            ro = page.get_ReadingOrder()
-            if not ro:
-                ro = ReadingOrderType()
-                page.set_ReadingOrder(ro)
-            og = ro.get_OrderedGroup()
-            if not og:
-                og = OrderedGroupType(id="reading-order")
-                ro.set_OrderedGroup(og)
             og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
             #
             # region type switch
@@ -237,6 +243,8 @@ class TesserocrSegmentRegion(Processor):
                                 PT.VERT_LINE]:
                 region = SeparatorRegionType(id=ID, Coords=coords)
                 page.add_SeparatorRegion(region)
+                # undo appending in ReadingOrder
+                og.set_RegionRefIndexed(og.get_RegionRefIndexed()[:-1])
             elif block_type in [PT.INLINE_EQUATION,
                                 PT.EQUATION]:
                 region = MathsRegionType(id=ID, Coords=coords)
@@ -252,6 +260,8 @@ class TesserocrSegmentRegion(Processor):
             else:
                 region = NoiseRegionType(id=ID, Coords=coords)
                 page.add_NoiseRegion()
+                # undo appending in ReadingOrder
+                og.set_RegionRefIndexed(og.get_RegionRefIndexed()[:-1])
             LOG.info("Detected region '%s': %s (%s)", ID, points, membername(PT, block_type))
             #
             # iterator increment
