@@ -221,10 +221,12 @@ class TesserocrSegmentRegion(Processor):
                               # it is a bad idea to create a TextRegion
                               # for it (better set `find_tables` False):
                               # PT.TABLE,
-                              # should actually get a 90° @orientation
-                              # (but that's ultimately for deskewing to decide):
+                              # will also get a 90° @orientation
+                              # (but that can be overriden by deskewing):
                               PT.VERTICAL_TEXT]:
                 region = TextRegionType(id=ID, Coords=coords)
+                if block_type == PT.VERTICAL_TEXT:
+                    region.set_orientation(90.0)
                 page.add_TextRegion(region)
             elif block_type in [PT.FLOWING_IMAGE,
                                 PT.HEADING_IMAGE,
