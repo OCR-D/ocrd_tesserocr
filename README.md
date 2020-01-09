@@ -18,7 +18,7 @@ This includes image preprocessing (cropping, binarization, deskewing), layout an
 ### Required ubuntu packages:
 
 - Tesseract headers (`libtesseract-dev`)
-- Some tesseract language models (`tesseract-ocr-{eng,deu,frk,...}` or script models (`tesseract-ocr-script-{latn,frak,...}`)
+- Some Tesseract language models (`tesseract-ocr-{eng,deu,frk,...}` or script models (`tesseract-ocr-script-{latn,frak,...}`)
 - Leptonica headers (`libleptonica-dev`)
 
 ### From PyPI

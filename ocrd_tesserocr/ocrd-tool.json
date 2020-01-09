@@ -33,7 +33,7 @@
     "ocrd-tesserocr-recognize": {
       "executable": "ocrd-tesserocr-recognize",
       "categories": ["Text recognition and optimization"],
-      "description": "Recognize text in lines with tesseract",
+      "description": "Recognize text in lines with Tesseract",
       "input_file_grp": [
         "OCR-D-SEG-BLOCK",
         "OCR-D-SEG-LINE",
@@ -65,7 +65,7 @@
      "ocrd-tesserocr-segment-region": {
       "executable": "ocrd-tesserocr-segment-region",
       "categories": ["Layout analysis"],
-      "description": "Segment regions into lines with tesseract",
+      "description": "Segment regions into lines with Tesseract",
       "input_file_grp": [
         "OCR-D-IMG",
         "OCR-D-SEG-PAGE",
@@ -102,7 +102,7 @@
     "ocrd-tesserocr-segment-line": {
       "executable": "ocrd-tesserocr-segment-line",
       "categories": ["Layout analysis"],
-      "description": "Segment page into regions with tesseract",
+      "description": "Segment page into regions with Tesseract",
       "input_file_grp": [
         "OCR-D-SEG-BLOCK",
         "OCR-D-GT-SEG-BLOCK"
@@ -122,7 +122,7 @@
     "ocrd-tesserocr-segment-word": {
       "executable": "ocrd-tesserocr-segment-word",
       "categories": ["Layout analysis"],
-      "description": "Segment lines into words with tesseract",
+      "description": "Segment lines into words with Tesseract",
       "input_file_grp": [
         "OCR-D-SEG-LINE",
         "OCR-D-GT-SEG-LINE"

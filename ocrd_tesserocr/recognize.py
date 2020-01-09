@@ -54,7 +54,7 @@ class TesserocrRecognize(Processor):
 
         Produce new output files by serialising the resulting hierarchy.
         """
-        LOG.debug("TESSDATA: %s, installed tesseract models: %s", *get_languages())
+        LOG.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
         maxlevel = self.parameter['textequiv_level']
         model = get_languages()[1][-1] # last installed model
         if 'model' in self.parameter:
