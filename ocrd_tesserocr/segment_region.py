@@ -29,7 +29,10 @@ from ocrd_models.ocrd_page import (
     SeparatorRegionType,
     NoiseRegionType,
     to_xml)
-from ocrd_models.ocrd_page_generateds import TableRegionType
+from ocrd_models.ocrd_page_generateds import (
+    TableRegionType,
+    TextTypeSimpleType
+)
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
@@ -230,9 +233,16 @@ class TesserocrSegmentRegion(Processor):
                               # will also get a 90° @orientation
                               # (but that can be overriden by deskewing):
                               PT.VERTICAL_TEXT]:
-                region = TextRegionType(id=ID, Coords=coords)
+                region = TextRegionType(id=ID, Coords=coords,
+                                        type=TextTypeSimpleType.PARAGRAPH)
                 if block_type == PT.VERTICAL_TEXT:
                     region.set_orientation(90.0)
+                elif block_type == PT.HEADING_TEXT:
+                    region.set_type(TextTypeSimpleType.HEADING)
+                elif block_type == PT.PULLOUT_TEXT:
+                    region.set_type(TextTypeSimpleType.FLOATING)
+                elif block_type == PT.CAPTION_TEXT:
+                    region.set_type(TextTypeSimpleType.CAPTION)
                 page.add_TextRegion(region)
             elif block_type in [PT.FLOWING_IMAGE,
                                 PT.HEADING_IMAGE,
