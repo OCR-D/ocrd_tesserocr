@@ -96,25 +96,36 @@ class TesserocrSegmentRegion(Processor):
                                                 for name in self.parameter.keys()])]))
 
                 # delete or warn of existing regions:
-                if page.get_TextRegion():
+                if (page.get_AdvertRegion() or
+                    page.get_ChartRegion() or
+                    page.get_ChemRegion() or
+                    page.get_GraphicRegion() or
+                    page.get_ImageRegion() or
+                    page.get_LineDrawingRegion() or
+                    page.get_MathsRegion() or
+                    page.get_MusicRegion() or
+                    page.get_NoiseRegion() or
+                    page.get_SeparatorRegion() or
+                    page.get_TableRegion() or
+                    page.get_TextRegion() or
+                    page.get_UnknownRegion()):
                     if overwrite_regions:
                         LOG.info('removing existing TextRegions')
                         page.set_TextRegion([])
+                        page.set_AdvertRegion([])
+                        page.set_ChartRegion([])
+                        page.set_ChemRegion([])
+                        page.set_GraphicRegion([])
+                        page.set_ImageRegion([])
+                        page.set_LineDrawingRegion([])
+                        page.set_MathsRegion([])
+                        page.set_MusicRegion([])
+                        page.set_NoiseRegion([])
+                        page.set_SeparatorRegion([])
+                        page.set_TableRegion([])
+                        page.set_UnknownRegion([])
                     else:
                         LOG.warning('keeping existing TextRegions')
-                # TODO: also make non-text regions protected?
-                page.set_AdvertRegion([])
-                page.set_ChartRegion([])
-                page.set_ChemRegion([])
-                page.set_GraphicRegion([])
-                page.set_ImageRegion([])
-                page.set_LineDrawingRegion([])
-                page.set_MathsRegion([])
-                page.set_MusicRegion([])
-                page.set_NoiseRegion([])
-                page.set_SeparatorRegion([])
-                page.set_TableRegion([])
-                page.set_UnknownRegion([])
                 if page.get_ReadingOrder():
                     if overwrite_regions:
                         LOG.info('overwriting existing ReadingOrder')
