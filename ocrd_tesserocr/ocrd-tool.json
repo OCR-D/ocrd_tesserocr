@@ -104,7 +104,27 @@
         }
       }
     },
-    "ocrd-tesserocr-segment-line": {
+     "ocrd-tesserocr-segment-table": {
+      "executable": "ocrd-tesserocr-segment-table",
+      "categories": ["Layout analysis"],
+      "description": "Segment table regions into cell text regions with Tesseract",
+      "input_file_grp": [
+        "OCR-D-SEG-BLOCK",
+        "OCR-D-GT-SEG-BLOCK"
+      ],
+      "output_file_grp": [
+        "OCR-D-SEG-BLOCK"
+      ],
+      "steps": ["layout/segmentation/region"],
+      "parameters": {
+        "overwrite_regions": {
+          "type": "boolean",
+          "default": true,
+          "description": "remove existing layout and text annotation below the region level"
+        }
+      }
+     },
+     "ocrd-tesserocr-segment-line": {
       "executable": "ocrd-tesserocr-segment-line",
       "categories": ["Layout analysis"],
       "description": "Segment page into regions with Tesseract",

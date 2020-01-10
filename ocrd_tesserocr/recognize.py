@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import os.path
+import itertools
 
 from tesserocr import (
     RIL, PSM,
@@ -141,7 +142,9 @@ class TesserocrRecognize(Processor):
                 #tessapi.SetImage(page_image)
                 
                 LOG.info("Processing page '%s'", page_id)
-                regions = page.get_TextRegion()
+                regions = itertools.chain.from_iterable(
+                    [page.get_TextRegion()] +
+                    [subregion.get_TextRegion() for subregion in page.get_TableRegion()])
                 if not regions:
                     LOG.warning("Page '%s' contains no text regions", page_id)
                 else:

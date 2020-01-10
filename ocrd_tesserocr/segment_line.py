@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import itertools
 import os.path
 from tesserocr import PyTessBaseAPI, RIL, PSM
 
@@ -37,7 +38,7 @@ class TesserocrSegmentLine(Processor):
         """Performs (text) line segmentation with Tesseract on the workspace.
         
         Open and deserialize PAGE input files and their respective images,
-        then iterate over the element hierarchy down to the region level,
+        then iterate over the element hierarchy down to the (text) region level,
         and remove any existing TextLine elements (unless ``overwrite_lines``
         is False).
         
@@ -79,7 +80,9 @@ class TesserocrSegmentLine(Processor):
                         dpi = round(dpi * 2.54)
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                 
-                for region in page.get_TextRegion():
+                for region in itertools.chain.from_iterable(
+                        [page.get_TextRegion()] +
+                        [subregion.get_TextRegion() for subregion in page.get_TableRegion()]):
                     if region.get_TextLine():
                         if overwrite_lines:
                             LOG.info('removing existing TextLines in region "%s"', region.id)
