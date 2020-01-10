@@ -48,7 +48,7 @@ class TesserocrSegmentRegion(Processor):
         super(TesserocrSegmentRegion, self).__init__(*args, **kwargs)
 
     def process(self):
-        """Performs (text) region segmentation with Tesseract on the workspace.
+        """Performs region segmentation with Tesseract on the workspace.
         
         Open and deserialize PAGE input files and their respective images,
         and remove any existing Region and ReadingOrder elements
@@ -74,7 +74,9 @@ class TesserocrSegmentRegion(Processor):
                 tessapi.SetVariable("textord_tabfind_find_tables", "1") # (default)
                 # this should yield additional blocks within the table blocks
                 # from the page iterator, but does not in fact (yet?):
-                tessapi.SetVariable("textord_tablefind_recognize_tables", "1")
+                # (and it can run into assertion errors when the table structure
+                #  does not meet certain homogenity expectations)
+                #tessapi.SetVariable("textord_tablefind_recognize_tables", "1")
             else:
                 # disable table detection here, so tables will be
                 # analysed as independent text/line blocks:
