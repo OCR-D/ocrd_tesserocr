@@ -194,8 +194,10 @@ class TesserocrRecognize(Processor):
                 line, region_image, region_xywh)
             # todo: Tesseract works better if the line images have a 5px margin everywhere
             tessapi.SetImage(line_image)
-            # RAW_LINE fails with pre-LSTM models, but sometimes better with LSTM models
-            tessapi.SetPageSegMode(PSM.SINGLE_LINE)
+            if self.parameter['raw_lines']:
+                tessapi.SetPageSegMode(PSM.RAW_LINE)
+            else:
+                tessapi.SetPageSegMode(PSM.SINGLE_LINE)
             #if line.get_primaryScript() not in tessapi.GetLoadedLanguages()...
             LOG.debug("Recognizing text in line '%s'", line.id)
             if self.parameter['textequiv_level'] == 'line':
