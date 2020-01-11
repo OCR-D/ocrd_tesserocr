@@ -369,9 +369,11 @@ def page_update_higher_textequiv_levels(level, pcgts):
     join all first TextEquiv (by the rules governing the respective level)
     into TextEquiv of the next higher level, replacing them.
     '''
-    regions = pcgts.get_Page().get_TextRegion()
+    page = pcgts.get_Page()
     if level != 'region':
-        for region in regions:
+        for region in itertools.chain.from_iterable(
+                [page.get_TextRegion()] +
+                [subregion.get_TextRegion() for subregion in page.get_TableRegion()]):
             lines = region.get_TextLine()
             if level != 'line':
                 for line in lines:
