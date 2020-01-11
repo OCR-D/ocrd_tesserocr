@@ -21,6 +21,19 @@ from ocrd_models.ocrd_page import (
     MetadataItemType,
     TextEquivType, TextStyleType,
     to_xml)
+from ocrd_models.ocrd_page_generateds import (
+    TableRegionType,
+    TextTypeSimpleType,
+    ReadingDirectionSimpleType,
+    TextLineOrderSimpleType,
+    RegionRefType,
+    RegionRefIndexedType,
+    OrderedGroupType,
+    OrderedGroupIndexedType,
+    UnorderedGroupType,
+    UnorderedGroupIndexedType,
+    ReadingOrderType
+)
 from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 
@@ -44,15 +57,23 @@ class TesserocrRecognize(Processor):
         
         Open and deserialise PAGE input files and their respective images,
         then iterate over the element hierarchy down to the requested
-        ``textequiv_level``. If ``overwrite_words`` is enabled and any layout
-        annotation below the line level already exists, then remove it
-        (regardless of ``textequiv_level``).
-        Set up Tesseract to recognise each segment's image rectangle with
-        the appropriate mode and ``model``. Create new elements below the line
-        level if necessary. Put text results and confidence values into new
-        TextEquiv at ``textequiv_level``, and make the higher levels consistent
-        with that (by concatenation joined by whitespace).
-
+        ``textequiv_level`` if it exists and ``overwrite_words`` is disabled,
+        or to the line level otherwise. In the latter case,
+        (remove any existing segmentation below the line level, and)
+        create new segmentation below the line level if necessary.
+        
+        Set up Tesseract to recognise each segment's image (either from
+        AlternativeImage or cropping the bounding box rectangle and masking
+        it from the polygon outline) with the appropriate mode and ``model``.
+        
+        Put text and confidence results into the TextEquiv at ``textequiv_level``,
+        removing any existing TextEquiv.
+        
+        Finally, make the higher levels consistent with these results by concatenation,
+        ordered as appropriate for its readingDirection, textLineOrder, and ReadingOrder,
+        and joined by whitespace, as appropriate for the respective level and Relation/join
+        status.
+        
         Produce new output files by serialising the resulting hierarchy.
         """
         LOG.debug("TESSDATA: %s, installed tesseract models: %s", *get_languages())
@@ -362,37 +383,147 @@ class TesserocrRecognize(Processor):
                 glyph_no += 1
                 result_it.Next(RIL.SYMBOL)
 
+def page_element_unicode0(element):
+    if element.get_TextEquiv():
+        return element.get_TextEquiv()[0].Unicode
+    else:
+        return ''
+
+def page_element_conf0(element):
+    if element.get_TextEquiv():
+        # generateDS does not convert simpleType for attributes (yet?)
+        return float(element.get_TextEquiv()[0].conf or "1.0")
+    return 1.0
+
+def page_get_reading_order(ro, rogroup):
+    '''Add all elements from the given reading order group to the given dictionary.
+    
+    Given a dict ``ro`` from layout element IDs to ReadingOrder element objects,
+    and an object ``rogroup`` with additional ReadingOrder element objects,
+    add all references to the dict, traversing the group recursively.
+    '''
+    if isinstance(rogroup, (OrderedGroupType, OrderedGroupIndexedType)):
+        regionrefs = (rogroup.get_RegionRefIndexed() +
+                      rogroup.get_OrderedGroupIndexed() +
+                      rogroup.get_UnorderedGroupIndexed())
+    if isinstance(rogroup, (UnorderedGroupType, UnorderedGroupIndexedType)):
+        regionrefs = (rogroup.get_RegionRef() +
+                      rogroup.get_OrderedGroup() +
+                      rogroup.get_UnorderedGroup())
+    for elem in regionrefs:
+        ro[elem.get_regionRef()] = elem
+        if not isinstance(elem, (RegionRefType, RegionRefIndexedType)):
+            page_get_reading_order(ro, elem)
+        
 def page_update_higher_textequiv_levels(level, pcgts):
     '''Update the TextEquivs of all PAGE-XML hierarchy levels above ``level`` for consistency.
     
     Starting with the hierarchy level chosen for processing,
-    join all first TextEquiv (by the rules governing the respective level)
-    into TextEquiv of the next higher level, replacing them.
+    join all first TextEquiv.Unicode (by the rules governing the respective level)
+    into TextEquiv.Unicode of the next higher level, replacing them.
+    
+    When two successive elements appear in a ``Relation`` of type ``join``,
+    then join them directly (without their respective white space).
+    
+    Likewise, average all first TextEquiv.conf into TextEquiv.conf of the next higher level.
+    
+    In the process, traverse the words and lines in their respective ``readingDirection``,
+    the (text) regions which contain lines in their respective ``textLineOrder``, and
+    the (text) regions which contain text regions in their ``ReadingOrder``
+    (if they appear there as an ``OrderedGroup``).
+    Where no direction/order can be found, use XML ordering.
+    
+    Follow regions recursively, but make sure to traverse them in a depth-first strategy.
     '''
     page = pcgts.get_Page()
+    relations = page.get_Relations() # get RelationsType
+    if relations:
+        relations = relations.get_Relation() # get list of RelationType
+    else:
+        relations = []
+    joins = list() # 
+    for relation in relations:
+        if relation.get_type() == 'join': # ignore 'link' type here
+            joins.append((relation.get_SourceRegionRef().get_regionRef(),
+                          relation.get_TargetRegionRef().get_regionRef()))
+    reading_order = dict()
+    ro = page.get_ReadingOrder()
+    if ro:
+        page_get_reading_order(reading_order, ro.get_OrderedGroup() or ro.get_UnorderedGroup())
     if level != 'region':
         for region in itertools.chain.from_iterable(
-                [page.get_TextRegion()] +
-                [subregion.get_TextRegion() for subregion in page.get_TableRegion()]):
-            lines = region.get_TextLine()
-            if level != 'line':
-                for line in lines:
-                    words = line.get_Word()
-                    if level != 'word':
-                        for word in words:
-                            glyphs = word.get_Glyph()
-                            word_unicode = u''.join(glyph.get_TextEquiv()[0].Unicode
-                                                    if glyph.get_TextEquiv()
-                                                    else u'' for glyph in glyphs)
-                            word.set_TextEquiv(
-                                [TextEquivType(Unicode=word_unicode)]) # remove old
-                    line_unicode = u' '.join(word.get_TextEquiv()[0].Unicode
-                                             if word.get_TextEquiv()
-                                             else u'' for word in words)
-                    line.set_TextEquiv(
-                        [TextEquivType(Unicode=line_unicode)]) # remove old
-            region_unicode = u'\n'.join(line.get_TextEquiv()[0].Unicode
-                                        if line.get_TextEquiv()
-                                        else u'' for line in lines)
-            region.set_TextEquiv(
-                [TextEquivType(Unicode=region_unicode)]) # remove old
+                # order is important here, because regions can be recursive,
+                # and we want to concatenate by depth first;
+                # typical recursion structures would be:
+                #  - TextRegion/@type=paragraph inside TextRegion
+                #  - TextRegion/@type=drop-capital followed by TextRegion/@type=paragraph inside TextRegion
+                #  - any region (including TableRegion or TextRegion) inside a TextRegion/@type=footnote
+                #  - TextRegion inside TableRegion
+                [subregion.get_TextRegion() for subregion in page.get_TextRegion()] +
+                [subregion.get_TextRegion() for subregion in page.get_TableRegion()] +
+                [page.get_TextRegion()]):
+            subregions = region.get_TextRegion()
+            if subregions: # already visited in earlier iterations
+                # do we have a reading order for these?
+                # TODO: what if at least some of the subregions are in reading_order?
+                if (all(subregion.id in reading_order for subregion in subregions) and
+                    isinstance(reading_order[subregions[0].id], # all have .index?
+                               (OrderedGroupType, OrderedGroupIndexedType))):
+                    subregions = sorted(subregions, key=lambda subregion:
+                                        reading_order[subregion.id].index)
+                region_unicode = page_element_unicode0(subregions[0])
+                for subregion, next_subregion in zip(subregions, subregions[1:]):
+                    if not (subregion.id, next_subregion.id) in joins:
+                        region_unicode += '\n' # or '\f'?
+                    region_unicode += page_element_unicode0(next_subregion)
+                region_conf = sum(page_element_conf0(subregion) for subregion in subregions)
+                region_conf /= len(subregions)
+            else: # TODO: what if a TextRegion has both TextLine and TextRegion children?
+                lines = region.get_TextLine()
+                if (region.get_textLineOrder() or
+                    page.get_textLineOrder() ==
+                    TextLineOrderSimpleType.BOTTOMTOTOP):
+                    lines = reversed(lines)
+                if level != 'line':
+                    for line in lines:
+                        words = line.get_Word()
+                        if (line.get_readingDirection() or
+                            region.get_readingDirection() or
+                            page.get_readingDirection() ==
+                            ReadingDirectionSimpleType.RIGHTTOLEFT):
+                            words = reversed(words)
+                        if level != 'word':
+                            for word in words:
+                                glyphs = word.get_Glyph()
+                                if (word.get_readingDirection() or
+                                    line.get_readingDirection() or
+                                    region.get_readingDirection() or
+                                    page.get_readingDirection() ==
+                                    ReadingDirectionSimpleType.RIGHTTOLEFT):
+                                    glyphs = reversed(glyphs)
+                                word_unicode = ''.join(page_element_unicode0(glyph) for glyph in glyphs)
+                                word_conf = sum(page_element_conf0(glyph) for glyph in glyphs)
+                                if glyphs:
+                                    word_conf /= len(glyphs)
+                                word.set_TextEquiv( # replace old, if any
+                                    [TextEquivType(Unicode=word_unicode, conf=word_conf)])
+                        line_unicode = ' '.join(page_element_unicode0(word) for word in words)
+                        line_conf = sum(page_element_conf0(word) for word in words)
+                        if words:
+                            line_conf /= len(words)
+                        line.set_TextEquiv( # replace old, if any
+                            [TextEquivType(Unicode=line_unicode, conf=line_conf)])
+                region_unicode = ''
+                region_conf = 0
+                if lines:
+                    region_unicode = page_element_unicode0(lines[0])
+                    for line, next_line in zip(lines, lines[1:]):
+                        words = line.get_Word()
+                        next_words = next_line.get_Word()
+                        if not(words and next_words and (words[-1].id, next_words[0].id) in joins):
+                            region_unicode += '\n'
+                        region_unicode += page_element_unicode0(next_line)
+                    region_conf = sum(page_element_conf0(line) for line in lines)
+                    region_conf /= len(lines)
+            region.set_TextEquiv( # replace old, if any
+                [TextEquivType(Unicode=region_unicode, conf=region_conf)])

@@ -98,7 +98,7 @@ class TesserocrSegmentTable(Processor):
                         dpi = round(dpi * 2.54)
                     LOG.info("setting user defined DPI %d from metadata", dpi)
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
-                tessapi.SetVariable('textord_occupancy_threshold', '0.1')
+
                 #
                 # prepare dict of reading order
                 reading_order = dict()
@@ -121,8 +121,7 @@ class TesserocrSegmentTable(Processor):
                     for elem in regionrefs:
                         reading_order[elem.get_regionRef()] = elem
                         if not isinstance(elem, (RegionRefType, RegionRefIndexedType)):
-                            # recursive
-                            #_plausibilize_group(regions, elem, mark_for_deletion)
+                            # FIXME: recursive
                             pass
                 #
                 # dive into regions
