@@ -33,7 +33,7 @@
     "ocrd-tesserocr-recognize": {
       "executable": "ocrd-tesserocr-recognize",
       "categories": ["Text recognition and optimization"],
-      "description": "Recognize text lines with Tesseract (using annotated derived images, or masking and cropping images from coordinate polygons)",
+      "description": "Recognize text in lines with Tesseract (using annotated derived images, or masking and cropping images from coordinate polygons)",
       "input_file_grp": [
         "OCR-D-SEG-BLOCK",
         "OCR-D-SEG-LINE",
@@ -70,7 +70,7 @@
      "ocrd-tesserocr-segment-region": {
       "executable": "ocrd-tesserocr-segment-region",
       "categories": ["Layout analysis"],
-      "description": "Segment regions into lines with Tesseract",
+      "description": "Segment page into regions with Tesseract",
       "input_file_grp": [
         "OCR-D-IMG",
         "OCR-D-SEG-PAGE",
@@ -127,7 +127,7 @@
      "ocrd-tesserocr-segment-line": {
       "executable": "ocrd-tesserocr-segment-line",
       "categories": ["Layout analysis"],
-      "description": "Segment page into regions with Tesseract",
+      "description": "Segment regions into lines with Tesseract",
       "input_file_grp": [
         "OCR-D-SEG-BLOCK",
         "OCR-D-GT-SEG-BLOCK"
