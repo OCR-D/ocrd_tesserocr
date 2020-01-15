@@ -65,12 +65,10 @@ class TesserocrSegmentTable(Processor):
         overwrite_regions = self.parameter['overwrite_regions']
         
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
-            # disable table detection here, so tables will be
-            # analysed as independent text/line blocks:
+            # disable table detection here, so we won't get
+            # tables inside tables, but try to analyse them as
+            # independent text/line blocks:
             tessapi.SetVariable("textord_tabfind_find_tables", "0")
-            # this should yield additional blocks within the table blocks
-            # from the page iterator, but does not in fact (yet?):
-            #tessapi.SetVariable("textord_tablefind_recognize_tables", "1")
             for (n, input_file) in enumerate(self.input_files):
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
@@ -215,8 +213,8 @@ class TesserocrSegmentTable(Processor):
             #     it.Next(RIL.BLOCK)
             #     continue
             #
-            # the region reference in the reading order element
-            #
+            # add the region reference in the reading order element
+            # (but ignore non-text regions entirely)
             ID = region.id + "_%04d" % index
             subregion = TextRegionType(id=ID, Coords=coords,
                                        type=TextTypeSimpleType.PARAGRAPH)

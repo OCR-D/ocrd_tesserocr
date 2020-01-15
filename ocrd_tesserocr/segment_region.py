@@ -181,12 +181,14 @@ class TesserocrSegmentRegion(Processor):
             page.set_ReadingOrder(ro)
         og = ro.get_OrderedGroup()
         if og:
+            # start counting from largest existing index
             for elem in (og.get_RegionRefIndexed() +
                          og.get_OrderedGroupIndexed() +
                          og.get_UnorderedGroupIndexed()):
                 if elem.index >= index:
                     index = elem.index + 1
         else:
+            # new top-level group
             og = OrderedGroupType(id="reading-order")
             ro.set_OrderedGroup(og)
         while it and not it.Empty(RIL.BLOCK):
@@ -198,7 +200,7 @@ class TesserocrSegmentRegion(Processor):
             # PIL.ImageDraw.Draw.polygon (and likely others as well)
             # to misbehave; however, PAGE coordinate semantics prohibit
             # multi-path polygons!
-            # (probably a bug in Tesseract itself):
+            # (probably a bug in Tesseract itself, cf. tesseract#2826):
             if self.parameter['crop_polygons']:
                 polygon = it.BlockPolygon()
             else:
@@ -216,8 +218,8 @@ class TesserocrSegmentRegion(Processor):
             #     it.Next(RIL.BLOCK)
             #     continue
             #
-            # the region reference in the reading order element
-            #
+            # add the region reference in the reading order element
+            # (will be removed again if Separator/Noise region below)
             ID = "region%04d" % index
             og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
             #
@@ -233,7 +235,7 @@ class TesserocrSegmentRegion(Processor):
                               # for it (better set `find_tables` False):
                               # PT.TABLE,
                               # will also get a 90° @orientation
-                              # (but that can be overriden by deskewing):
+                              # (but that can be overridden by deskew/OSD):
                               PT.VERTICAL_TEXT]:
                 region = TextRegionType(id=ID, Coords=coords,
                                         type=TextTypeSimpleType.PARAGRAPH)
@@ -265,8 +267,7 @@ class TesserocrSegmentRegion(Processor):
                 # without API access to StructuredTable we cannot
                 # do much for a TableRegionType (i.e. nrows, ncols,
                 # coordinates of cells for recursive regions etc),
-                # but this could be achieved later by a specialised
-                # processor
+                # but this can be achieved afterwards by segment-table
                 region = TableRegionType(id=ID, Coords=coords)
                 page.add_TableRegion(region)
             else:

@@ -384,24 +384,26 @@ class TesserocrRecognize(Processor):
                 result_it.Next(RIL.SYMBOL)
 
 def page_element_unicode0(element):
+    """Get Unicode string of the first text result."""
     if element.get_TextEquiv():
         return element.get_TextEquiv()[0].Unicode
     else:
         return ''
 
 def page_element_conf0(element):
+    """Get confidence (as float value) of the first text result."""
     if element.get_TextEquiv():
         # generateDS does not convert simpleType for attributes (yet?)
         return float(element.get_TextEquiv()[0].conf or "1.0")
     return 1.0
 
 def page_get_reading_order(ro, rogroup):
-    '''Add all elements from the given reading order group to the given dictionary.
+    """Add all elements from the given reading order group to the given dictionary.
     
     Given a dict ``ro`` from layout element IDs to ReadingOrder element objects,
     and an object ``rogroup`` with additional ReadingOrder element objects,
     add all references to the dict, traversing the group recursively.
-    '''
+    """
     if isinstance(rogroup, (OrderedGroupType, OrderedGroupIndexedType)):
         regionrefs = (rogroup.get_RegionRefIndexed() +
                       rogroup.get_OrderedGroupIndexed() +
@@ -416,7 +418,7 @@ def page_get_reading_order(ro, rogroup):
             page_get_reading_order(ro, elem)
         
 def page_update_higher_textequiv_levels(level, pcgts):
-    '''Update the TextEquivs of all PAGE-XML hierarchy levels above ``level`` for consistency.
+    """Update the TextEquivs of all PAGE-XML hierarchy levels above ``level`` for consistency.
     
     Starting with the hierarchy level chosen for processing,
     join all first TextEquiv.Unicode (by the rules governing the respective level)
@@ -434,7 +436,7 @@ def page_update_higher_textequiv_levels(level, pcgts):
     Where no direction/order can be found, use XML ordering.
     
     Follow regions recursively, but make sure to traverse them in a depth-first strategy.
-    '''
+    """
     page = pcgts.get_Page()
     relations = page.get_Relations() # get RelationsType
     if relations:
