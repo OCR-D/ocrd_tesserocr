@@ -36,6 +36,7 @@ from ocrd_models.ocrd_page_generateds import (
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .recognize import page_get_reading_order
 
 TOOL = 'ocrd-tesserocr-segment-table'
 LOG = getLogger('processor.TesserocrSegmentTable')
@@ -106,21 +107,7 @@ class TesserocrSegmentTable(Processor):
                     rogroup = None
                 else:
                     rogroup = ro.get_OrderedGroup() or ro.get_UnorderedGroup()
-                    ordered = False
-                    if isinstance(rogroup, (OrderedGroupType, OrderedGroupIndexedType)):
-                        regionrefs = (rogroup.get_RegionRefIndexed() +
-                                      rogroup.get_OrderedGroupIndexed() +
-                                      rogroup.get_UnorderedGroupIndexed())
-                        ordered = True
-                    if isinstance(rogroup, (UnorderedGroupType, UnorderedGroupIndexedType)):
-                        regionrefs = (rogroup.get_RegionRef() +
-                                      rogroup.get_OrderedGroup() +
-                                      rogroup.get_UnorderedGroup())
-                    for elem in regionrefs:
-                        reading_order[elem.get_regionRef()] = elem
-                        if not isinstance(elem, (RegionRefType, RegionRefIndexedType)):
-                            # FIXME: recursive
-                            pass
+                    page_get_reading_order(reading_order, rogroup)
                 #
                 # dive into regions
                 regions = page.get_TableRegion()
@@ -136,6 +123,7 @@ class TesserocrSegmentTable(Processor):
                                     regionrefs = rogroup.__getattribute__(regionref.__class__.__name__.replace('Type', ''))
                                     # remove in-place
                                     regionrefs.remove(regionref)
+                                    # TODO: adjust index to make contiguous again?
                             region.set_TextRegion([])
                         else:
                             LOG.warning('keeping existing TextRegions in block "%s" of page "%s"', region.id, page_id)
@@ -159,20 +147,22 @@ class TesserocrSegmentTable(Processor):
                         LOG.warning("Page '%s' table region '%s' already has an unordered group (%s)",
                                     page_id, region.id, "cells will not be appended")
                         roelem = None
-                    elif isinstance(roelem, (RegionRefType, RegionRefIndexedType)):
+                    elif isinstance(roelem, RegionRefIndexedType):
                         # replace regionref by group with same index and ref
                         # (which can then take the cells as subregions)
-                        if ordered:
-                            roelem2 = OrderedGroupIndexedType(id=region.id + '_order',
-                                                              index=roelem.index,
-                                                              regionRef=roelem.regionRef)
-                            roelem.parent_object_.add_OrderedGroupIndexed(roelem2)
-                            roelem.parent_object_.get_RegionRefIndexed().remove(roelem)
-                        else:
-                            roelem2 = OrderedGroupType(id=region.id + '_order',
-                                                       regionRef=roelem.regionRef)
-                            roelem.parent_object_.add_OrderedGroup(roelem2)
-                            roelem.parent_object_.get_RegionRef().remove(roelem)
+                        roelem2 = OrderedGroupIndexedType(id=region.id + '_order',
+                                                          index=roelem.index,
+                                                          regionRef=roelem.regionRef)
+                        roelem.parent_object_.add_OrderedGroupIndexed(roelem2)
+                        roelem.parent_object_.get_RegionRefIndexed().remove(roelem)
+                        roelem = roelem2
+                    elif isinstance(roelem, RegionRefType):
+                        # replace regionref by group with same ref
+                        # (which can then take the cells as subregions)
+                        roelem2 = OrderedGroupType(id=region.id + '_order',
+                                                   regionRef=roelem.regionRef)
+                        roelem.parent_object_.add_OrderedGroup(roelem2)
+                        roelem.parent_object_.get_RegionRef().remove(roelem)
                         roelem = roelem2
                     self._process_region(layout, region, roelem, region_image, region_coords)
                     
