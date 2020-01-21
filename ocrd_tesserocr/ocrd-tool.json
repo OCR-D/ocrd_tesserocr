@@ -58,8 +58,8 @@
         },
         "raw_lines": {
           "type": "boolean",
-          "default": true,
-          "description": "Do not attempt additional segmentation (baseline+xheight+ascenders/descenders prediction) when using line images (i.e. when textequiv_level<region). Disable when line segments/images likely contain components of more than 1 line."
+          "default": false,
+          "description": "Do not attempt additional segmentation (baseline+xheight+ascenders/descenders prediction) when using line images (i.e. when textequiv_level<region). Can increase accuracy for certain workflows. Disable when line segments/images may contain components of more than 1 line, or larger gaps/white-spaces."
         },
         "model": {
           "type": "string",
