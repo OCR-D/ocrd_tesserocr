@@ -61,6 +61,21 @@
           "default": false,
           "description": "Do not attempt additional segmentation (baseline+xheight+ascenders/descenders prediction) when using line images (i.e. when textequiv_level<region). Can increase accuracy for certain workflows. Disable when line segments/images may contain components of more than 1 line, or larger gaps/white-spaces."
         },
+        "char_whitelist": {
+          "type": "string",
+          "default": "",
+          "description": "Enumeration of character hypotheses (from the model) to allow exclusively; overruled by blacklist if set."
+        },
+        "char_blacklist": {
+          "type": "string",
+          "default": "",
+          "description": "Enumeration of character hypotheses (from the model) to suppress; overruled by unblacklist if set."
+        },
+        "char_unblacklist": {
+          "type": "string",
+          "default": "",
+          "description": "Enumeration of character hypotheses (from the model) to allow inclusively."
+        },
         "model": {
           "type": "string",
           "description": "tessdata model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)"
