@@ -94,10 +94,18 @@ class TesserocrCrop(Processor):
                     # image must not have been rotated or cropped already,
                     # abort if no such image can be produced:
                     feature_filter='deskewed,cropped')
-                if page_image_info.resolution != 1:
+                if self.parameter['dpi'] > 0:
+                    dpi = self.parameter['dpi']
+                    LOG.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
+                elif page_image_info.resolution != 1:
                     dpi = page_image_info.resolution
                     if page_image_info.resolutionUnit == 'cm':
                         dpi = round(dpi * 2.54)
+                    LOG.info("Page '%s' images will use %d DPI from image meta-data", page_id, dpi)
+                else:
+                    dpi = 0
+                    LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
+                if dpi:
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                     zoom = 300 / dpi
                 else:

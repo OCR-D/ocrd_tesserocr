@@ -155,12 +155,19 @@ class TesserocrRecognize(Processor):
                                                 for name in self.parameter.keys()])]))
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id)
-                if page_image_info.resolution != 1:
+                if self.parameter['dpi'] > 0:
+                    dpi = self.parameter['dpi']
+                    LOG.info("Page '%s' images will use %d DPI from paramter override", page_id, dpi)
+                elif page_image_info.resolution != 1:
                     dpi = page_image_info.resolution
                     if page_image_info.resolutionUnit == 'cm':
                         dpi = round(dpi * 2.54)
+                    LOG.info("Page '%s' images will use %d DPI from image meta-data", page_id, dpi)
+                else:
+                    dpi = 0
+                    LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
+                if dpi:
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
-                #tessapi.SetImage(page_image)
                 
                 LOG.info("Processing page '%s'", page_id)
                 regions = itertools.chain.from_iterable(
