@@ -76,7 +76,7 @@ class TesserocrRecognize(Processor):
         
         Produce new output files by serialising the resulting hierarchy.
         """
-        LOG.debug("TESSDATA: %s, installed tesseract models: %s", *get_languages())
+        LOG.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
         maxlevel = self.parameter['textequiv_level']
         model = get_languages()[1][-1] # last installed model
         if 'model' in self.parameter:
@@ -92,6 +92,13 @@ class TesserocrRecognize(Processor):
                 # populate GetChoiceIterator() with LSTM models, too:
                 tessapi.SetVariable("lstm_choice_mode", "2") # aggregate symbols
                 tessapi.SetVariable("lstm_choice_iterations", "15") # squeeze out more best paths
+            # TODO: maybe warn/raise when illegal combinations or characters not in the model unicharset?
+            if self.parameter['char_whitelist']:
+                tessapi.SetVariable("tessedit_char_whitelist", self.parameter['char_whitelist'])
+            if self.parameter['char_blacklist']:
+                tessapi.SetVariable("tessedit_char_blacklist", self.parameter['char_blacklist'])
+            if self.parameter['char_unblacklist']:
+                tessapi.SetVariable("tessedit_char_unblacklist", self.parameter['char_unblacklist'])
             # todo: determine relevancy of these variables:
             # tessapi.SetVariable("tessedit_single_match", "0")
             #
@@ -157,12 +164,19 @@ class TesserocrRecognize(Processor):
                                                 for name in self.parameter.keys()])]))
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id)
-                if page_image_info.resolution != 1:
+                if self.parameter['dpi'] > 0:
+                    dpi = self.parameter['dpi']
+                    LOG.info("Page '%s' images will use %d DPI from paramter override", page_id, dpi)
+                elif page_image_info.resolution != 1:
                     dpi = page_image_info.resolution
                     if page_image_info.resolutionUnit == 'cm':
                         dpi = round(dpi * 2.54)
+                    LOG.info("Page '%s' images will use %d DPI from image meta-data", page_id, dpi)
+                else:
+                    dpi = 0
+                    LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
+                if dpi:
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
-                #tessapi.SetImage(page_image)
                 
                 LOG.info("Processing page '%s'", page_id)
                 regions = itertools.chain.from_iterable(

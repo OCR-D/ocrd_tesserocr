@@ -75,7 +75,7 @@ class TesserocrSegmentRegion(Processor):
                 # this should yield additional blocks within the table blocks
                 # from the page iterator, but does not in fact (yet?):
                 # (and it can run into assertion errors when the table structure
-                #  does not meet certain homogenity expectations)
+                #  does not meet certain homogeneity expectations)
                 #tessapi.SetVariable("textord_tablefind_recognize_tables", "1")
             else:
                 # disable table detection here, so tables will be
@@ -141,10 +141,18 @@ class TesserocrSegmentRegion(Processor):
                 
                 page_image, page_coords, page_image_info = self.workspace.image_from_page(
                     page, page_id)
-                if page_image_info.resolution != 1:
+                if self.parameter['dpi'] > 0:
+                    dpi = self.parameter['dpi']
+                    LOG.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
+                elif page_image_info.resolution != 1:
                     dpi = page_image_info.resolution
                     if page_image_info.resolutionUnit == 'cm':
                         dpi = round(dpi * 2.54)
+                    LOG.info("Page '%s' images will use %d DPI from image meta-data", page_id, dpi)
+                else:
+                    dpi = 0
+                    LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
+                if dpi:
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                 
                 LOG.info("Detecting regions in page '%s'", page_id)
