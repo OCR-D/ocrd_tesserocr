@@ -88,6 +88,10 @@ class TesserocrRecognize(Processor):
         with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
             LOG.info("Using model '%s' in %s for recognition at the %s level",
                      model, get_languages()[0], maxlevel)
+            if maxlevel == 'glyph':
+                # populate GetChoiceIterator() with LSTM models, too:
+                tessapi.SetVariable("lstm_choice_mode", "2") # aggregate symbols
+                tessapi.SetVariable("lstm_choice_iterations", "15") # squeeze out more best paths
             # TODO: maybe warn/raise when illegal combinations or characters not in the model unicharset?
             if self.parameter['char_whitelist']:
                 tessapi.SetVariable("tessedit_char_whitelist", self.parameter['char_whitelist'])
@@ -95,8 +99,6 @@ class TesserocrRecognize(Processor):
                 tessapi.SetVariable("tessedit_char_blacklist", self.parameter['char_blacklist'])
             if self.parameter['char_unblacklist']:
                 tessapi.SetVariable("tessedit_char_unblacklist", self.parameter['char_unblacklist'])
-            # todo: populate GetChoiceIterator() with LSTM models, too:
-            #tessapi.SetVariable("lstm_choice_mode", "2")
             # todo: determine relevancy of these variables:
             # tessapi.SetVariable("tessedit_single_match", "0")
             #
