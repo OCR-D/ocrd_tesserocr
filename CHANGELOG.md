@@ -5,7 +5,18 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-## [0.7.0] - 2020-01-24
+## [0.8.0] - 2020-01-24
+
+Changed:
+
+  * recognize: use lstm_choice_mode=2 for textequiv_level=glyph, #110
+  * recognize: add char white/un/blacklisting parameters  enhancement, #109
+
+Added:
+
+  * all: add dpi parameter as manual override to image metadata  enhancement, #108
+
+## [0.7.0] - 2020-01-23
 
 Added:
 
@@ -133,6 +144,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.8.0]: v0.8.0...v0.7.0
 [0.7.0]: v0.7.0...v0.6.0
 [0.6.0]: v0.6.0...v0.5.1
 [0.5.1]: v0.5.1...v0.5.0
