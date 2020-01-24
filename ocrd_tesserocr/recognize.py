@@ -88,8 +88,10 @@ class TesserocrRecognize(Processor):
         with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
             LOG.info("Using model '%s' in %s for recognition at the %s level",
                      model, get_languages()[0], maxlevel)
-            # todo: populate GetChoiceIterator() with LSTM models, too:
-            #tessapi.SetVariable("lstm_choice_mode", "2")
+            if maxlevel == 'glyph':
+                # populate GetChoiceIterator() with LSTM models, too:
+                tessapi.SetVariable("lstm_choice_mode", "2") # aggregate symbols
+                tessapi.SetVariable("lstm_choice_iterations", "15") # squeeze out more best paths
             # todo: determine relevancy of these variables:
             # tessapi.SetVariable("tessedit_single_match", "0")
             #
