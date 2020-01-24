@@ -119,7 +119,7 @@ class TesserocrCrop(Processor):
                     LOG.warning('Ignoring extent from existing TextRegions: %i:%i,%i:%i',
                                 min_x, max_x, min_y, max_y)
                     
-                LOG.debug("Cropping with tesseract")
+                LOG.debug("Cropping with Tesseract")
                 tessapi.SetImage(page_image)
                 # PSM.SPARSE_TEXT: get as much text as possible in no particular order
                 # PSM.AUTO (default): includes tables (dangerous)
