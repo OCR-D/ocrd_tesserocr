@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.7.0",
   "git_url": "https://github.com/OCR-D/ocrd_tesserocr",
   "dockerhub": "ocrd/tesserocr",
   "tools": {
@@ -33,7 +33,7 @@
     "ocrd-tesserocr-recognize": {
       "executable": "ocrd-tesserocr-recognize",
       "categories": ["Text recognition and optimization"],
-      "description": "Recognize text in lines with Tesseract",
+      "description": "Recognize text in lines with Tesseract (using annotated derived images, or masking and cropping images from coordinate polygons)",
       "input_file_grp": [
         "OCR-D-SEG-BLOCK",
         "OCR-D-SEG-LINE",
@@ -48,13 +48,18 @@
         "textequiv_level": {
           "type": "string",
           "enum": ["region", "line", "word", "glyph"],
-          "default": "line",
-          "description": "PAGE XML hierarchy level to add the TextEquiv results to (requires existing layout annotation up to one level above that)"
+          "default": "word",
+          "description": "Lowest PAGE XML hierarchy level to add the TextEquiv results to; when below `region`, implicitly adds segmentation below the line level, but requires existing line segmentation"
         },
         "overwrite_words": {
           "type": "boolean",
           "default": false,
-          "description": "remove existing layout and text annotation below the TextLine level (regardless of textequiv_level)"
+          "description": "Remove existing layout and text annotation below the TextLine level (regardless of textequiv_level)."
+        },
+        "raw_lines": {
+          "type": "boolean",
+          "default": false,
+          "description": "Do not attempt additional segmentation (baseline+xheight+ascenders/descenders prediction) when using line images (i.e. when textequiv_level<region). Can increase accuracy for certain workflows. Disable when line segments/images may contain components of more than 1 line, or larger gaps/white-spaces."
         },
         "model": {
           "type": "string",
@@ -99,7 +104,27 @@
         }
       }
     },
-    "ocrd-tesserocr-segment-line": {
+     "ocrd-tesserocr-segment-table": {
+      "executable": "ocrd-tesserocr-segment-table",
+      "categories": ["Layout analysis"],
+      "description": "Segment table regions into cell text regions with Tesseract",
+      "input_file_grp": [
+        "OCR-D-SEG-BLOCK",
+        "OCR-D-GT-SEG-BLOCK"
+      ],
+      "output_file_grp": [
+        "OCR-D-SEG-BLOCK"
+      ],
+      "steps": ["layout/segmentation/region"],
+      "parameters": {
+        "overwrite_regions": {
+          "type": "boolean",
+          "default": true,
+          "description": "remove existing layout and text annotation below the region level"
+        }
+      }
+     },
+     "ocrd-tesserocr-segment-line": {
       "executable": "ocrd-tesserocr-segment-line",
       "categories": ["Layout analysis"],
       "description": "Segment regions into lines with Tesseract",

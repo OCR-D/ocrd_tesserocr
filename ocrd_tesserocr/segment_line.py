@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+import itertools
 import os.path
+from shapely.geometry import Polygon, LinearRing
 from tesserocr import PyTessBaseAPI, RIL, PSM
 
 from ocrd import Processor
@@ -9,6 +11,7 @@ from ocrd_utils import (
     polygon_from_xywh,
     points_from_polygon,
     coordinates_for_segment,
+    coordinates_of_segment,
     MIMETYPE_PAGE
 )
 from ocrd_modelfactory import page_from_file
@@ -37,7 +40,7 @@ class TesserocrSegmentLine(Processor):
         """Performs (text) line segmentation with Tesseract on the workspace.
         
         Open and deserialize PAGE input files and their respective images,
-        then iterate over the element hierarchy down to the region level,
+        then iterate over the element hierarchy down to the (text) region level,
         and remove any existing TextLine elements (unless ``overwrite_lines``
         is False).
         
@@ -79,7 +82,9 @@ class TesserocrSegmentLine(Processor):
                         dpi = round(dpi * 2.54)
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                 
-                for region in page.get_TextRegion():
+                for region in itertools.chain.from_iterable(
+                        [page.get_TextRegion()] +
+                        [subregion.get_TextRegion() for subregion in page.get_TableRegion()]):
                     if region.get_TextLine():
                         if overwrite_lines:
                             LOG.info('removing existing TextLines in region "%s"', region.id)
@@ -89,10 +94,17 @@ class TesserocrSegmentLine(Processor):
                     LOG.debug("Detecting lines in region '%s'", region.id)
                     region_image, region_coords = self.workspace.image_from_segment(
                         region, page_image, page_coords)
+                    region_polygon = coordinates_of_segment(region, region_image, region_coords)
+                    region_poly = Polygon(region_polygon)
                     tessapi.SetImage(region_image)
                     for line_no, component in enumerate(tessapi.GetComponentImages(RIL.TEXTLINE, True, raw_image=True)):
                         line_id = '%s_line%04d' % (region.id, line_no)
                         line_polygon = polygon_from_xywh(component[1])
+                        line_poly = Polygon(line_polygon)
+                        if not line_poly.within(region_poly):
+                            # this could happen due to rotation
+                            line_poly = line_poly.intersection(region_poly).convex_hull
+                            line_polygon = line_poly.exterior.coords
                         line_polygon = coordinates_for_segment(line_polygon, region_image, region_coords)
                         line_points = points_from_polygon(line_polygon)
                         region.add_TextLine(TextLineType(

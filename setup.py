@@ -4,6 +4,7 @@ Installs five executables:
 
     - ocrd_tesserocr_recognize
     - ocrd_tesserocr_segment_region
+    - ocrd_tesserocr_segment_table
     - ocrd_tesserocr_segment_line
     - ocrd_tesserocr_segment_word
     - ocrd_tesserocr_crop
@@ -16,7 +17,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='ocrd_tesserocr',
-    version='0.6.0',
+    version='0.7.0',
     description='Tesserocr bindings',
     long_description=codecs.open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
@@ -33,6 +34,7 @@ setup(
         'console_scripts': [
             'ocrd-tesserocr-recognize=ocrd_tesserocr.cli:ocrd_tesserocr_recognize',
             'ocrd-tesserocr-segment-region=ocrd_tesserocr.cli:ocrd_tesserocr_segment_region',
+            'ocrd-tesserocr-segment-table=ocrd_tesserocr.cli:ocrd_tesserocr_segment_table',
             'ocrd-tesserocr-segment-line=ocrd_tesserocr.cli:ocrd_tesserocr_segment_line',
             'ocrd-tesserocr-segment-word=ocrd_tesserocr.cli:ocrd_tesserocr_segment_word',
             'ocrd-tesserocr-crop=ocrd_tesserocr.cli:ocrd_tesserocr_crop',

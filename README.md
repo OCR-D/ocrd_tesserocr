@@ -1,6 +1,6 @@
 # ocrd_tesserocr
 
-> Crop, deskew, segment into regions / lines / words, or recognize with tesserocr
+> Crop, deskew, segment into regions / tables / lines / words, or recognize with tesserocr
 
 [![image](https://circleci.com/gh/OCR-D/ocrd_tesserocr.svg?style=svg)](https://circleci.com/gh/OCR-D/ocrd_tesserocr)
 [![image](https://img.shields.io/pypi/v/ocrd_tesserocr.svg)](https://pypi.org/project/ocrd_tesserocr/)
@@ -11,7 +11,7 @@
 
 This offers [OCR-D](https://ocr-d.github.io) compliant workspace processors for (much of) the functionality of [Tesseract](https://github.com/tesseract-ocr) via its Python API wrapper [tesserocr](https://github.com/sirfz/tesserocr) . (Each processor is a step in the OCR-D functional model, and can be replaced with an alternative implementation. Data is represented within METS/PAGE.)
 
-This includes image preprocessing (cropping, binarization, deskewing), layout analysis (region, line, word segmentation) and OCR proper. Most processors can operate on different levels of the PAGE hierarchy, depending on the workflow configuration. Image results are referenced (read and written) via `AlternativeImage`, text results via `TextEquiv`, deskewing via `@orientation`, cropping via `Border` and segmentation via `Region` / `TextLine` / `Word` elements with `Coords/@points`.
+This includes image preprocessing (cropping, binarization, deskewing), layout analysis (region, table, line, word segmentation) and OCR proper. Most processors can operate on different levels of the PAGE hierarchy, depending on the workflow configuration. Image results are referenced (read and written) via `AlternativeImage`, text results via `TextEquiv`, deskewing via `@orientation`, cropping via `Border` and segmentation via `Region` / `TextLine` / `Word` elements with `Coords/@points`.
 
 ## Installation
 
@@ -56,6 +56,13 @@ You need to have [Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu
 docker pull ocrd/tesserocr
 ```
 
+To run with docker:
+
+```
+docker run -v path/to/workspaces:/data ocrd/tesserocr ocrd-tesserocrd-crop ...
+```
+
+
 ### From git 
 
 This is the best option if you want to change the source code or install the latest, unpublished changes.
@@ -65,7 +72,7 @@ We strongly recommend to use [venv](https://packaging.python.org/guides/installi
 ```sh
 git clone https://github.com/OCR-D/ocrd_tesserocr
 cd ocrd_tesserocr
-make deps-ubuntu # or manually with apt-get
+sudo make deps-ubuntu # or manually with apt-get
 make deps        # or pip install -r requirements
 make install     # or pip install .
 ```
@@ -80,17 +87,10 @@ Available processors are:
 - [ocrd-tesserocr-deskew](ocrd_tesserocr/deskew.py)
 - [ocrd-tesserocr-binarize](ocrd_tesserocr/binarize.py)
 - [ocrd-tesserocr-segment-region](ocrd_tesserocr/segment_region.py)
+- [ocrd-tesserocr-segment-table](ocrd_tesserocr/segment_table.py)
 - [ocrd-tesserocr-segment-line](ocrd_tesserocr/segment_line.py)
 - [ocrd-tesserocr-segment-word](ocrd_tesserocr/segment_word.py)
 - [ocrd-tesserocr-recognize](ocrd_tesserocr/recognize.py)
-
-## Testing
-
-To run with docker:
-
-```
-docker run ocrd/tesserocr ocrd-tesserocrd-crop ...
-```
 
 ## Testing
 
@@ -101,7 +101,3 @@ make test
 This downloads some test data from https://github.com/OCR-D/assets under `repo/assets`, and runs some basic test of the Python API as well as the CLIs.
 
 Set `PYTEST_ARGS="-s --verbose"` to see log output (`-s`) and individual test results (`--verbose`).
-
-## Development
-
-Latest changes that require pre-release of [ocrd >= 2.0.0](https://github.com/OCR-D/core/tree/edge) are kept in branch [`edge`](https://github.com/OCR-D/ocrd_tesserocr/tree/edge).

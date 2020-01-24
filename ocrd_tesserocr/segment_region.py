@@ -29,7 +29,10 @@ from ocrd_models.ocrd_page import (
     SeparatorRegionType,
     NoiseRegionType,
     to_xml)
-from ocrd_models.ocrd_page_generateds import TableRegionType
+from ocrd_models.ocrd_page_generateds import (
+    TableRegionType,
+    TextTypeSimpleType
+)
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
@@ -45,7 +48,7 @@ class TesserocrSegmentRegion(Processor):
         super(TesserocrSegmentRegion, self).__init__(*args, **kwargs)
 
     def process(self):
-        """Performs (text) region segmentation with Tesseract on the workspace.
+        """Performs region segmentation with Tesseract on the workspace.
         
         Open and deserialize PAGE input files and their respective images,
         and remove any existing Region and ReadingOrder elements
@@ -71,7 +74,9 @@ class TesserocrSegmentRegion(Processor):
                 tessapi.SetVariable("textord_tabfind_find_tables", "1") # (default)
                 # this should yield additional blocks within the table blocks
                 # from the page iterator, but does not in fact (yet?):
-                tessapi.SetVariable("textord_tablefind_recognize_tables", "1")
+                # (and it can run into assertion errors when the table structure
+                #  does not meet certain homogenity expectations)
+                #tessapi.SetVariable("textord_tablefind_recognize_tables", "1")
             else:
                 # disable table detection here, so tables will be
                 # analysed as independent text/line blocks:
@@ -96,25 +101,36 @@ class TesserocrSegmentRegion(Processor):
                                                 for name in self.parameter.keys()])]))
 
                 # delete or warn of existing regions:
-                if page.get_TextRegion():
+                if (page.get_AdvertRegion() or
+                    page.get_ChartRegion() or
+                    page.get_ChemRegion() or
+                    page.get_GraphicRegion() or
+                    page.get_ImageRegion() or
+                    page.get_LineDrawingRegion() or
+                    page.get_MathsRegion() or
+                    page.get_MusicRegion() or
+                    page.get_NoiseRegion() or
+                    page.get_SeparatorRegion() or
+                    page.get_TableRegion() or
+                    page.get_TextRegion() or
+                    page.get_UnknownRegion()):
                     if overwrite_regions:
                         LOG.info('removing existing TextRegions')
                         page.set_TextRegion([])
+                        page.set_AdvertRegion([])
+                        page.set_ChartRegion([])
+                        page.set_ChemRegion([])
+                        page.set_GraphicRegion([])
+                        page.set_ImageRegion([])
+                        page.set_LineDrawingRegion([])
+                        page.set_MathsRegion([])
+                        page.set_MusicRegion([])
+                        page.set_NoiseRegion([])
+                        page.set_SeparatorRegion([])
+                        page.set_TableRegion([])
+                        page.set_UnknownRegion([])
                     else:
                         LOG.warning('keeping existing TextRegions')
-                # TODO: also make non-text regions protected?
-                page.set_AdvertRegion([])
-                page.set_ChartRegion([])
-                page.set_ChemRegion([])
-                page.set_GraphicRegion([])
-                page.set_ImageRegion([])
-                page.set_LineDrawingRegion([])
-                page.set_MathsRegion([])
-                page.set_MusicRegion([])
-                page.set_NoiseRegion([])
-                page.set_SeparatorRegion([])
-                page.set_TableRegion([])
-                page.set_UnknownRegion([])
                 if page.get_ReadingOrder():
                     if overwrite_regions:
                         LOG.info('overwriting existing ReadingOrder')
@@ -159,6 +175,22 @@ class TesserocrSegmentRegion(Processor):
         # except we are also interested in the iterator's BlockType() here,
         # and its BlockPolygon()
         index = 0
+        ro = page.get_ReadingOrder()
+        if not ro:
+            ro = ReadingOrderType()
+            page.set_ReadingOrder(ro)
+        og = ro.get_OrderedGroup()
+        if og:
+            # start counting from largest existing index
+            for elem in (og.get_RegionRefIndexed() +
+                         og.get_OrderedGroupIndexed() +
+                         og.get_UnorderedGroupIndexed()):
+                if elem.index >= index:
+                    index = elem.index + 1
+        else:
+            # new top-level group
+            og = OrderedGroupType(id="reading-order")
+            ro.set_OrderedGroup(og)
         while it and not it.Empty(RIL.BLOCK):
             # (padding will be passed to both BoundingBox and GetImage)
             # (actually, Tesseract honours padding only on the left and bottom,
@@ -168,7 +200,7 @@ class TesserocrSegmentRegion(Processor):
             # PIL.ImageDraw.Draw.polygon (and likely others as well)
             # to misbehave; however, PAGE coordinate semantics prohibit
             # multi-path polygons!
-            # (probably a bug in Tesseract itself):
+            # (probably a bug in Tesseract itself, cf. tesseract#2826):
             if self.parameter['crop_polygons']:
                 polygon = it.BlockPolygon()
             else:
@@ -186,17 +218,9 @@ class TesserocrSegmentRegion(Processor):
             #     it.Next(RIL.BLOCK)
             #     continue
             #
-            # the region reference in the reading order element
-            #
+            # add the region reference in the reading order element
+            # (will be removed again if Separator/Noise region below)
             ID = "region%04d" % index
-            ro = page.get_ReadingOrder()
-            if not ro:
-                ro = ReadingOrderType()
-                page.set_ReadingOrder(ro)
-            og = ro.get_OrderedGroup()
-            if not og:
-                og = OrderedGroupType(id="reading-order")
-                ro.set_OrderedGroup(og)
             og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
             #
             # region type switch
@@ -210,10 +234,19 @@ class TesserocrSegmentRegion(Processor):
                               # it is a bad idea to create a TextRegion
                               # for it (better set `find_tables` False):
                               # PT.TABLE,
-                              # should actually get a 90° @orientation
-                              # (but that's ultimately for deskewing to decide):
+                              # will also get a 90° @orientation
+                              # (but that can be overridden by deskew/OSD):
                               PT.VERTICAL_TEXT]:
-                region = TextRegionType(id=ID, Coords=coords)
+                region = TextRegionType(id=ID, Coords=coords,
+                                        type=TextTypeSimpleType.PARAGRAPH)
+                if block_type == PT.VERTICAL_TEXT:
+                    region.set_orientation(90.0)
+                elif block_type == PT.HEADING_TEXT:
+                    region.set_type(TextTypeSimpleType.HEADING)
+                elif block_type == PT.PULLOUT_TEXT:
+                    region.set_type(TextTypeSimpleType.FLOATING)
+                elif block_type == PT.CAPTION_TEXT:
+                    region.set_type(TextTypeSimpleType.CAPTION)
                 page.add_TextRegion(region)
             elif block_type in [PT.FLOWING_IMAGE,
                                 PT.HEADING_IMAGE,
@@ -224,6 +257,8 @@ class TesserocrSegmentRegion(Processor):
                                 PT.VERT_LINE]:
                 region = SeparatorRegionType(id=ID, Coords=coords)
                 page.add_SeparatorRegion(region)
+                # undo appending in ReadingOrder
+                og.set_RegionRefIndexed(og.get_RegionRefIndexed()[:-1])
             elif block_type in [PT.INLINE_EQUATION,
                                 PT.EQUATION]:
                 region = MathsRegionType(id=ID, Coords=coords)
@@ -232,13 +267,14 @@ class TesserocrSegmentRegion(Processor):
                 # without API access to StructuredTable we cannot
                 # do much for a TableRegionType (i.e. nrows, ncols,
                 # coordinates of cells for recursive regions etc),
-                # but this could be achieved later by a specialised
-                # processor
+                # but this can be achieved afterwards by segment-table
                 region = TableRegionType(id=ID, Coords=coords)
                 page.add_TableRegion(region)
             else:
                 region = NoiseRegionType(id=ID, Coords=coords)
                 page.add_NoiseRegion()
+                # undo appending in ReadingOrder
+                og.set_RegionRefIndexed(og.get_RegionRefIndexed()[:-1])
             LOG.info("Detected region '%s': %s (%s)", ID, points, membername(PT, block_type))
             #
             # iterator increment
