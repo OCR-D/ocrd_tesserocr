@@ -5,6 +5,22 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.7.0] - 2020-01-24
+
+Added:
+
+  * segment-table: new processor that adds table cells as text regions, #104
+  * `raw_lines` option, #104
+  * interprete `overwrite_regions` more consistently, #104
+  * annotate `@orientation` (independent of dedicated deskewing processor) for vertical and `@type` for all other text blocks, #104
+  * no separators and noise regions in reading order, #104
+
+Changed:
+
+  * docker image built on Ubuntu 18.04, #94, #97
+  * Consistent setup of docker, #97
+
+
 ## [0.6.0] - 2019-11-05
 
 Changed:
@@ -117,6 +133,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.7.0]: v0.7.0...v0.6.0
 [0.6.0]: v0.6.0...v0.5.1
 [0.5.1]: v0.5.1...v0.5.0
 [0.5.0]: v0.5.0...v0.4.1
