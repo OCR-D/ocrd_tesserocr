@@ -16,6 +16,12 @@
       ],
       "steps": ["preprocessing/optimization/deskewing"],
       "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "default": -1
+        },
         "operation_level": {
           "type": "string",
           "enum": ["page","region"],
@@ -45,6 +51,12 @@
       ],
       "steps": ["recognition/text-recognition"],
       "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "default": -1
+        },
         "textequiv_level": {
           "type": "string",
           "enum": ["region", "line", "word", "glyph"],
@@ -81,6 +93,12 @@
       ],
       "steps": ["layout/segmentation/region"],
       "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "default": -1
+        },
         "overwrite_regions": {
           "type": "boolean",
           "default": true,
@@ -117,6 +135,12 @@
       ],
       "steps": ["layout/segmentation/region"],
       "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "default": -1
+        },
         "overwrite_regions": {
           "type": "boolean",
           "default": true,
@@ -137,6 +161,12 @@
       ],
       "steps": ["layout/segmentation/line"],
       "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "default": -1
+        },
         "overwrite_lines": {
           "type": "boolean",
           "default": true,
@@ -157,6 +187,12 @@
       ],
       "steps": ["layout/segmentation/word"],
       "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "default": -1
+        },
         "overwrite_words": {
           "type": "boolean",
           "default": true,
@@ -176,6 +212,12 @@
       ],
       "steps": ["preprocessing/optimization/cropping"],
       "parameters" : {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "default": -1
+        },
         "padding": {
           "type": "number",
           "format": "integer",
