@@ -5,6 +5,12 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.8.0] - 2020-02-17
+
+Fixed:
+
+  * recognize: fix buggy RTL behavior, glyph confidence defaults to 1, #112, #113
+
 ## [0.8.0] - 2020-01-24
 
 Changed:
@@ -144,6 +150,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.8.1]: v0.8.1...v0.8.0
 [0.8.0]: v0.8.0...v0.7.0
 [0.7.0]: v0.7.0...v0.6.0
 [0.6.0]: v0.6.0...v0.5.1
