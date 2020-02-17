@@ -347,7 +347,7 @@ class TesserocrRecognize(Processor):
                 glyph.set_TextEquiv([])
             #glyph_text = tessapi.GetUTF8Text().rstrip("\n\f")
             glyph_conf = tessapi.AllWordConfidences()
-            glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 0.0
+            glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 1.0
             #LOG.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
             result_it = tessapi.GetIterator()
             if not result_it or result_it.Empty(RIL.SYMBOL):
@@ -498,27 +498,27 @@ def page_update_higher_textequiv_levels(level, pcgts):
                 region_conf /= len(subregions)
             else: # TODO: what if a TextRegion has both TextLine and TextRegion children?
                 lines = region.get_TextLine()
-                if (region.get_textLineOrder() or
-                    page.get_textLineOrder() ==
+                if ((region.get_textLineOrder() or
+                     page.get_textLineOrder()) ==
                     TextLineOrderSimpleType.BOTTOMTOTOP):
-                    lines = reversed(lines)
+                    lines = list(reversed(lines))
                 if level != 'line':
                     for line in lines:
                         words = line.get_Word()
-                        if (line.get_readingDirection() or
-                            region.get_readingDirection() or
-                            page.get_readingDirection() ==
+                        if ((line.get_readingDirection() or
+                             region.get_readingDirection() or
+                             page.get_readingDirection()) ==
                             ReadingDirectionSimpleType.RIGHTTOLEFT):
-                            words = reversed(words)
+                            words = list(reversed(words))
                         if level != 'word':
                             for word in words:
                                 glyphs = word.get_Glyph()
-                                if (word.get_readingDirection() or
-                                    line.get_readingDirection() or
-                                    region.get_readingDirection() or
-                                    page.get_readingDirection() ==
+                                if ((word.get_readingDirection() or
+                                     line.get_readingDirection() or
+                                     region.get_readingDirection() or
+                                     page.get_readingDirection()) ==
                                     ReadingDirectionSimpleType.RIGHTTOLEFT):
-                                    glyphs = reversed(glyphs)
+                                    glyphs = list(reversed(glyphs))
                                 word_unicode = ''.join(page_element_unicode0(glyph) for glyph in glyphs)
                                 word_conf = sum(page_element_conf0(glyph) for glyph in glyphs)
                                 if glyphs:
