@@ -289,3 +289,8 @@ class TesserocrSegmentRegion(Processor):
             #
             index += 1
             it.Next(RIL.BLOCK)
+        if (not og.get_RegionRefIndexed() and
+            not og.get_OrderedGroupIndexed() and
+            not og.get_UnorderedGroupIndexed()):
+            # schema forbids empty OrderedGroup
+            ro.set_OrderedGroup(None)
