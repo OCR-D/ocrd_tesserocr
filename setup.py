@@ -12,12 +12,15 @@ Installs five executables:
     - ocrd_tesserocr_binarize
 """
 import codecs
-
+import json
 from setuptools import setup, find_packages
+
+with open('./ocrd-tool.json', 'r') as f:
+    version = json.load(f)['version']
 
 setup(
     name='ocrd_tesserocr',
-    version='0.8.1',
+    version=version,
     description='Tesserocr bindings',
     long_description=codecs.open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
