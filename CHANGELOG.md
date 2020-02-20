@@ -5,7 +5,11 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-## [0.8.0] - 2020-02-17
+Fixed:
+
+  * segment-region: no empty (invalid) ReadingOrder when no regions
+
+## [0.8.1] - 2020-02-17
 
 Fixed:
 
