@@ -111,7 +111,19 @@ class TesserocrSegmentLine(Processor):
                         line_poly = Polygon(line_polygon)
                         if not line_poly.within(region_poly):
                             # this could happen due to rotation
-                            line_poly = line_poly.intersection(region_poly).convex_hull
+                            interline = line_poly.intersection(region_poly)
+                            if interline.is_empty:
+                                continue # ignore this line
+                            if hasattr(interline, 'geoms'):
+                                # is (heterogeneous) GeometryCollection
+                                area = 0
+                                for geom in interline.geoms:
+                                    if geom.area > area:
+                                        area = geom.area
+                                        interline = geom
+                                if not area:
+                                    continue
+                            line_poly = interline.convex_hull
                             line_polygon = line_poly.exterior.coords
                         line_polygon = coordinates_for_segment(line_polygon, region_image, region_coords)
                         line_points = points_from_polygon(line_polygon)
