@@ -134,6 +134,11 @@
           "type": "boolean",
           "default": true,
           "description": "recognise tables as table regions (textord_tabfind_find_tables)"
+        },
+        "sparse_text": {
+          "type": "boolean",
+          "default": false,
+          "description": "use 'sparse text' page segmentation mode (find as much text as possible in no particular order): only text regions, single lines without vertical or horizontal space"
         }
       }
     },
