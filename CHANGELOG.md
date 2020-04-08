@@ -5,9 +5,19 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.8.2] - 2020-04-08
+
 Fixed:
 
   * segment-region: no empty (invalid) ReadingOrder when no regions
+  * segment-region: add `sparse_text` mode choice
+  * segment-line: make intersection with parent more robust
+  * segment-table: use `SPARSE_TEXT` mode for cells
+  
+Changed:
+
+  * Depend on OCR-D/core v2.4.4
+  * Depend on sirfz/tesserocr v2.51
 
 ## [0.8.1] - 2020-02-17
 
