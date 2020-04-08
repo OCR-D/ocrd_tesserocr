@@ -157,7 +157,7 @@ class TesserocrSegmentRegion(Processor):
                 
                 LOG.info("Detecting regions in page '%s'", page_id)
                 tessapi.SetImage(page_image) # is already cropped to Border
-                tessapi.SetPageSegMode(PSM.AUTO) # (default)
+                tessapi.SetPageSegMode(PSM.SPARSE_TEXT if self.parameter['sparse_text'] else PSM.AUTO)
 
                 # detect the region segments and types:
                 layout = tessapi.AnalyseLayout()
