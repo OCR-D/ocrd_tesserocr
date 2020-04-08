@@ -5,6 +5,10 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Fixed:
+
+  * recognize: ignore empty RO group
+
 ## [0.8.2] - 2020-04-08
 
 Fixed:
