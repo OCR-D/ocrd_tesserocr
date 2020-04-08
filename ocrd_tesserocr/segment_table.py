@@ -141,7 +141,8 @@ class TesserocrSegmentTable(Processor):
                     LOG.info("Detecting table cells in region '%s'", region.id)
                     #
                     # detect the region segments:
-                    tessapi.SetPageSegMode(PSM.AUTO) # treat table like page
+                    tessapi.SetPageSegMode(PSM.SPARSE_TEXT) # retrieve "cells"
+                    # TODO: we should XY-cut the sparse cells in regroup them into consistent cells
                     layout = tessapi.AnalyseLayout()
                     roelem = reading_order.get(region.id)
                     if not roelem:
