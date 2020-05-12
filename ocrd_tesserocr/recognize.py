@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import os.path
 import itertools
+from PIL import Image, ImageStat
 
 from tesserocr import (
     RIL, PSM,
@@ -207,7 +208,16 @@ class TesserocrRecognize(Processor):
             region_image, region_xywh = self.workspace.image_from_segment(
                 region, page_image, page_xywh)
             if self.parameter['textequiv_level'] == 'region':
-                tessapi.SetImage(region_image)
+                if self.parameter['padding']:
+                    bg = tuple(ImageStat.Stat(region_image).median)
+                    pad = self.parameter['padding']
+                    padded = Image.new(region_image.mode,
+                                       (region_image.width + 2 * pad,
+                                        region_image.height + 2 * pad), bg)
+                    padded.paste(region_image, (pad, pad))
+                    tessapi.SetImage(padded)
+                else:
+                    tessapi.SetImage(region_image)
                 tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
                 #if region.get_primaryScript() not in tessapi.GetLoadedLanguages()...
                 LOG.debug("Recognizing text in region '%s'", region.id)
@@ -233,7 +243,16 @@ class TesserocrRecognize(Processor):
             line_image, line_xywh = self.workspace.image_from_segment(
                 line, region_image, region_xywh)
             # todo: Tesseract works better if the line images have a 5px margin everywhere
-            tessapi.SetImage(line_image)
+            if self.parameter['padding']:
+                bg = tuple(ImageStat.Stat(line_image).median)
+                pad = self.parameter['padding']
+                padded = Image.new(line_image.mode,
+                                   (line_image.width + 2 * pad,
+                                    line_image.height + 2 * pad), bg)
+                padded.paste(line_image, (pad, pad))
+                tessapi.SetImage(padded)
+            else:
+                tessapi.SetImage(line_image)
             if self.parameter['raw_lines']:
                 tessapi.SetPageSegMode(PSM.RAW_LINE)
             else:
@@ -272,7 +291,7 @@ class TesserocrRecognize(Processor):
             bbox = result_it.BoundingBox(RIL.WORD)
             # convert to absolute coordinates:
             polygon = coordinates_for_segment(polygon_from_x0y0x1y1(bbox),
-                                              None, line_xywh)
+                                              None, line_xywh) - self.parameter['padding']
             points = points_from_polygon(polygon)
             word = WordType(id=word_id, Coords=CoordsType(points))
             line.add_Word(word)
@@ -311,7 +330,16 @@ class TesserocrRecognize(Processor):
         for word in words:
             word_image, word_xywh = self.workspace.image_from_segment(
                 word, line_image, line_xywh)
-            tessapi.SetImage(word_image)
+            if self.parameter['padding']:
+                bg = tuple(ImageStat.Stat(word_image).median)
+                pad = self.parameter['padding']
+                padded = Image.new(word_image.mode,
+                                   (word_image.width + 2 * pad,
+                                    word_image.height + 2 * pad), bg)
+                padded.paste(word_image, (pad, pad))
+                tessapi.SetImage(padded)
+            else:
+                tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
             if self.parameter['textequiv_level'] == 'word':
                 LOG.debug("Recognizing text in word '%s'", word.id)
@@ -339,7 +367,16 @@ class TesserocrRecognize(Processor):
         for glyph in glyphs:
             glyph_image, _ = self.workspace.image_from_segment(
                 glyph, word_image, word_xywh)
-            tessapi.SetImage(glyph_image)
+            if self.parameter['padding']:
+                bg = tuple(ImageStat.Stat(glyph_image).median)
+                pad = self.parameter['padding']
+                padded = Image.new(glyph_image.mode,
+                                   (glyph_image.width + 2 * pad,
+                                    glyph_image.height + 2 * pad), bg)
+                padded.paste(glyph_image, (pad, pad))
+                tessapi.SetImage(padded)
+            else:
+                tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
             LOG.debug("Recognizing text in glyph '%s'", glyph.id)
             if glyph.get_TextEquiv():
@@ -379,7 +416,7 @@ class TesserocrRecognize(Processor):
             bbox = result_it.BoundingBox(RIL.SYMBOL)
             # convert to absolute coordinates:
             polygon = coordinates_for_segment(polygon_from_x0y0x1y1(bbox),
-                                              None, word_xywh)
+                                              None, word_xywh) - self.parameter['padding']
             points = points_from_polygon(polygon)
             glyph = GlyphType(id=glyph_id, Coords=CoordsType(points))
             word.add_Glyph(glyph)
