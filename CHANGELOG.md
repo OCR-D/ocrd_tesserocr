@@ -5,9 +5,15 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.8.3] - 2020-05-12
+
 Fixed:
 
   * recognize: ignore empty RO group
+
+Changed:
+
+  * recognize: add `padding` parameter
 
 ## [0.8.2] - 2020-04-08
 
