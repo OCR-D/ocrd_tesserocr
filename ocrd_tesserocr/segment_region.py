@@ -31,6 +31,7 @@ from ocrd_models.ocrd_page import (
     to_xml)
 from ocrd_models.ocrd_page_generateds import (
     TableRegionType,
+    TextLineType,
     TextTypeSimpleType
 )
 from ocrd import Processor
@@ -256,6 +257,10 @@ class TesserocrSegmentRegion(Processor):
                 elif block_type == PT.CAPTION_TEXT:
                     region.set_type(TextTypeSimpleType.CAPTION)
                 page.add_TextRegion(region)
+                if self.parameter['sparse_text']:
+                    region.set_type(TextTypeSimpleType.OTHER)
+                    region.add_TextLine(TextLineType(id=region.id + '_line',
+                                                     Coords=coords))
             elif block_type in [PT.FLOWING_IMAGE,
                                 PT.HEADING_IMAGE,
                                 PT.PULLOUT_IMAGE]:

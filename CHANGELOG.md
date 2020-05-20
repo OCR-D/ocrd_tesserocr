@@ -5,6 +5,10 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Changed:
+
+  * segment-region: in `sparse_text` mode, also add text lines
+
 ## [0.8.3] - 2020-05-12
 
 Fixed:
