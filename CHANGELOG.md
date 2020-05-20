@@ -5,6 +5,10 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Fixed:
+
+  * segment-region: ensure polygons are within page/Border
+
 Changed:
 
   * segment-region: in `sparse_text` mode, also add text lines
