@@ -9,6 +9,10 @@ Changed:
 
   * segment-region: in `sparse_text` mode, also add text lines
 
+Fixed:
+
+  * Debug statements listed the wrong model paths, #129
+
 ## [0.8.3] - 2020-05-12
 
 Fixed:
