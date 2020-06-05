@@ -5,6 +5,8 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.8.5] - 2020-06-05
+
 Fixed:
 
   * segment-region: ensure polygons are within page/Border
@@ -188,6 +190,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.8.5]: v0.8.5...v0.8.4
 [0.8.4]: v0.8.4...v0.8.3
 [0.8.3]: v0.8.3...v0.8.2
 [0.8.2]: v0.8.2...v0.8.1
