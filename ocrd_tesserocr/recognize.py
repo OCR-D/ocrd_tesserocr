@@ -5,7 +5,7 @@ from PIL import Image, ImageStat
 
 from tesserocr import (
     RIL, PSM,
-    PyTessBaseAPI, get_languages)
+    PyTessBaseAPI, get_languages as get_languages_)
 
 from ocrd_utils import (
     getLogger,
@@ -45,6 +45,12 @@ LOG = getLogger('processor.TesserocrRecognize')
 
 CHOICE_THRESHOLD_NUM = 6 # maximum number of choices to query and annotate
 CHOICE_THRESHOLD_CONF = 0.2 # maximum score drop from best choice to query and annotate
+
+def get_languages(*args, **kwargs):
+    """
+    Wraps tesserocr.get_languages() with a fixed path parameter.
+    """
+    return get_languages_(*args, path=TESSDATA_PREFIX, **kwargs)
 
 class TesserocrRecognize(Processor):
 
