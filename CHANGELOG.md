@@ -9,9 +9,15 @@ Fixed:
 
   * segment-region: ensure polygons are within page/Border
 
+## [0.8.4] - 2020-06-05
+
 Changed:
 
   * segment-region: in `sparse_text` mode, also add text lines
+
+Fixed:
+
+  * Always set path to `TESSDATA_PREFIX` for `tesserocr.get_languages`, #129
 
 ## [0.8.3] - 2020-05-12
 
@@ -182,6 +188,9 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.8.4]: v0.8.4...v0.8.3
+[0.8.3]: v0.8.3...v0.8.2
+[0.8.2]: v0.8.2...v0.8.1
 [0.8.1]: v0.8.1...v0.8.0
 [0.8.0]: v0.8.0...v0.7.0
 [0.7.0]: v0.7.0...v0.6.0
