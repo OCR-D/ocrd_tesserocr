@@ -5,6 +5,7 @@ ENV PYTHONIOENCODING utf8
 
 WORKDIR /build-ocrd
 COPY setup.py .
+COPY ocrd_tesserocr/ocrd-tool.json .
 COPY README.md .
 COPY requirements.txt .
 COPY requirements_test.txt .

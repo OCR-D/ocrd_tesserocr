@@ -11,7 +11,7 @@ Changed:
 
 Fixed:
 
-  * Debug statements listed the wrong model paths, #129
+  * Always set path to `TESSDATA_PREFIX` for `tesserocr.get_languages`, #129
 
 ## [0.8.3] - 2020-05-12
 
