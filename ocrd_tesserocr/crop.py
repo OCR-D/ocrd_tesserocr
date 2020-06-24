@@ -6,6 +6,8 @@ from ocrd_utils import (
     getLogger, concat_padded,
     crop_image,
     coordinates_for_segment,
+    coordinates_of_segment,
+    bbox_from_polygon,
     bbox_from_points,
     polygon_from_bbox,
     points_from_polygon,
@@ -192,11 +194,13 @@ class TesserocrCrop(Processor):
                     polygon = polygon_for_parent(polygon, page)
                     border = BorderType(Coords=CoordsType(
                         points_from_polygon(polygon)))
+                    # intersection with parent could have changed bbox,
+                    # so recalculate:
+                    bbox = bbox_from_polygon(coordinates_of_segment(border, page_image, page_xywh))
                     # update PAGE (annotate border):
                     page.set_Border(border)
                     # update METS (add the image file):
-                    page_image = crop_image(page_image,
-                        box=(min_x, min_y, max_x, max_y))
+                    page_image = crop_image(page_image, box=bbox)
                     page_xywh['features'] += ',cropped'
                     file_id = input_file.ID.replace(self.input_file_grp, self.image_grp)
                     if file_id == input_file.ID:
