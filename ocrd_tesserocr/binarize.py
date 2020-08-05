@@ -111,6 +111,7 @@ class TesserocrBinarize(Processor):
                 file_id = input_file.ID.replace(self.input_file_grp, self.page_grp)
                 if file_id == input_file.ID:
                     file_id = concat_padded(self.page_grp, n)
+                pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
                     ID=file_id,
                     file_grp=self.page_grp,
