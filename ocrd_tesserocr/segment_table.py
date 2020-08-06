@@ -9,6 +9,8 @@ from tesserocr import (
 from ocrd_utils import (
     getLogger,
     concat_padded,
+    make_file_id,
+    assert_file_grp_cardinality,
     coordinates_for_segment,
     polygon_from_x0y0x1y1,
     points_from_polygon,
@@ -63,6 +65,9 @@ class TesserocrSegmentTable(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        assert_file_grp_cardinality(self.input_file_grp, 1)
+        assert_file_grp_cardinality(self.output_file_grp, 1)
+
         overwrite_regions = self.parameter['overwrite_regions']
         
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
@@ -174,11 +179,7 @@ class TesserocrSegmentTable(Processor):
                         roelem = roelem2
                     self._process_region(layout, region, roelem, region_image, region_coords)
                     
-                # Use input_file's basename for the new file -
-                # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
-                if file_id == input_file.ID:
-                    file_id = concat_padded(self.output_file_grp, n)
+                file_id = make_file_id(input_file, self.output_file_grp)
                 self.workspace.add_file(
                     force=True,
                     ID=file_id,

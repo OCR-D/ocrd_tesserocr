@@ -9,7 +9,8 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger,
-    concat_padded,
+    make_file_id,
+    assert_file_grp_cardinality,
     coordinates_for_segment,
     polygon_from_points,
     polygon_from_x0y0x1y1,
@@ -21,7 +22,7 @@ from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
     MetadataItemType,
     LabelsType, LabelType,
-    CoordsType, AlternativeImageType,
+    CoordsType,
     PageType,
     OrderedGroupType,
     ReadingOrderType,
@@ -70,6 +71,9 @@ class TesserocrSegmentRegion(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        assert_file_grp_cardinality(self.input_file_grp, 1)
+        assert_file_grp_cardinality(self.output_file_grp, 1)
+
         overwrite_regions = self.parameter['overwrite_regions']
         find_tables = self.parameter['find_tables']
         
@@ -167,11 +171,7 @@ class TesserocrSegmentRegion(Processor):
                 layout = tessapi.AnalyseLayout()
                 self._process_page(layout, page, page_image, page_coords, input_file.pageId)
                 
-                # Use input_file's basename for the new file -
-                # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
-                if file_id == input_file.ID:
-                    file_id = concat_padded(self.output_file_grp, n)
+                file_id = make_file_id(input_file, self.output_file_grp)
                 self.workspace.add_file(
                     ID=file_id,
                     file_grp=self.output_file_grp,

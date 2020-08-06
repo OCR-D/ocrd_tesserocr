@@ -6,6 +6,8 @@ from tesserocr import RIL, PyTessBaseAPI, PSM
 from ocrd import Processor
 from ocrd_utils import (
     getLogger, concat_padded,
+    make_file_id,
+    assert_file_grp_cardinality,
     polygon_from_xywh,
     points_from_polygon,
     coordinates_for_segment,
@@ -45,6 +47,9 @@ class TesserocrSegmentWord(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        assert_file_grp_cardinality(self.input_file_grp, 1)
+        assert_file_grp_cardinality(self.output_file_grp, 1)
+
         overwrite_words = self.parameter['overwrite_words']
 
         with PyTessBaseAPI(
@@ -107,11 +112,7 @@ class TesserocrSegmentWord(Processor):
                             line.add_Word(WordType(
                                 id=word_id, Coords=CoordsType(word_points)))
                             
-                # Use input_file's basename for the new file -
-                # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
-                if file_id == input_file.ID:
-                    file_id = concat_padded(self.output_file_grp, n)
+                file_id = make_file_id(input_file, self.output_file_grp)
                 self.workspace.add_file(
                     ID=file_id,
                     file_grp=self.output_file_grp,

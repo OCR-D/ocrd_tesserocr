@@ -9,8 +9,9 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger,
-    concat_padded,
     points_from_polygon,
+    make_file_id,
+    assert_file_grp_cardinality,
     polygon_from_x0y0x1y1,
     coordinates_for_segment,
     MIMETYPE_PAGE
@@ -23,8 +24,6 @@ from ocrd_models.ocrd_page import (
     TextEquivType, TextStyleType,
     to_xml)
 from ocrd_models.ocrd_page_generateds import (
-    TableRegionType,
-    TextTypeSimpleType,
     ReadingDirectionSimpleType,
     TextLineOrderSimpleType,
     RegionRefType,
@@ -32,8 +31,7 @@ from ocrd_models.ocrd_page_generateds import (
     OrderedGroupType,
     OrderedGroupIndexedType,
     UnorderedGroupType,
-    UnorderedGroupIndexedType,
-    ReadingOrderType
+    UnorderedGroupIndexedType
 )
 from ocrd_modelfactory import page_from_file
 from ocrd import Processor
@@ -84,6 +82,10 @@ class TesserocrRecognize(Processor):
         Produce new output files by serialising the resulting hierarchy.
         """
         LOG.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
+
+        assert_file_grp_cardinality(self.input_file_grp, 1)
+        assert_file_grp_cardinality(self.output_file_grp, 1)
+
         maxlevel = self.parameter['textequiv_level']
         model = get_languages()[1][-1] # last installed model
         if 'model' in self.parameter:
@@ -195,11 +197,7 @@ class TesserocrRecognize(Processor):
                     self._process_regions(tessapi, regions, page_image, page_xywh)
                 page_update_higher_textequiv_levels(maxlevel, pcgts)
                 
-                # Use input_file's basename for the new file -
-                # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
-                if file_id == input_file.ID:
-                    file_id = concat_padded(self.output_file_grp, n)
+                file_id = make_file_id(input_file, self.output_file_grp)
                 self.workspace.add_file(
                     ID=file_id,
                     file_grp=self.output_file_grp,

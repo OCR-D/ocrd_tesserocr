@@ -7,7 +7,10 @@ from tesserocr import (
 )
 
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
+    concat_padded,
+    assert_file_grp_cardinality,
+    make_file_id,
     MIMETYPE_PAGE
 )
 from ocrd_modelfactory import page_from_file
@@ -48,14 +51,14 @@ class TesserocrBinarize(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        assert_file_grp_cardinality(self.input_file_grp, 1)
+        assert_file_grp_cardinality(self.output_file_grp, 1)
+
         oplevel = self.parameter['operation_level']
-        assert len(self.output_file_grp.split(',')) == 1, \
-            "Expected exactly one output file group, but '%s' has %d" % (
-                self.output_file_grp, len(self.output_file_grp.split(',')))
         
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             for n, input_file in enumerate(self.input_files):
-                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
+                file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
@@ -102,11 +105,7 @@ class TesserocrBinarize(Processor):
                                                   "line '%s'" % line.id, input_file.pageId,
                                                   file_id + '_' + region.id + '_' + line.id)
 
-                # Use input_file's basename for the new file -
-                # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
-                if file_id == input_file.ID:
-                    file_id = concat_padded(self.output_file_grp, n)
+                file_id = make_file_id(input_file, self.output_file_grp)
                 self.workspace.add_file(
                     ID=file_id,
                     file_grp=self.output_file_grp,

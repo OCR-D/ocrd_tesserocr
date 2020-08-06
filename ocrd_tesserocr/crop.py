@@ -5,6 +5,8 @@ import tesserocr
 from ocrd_utils import (
     getLogger, concat_padded,
     crop_image,
+    make_file_id,
+    assert_file_grp_cardinality,
     bbox_from_points, points_from_bbox, bbox_from_xywh,
     MIMETYPE_PAGE
 )
@@ -47,11 +49,10 @@ class TesserocrCrop(Processor):
         
         Produce new output files by serialising the resulting hierarchy.
         """
-        padding = self.parameter['padding']
-        assert len(self.output_file_grp.split(',')) == 1, \
-            "Expected exactly one output file group, but '%s' has %d" % (
-                self.output_file_grp, len(self.output_file_grp.split(',')))
+        assert_file_grp_cardinality(self.input_file_grp, 1)
+        assert_file_grp_cardinality(self.output_file_grp, 1)
 
+        padding = self.parameter['padding']
         with tesserocr.PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             # disable table detection here (tables count as text blocks),
             # because we do not want to risk confusing the spine with
@@ -185,7 +186,7 @@ class TesserocrCrop(Processor):
                     page_image = crop_image(page_image,
                         box=(min_x, min_y, max_x, max_y))
                     page_xywh['features'] += ',cropped'
-                    file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
+                    file_id = make_file_id(input_file, self.output_file_grp)
                     if file_id == input_file.ID:
                         file_id = concat_padded(self.output_file_grp, n)
                     file_path = self.workspace.save_image_file(page_image,
