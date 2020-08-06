@@ -5,6 +5,11 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Changed:
+
+  * All processors write to a single file group, #133
+  * All processors set `pg:PcGts/pcGtsId` to `file_id` consistently, #136
+
 ## [0.8.5] - 2020-06-05
 
 Fixed:
