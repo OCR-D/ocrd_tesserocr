@@ -204,6 +204,7 @@ class TesserocrCrop(Processor):
                 file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
                 if file_id == input_file.ID:
                     file_id = concat_padded(self.output_file_grp, n)
+                pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
                     ID=file_id,
                     file_grp=self.output_file_grp,

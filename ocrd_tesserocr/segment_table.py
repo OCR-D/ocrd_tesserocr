@@ -180,6 +180,7 @@ class TesserocrSegmentTable(Processor):
                     self._process_region(layout, region, roelem, region_image, region_coords)
                     
                 file_id = make_file_id(input_file, self.output_file_grp)
+                pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
                     force=True,
                     ID=file_id,

@@ -136,6 +136,7 @@ class TesserocrSegmentLine(Processor):
                             id=line_id, Coords=CoordsType(line_points)))
                 
                 file_id = make_file_id(input_file, self.output_file_grp)
+                pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
                     ID=file_id,
                     file_grp=self.output_file_grp,
