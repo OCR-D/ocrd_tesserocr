@@ -187,8 +187,6 @@ class TesserocrCrop(Processor):
                         box=(min_x, min_y, max_x, max_y))
                     page_xywh['features'] += ',cropped'
                     file_id = make_file_id(input_file, self.output_file_grp)
-                    if file_id == input_file.ID:
-                        file_id = concat_padded(self.output_file_grp, n)
                     file_path = self.workspace.save_image_file(page_image,
                                                 file_id + '.IMG-CROP',
                                                 page_id=input_file.pageId,
@@ -199,11 +197,6 @@ class TesserocrCrop(Processor):
                 else:
                     LOG.error("Cannot find valid extent for page '%s'", page_id)
 
-                # Use input_file's basename for the new file -
-                # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.output_file_grp)
-                if file_id == input_file.ID:
-                    file_id = concat_padded(self.output_file_grp, n)
                 pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
                     ID=file_id,

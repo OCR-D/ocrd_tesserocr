@@ -75,6 +75,7 @@ class TesserocrDeskew(Processor):
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                pcgts.set_pcGtsId(file_id)
                 page = pcgts.get_Page()
                 
                 # add metadata about this operation and its runtime parameters:
@@ -131,12 +132,6 @@ class TesserocrDeskew(Processor):
                                               "region '%s'" % region.id, input_file.pageId,
                                               file_id + '_' + region.id)
                 
-                # Use input_file's basename for the new file -
-                # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.page_grp)
-                if file_id == input_file.ID:
-                    file_id = concat_padded(self.page_grp, n)
-                pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
                     ID=file_id,
                     file_grp=self.output_file_grp,
