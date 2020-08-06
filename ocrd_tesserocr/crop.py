@@ -5,6 +5,8 @@ import tesserocr
 from ocrd_utils import (
     getLogger, concat_padded,
     crop_image,
+    make_file_id,
+    assert_file_grp_cardinality,
     bbox_from_points, points_from_bbox, bbox_from_xywh,
     MIMETYPE_PAGE
 )
@@ -22,7 +24,6 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-crop'
 LOG = getLogger('processor.TesserocrCrop')
-FALLBACK_FILEGRP_IMG = 'OCR-D-IMG-CROP'
 
 class TesserocrCrop(Processor):
 
@@ -30,14 +31,6 @@ class TesserocrCrop(Processor):
         kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrCrop, self).__init__(*args, **kwargs)
-        if hasattr(self, 'output_file_grp'):
-            try:
-                self.page_grp, self.image_grp = self.output_file_grp.split(',')
-            except ValueError:
-                self.page_grp = self.output_file_grp
-                self.image_grp = FALLBACK_FILEGRP_IMG
-                LOG.info("No output file group for images specified, falling back to '%s'",
-                         FALLBACK_FILEGRP_IMG)
 
     def process(self):
         """Performs page cropping with Tesseract on the workspace.
@@ -49,14 +42,17 @@ class TesserocrCrop(Processor):
         
         Moreover, crop the original image accordingly, and reference the
         resulting image file as AlternativeImage in the Page element.
-        Add the new image file to the workspace with the fileGrp USE given
-        in the second position of the output fileGrp, or ``OCR-D-IMG-CROP``,
-        and an ID based on input file and input element.
+        
+        Add the new image file to the workspace along with the output fileGrp,
+        and using a file ID with suffix ``.IMG-CROP`` along with further
+        identification of the input element.
         
         Produce new output files by serialising the resulting hierarchy.
         """
-        padding = self.parameter['padding']
+        assert_file_grp_cardinality(self.input_file_grp, 1)
+        assert_file_grp_cardinality(self.output_file_grp, 1)
 
+        padding = self.parameter['padding']
         with tesserocr.PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             # disable table detection here (tables count as text blocks),
             # because we do not want to risk confusing the spine with
@@ -190,29 +186,23 @@ class TesserocrCrop(Processor):
                     page_image = crop_image(page_image,
                         box=(min_x, min_y, max_x, max_y))
                     page_xywh['features'] += ',cropped'
-                    file_id = input_file.ID.replace(self.input_file_grp, self.image_grp)
-                    if file_id == input_file.ID:
-                        file_id = concat_padded(self.image_grp, n)
+                    file_id = make_file_id(input_file, self.output_file_grp)
                     file_path = self.workspace.save_image_file(page_image,
-                                                file_id,
-                                                page_id=page_id,
-                                                file_grp=self.image_grp)
+                                                file_id + '.IMG-CROP',
+                                                page_id=input_file.pageId,
+                                                file_grp=self.output_file_grp)
                     # update PAGE (reference the image file):
                     page.add_AlternativeImage(AlternativeImageType(
                         filename=file_path, comments=page_xywh['features']))
                 else:
                     LOG.error("Cannot find valid extent for page '%s'", page_id)
 
-                # Use input_file's basename for the new file -
-                # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.page_grp)
-                if file_id == input_file.ID:
-                    file_id = concat_padded(self.page_grp, n)
+                pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
                     ID=file_id,
-                    file_grp=self.page_grp,
+                    file_grp=self.output_file_grp,
                     pageId=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
-                    local_filename=os.path.join(self.page_grp,
+                    local_filename=os.path.join(self.output_file_grp,
                                                 file_id + '.xml'),
                     content=to_xml(pcgts))

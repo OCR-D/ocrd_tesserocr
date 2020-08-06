@@ -7,7 +7,10 @@ from tesserocr import (
 )
 
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
+    concat_padded,
+    assert_file_grp_cardinality,
+    make_file_id,
     MIMETYPE_PAGE
 )
 from ocrd_modelfactory import page_from_file
@@ -24,7 +27,6 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-binarize'
 LOG = getLogger('processor.TesserocrBinarize')
-FALLBACK_IMAGE_GRP = 'OCR-D-IMG-BIN'
 
 class TesserocrBinarize(Processor):
 
@@ -32,13 +34,6 @@ class TesserocrBinarize(Processor):
         kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrBinarize, self).__init__(*args, **kwargs)
-        if hasattr(self, 'output_file_grp'):
-            try:
-                self.page_grp, self.image_grp = self.output_file_grp.split(',')
-            except ValueError:
-                self.page_grp = self.output_file_grp
-                self.image_grp = FALLBACK_IMAGE_GRP
-                LOG.info("No output file group for images specified, falling back to '%s'", FALLBACK_IMAGE_GRP)
 
     def process(self):
         """Performs binarization of the region / line with Tesseract on the workspace.
@@ -48,18 +43,22 @@ class TesserocrBinarize(Processor):
         
         Set up Tesseract to recognize the segment image's layout, and get
         the binarized image. Create an image file, and reference it as
-        AlternativeImage in the segment element. Add the new image file
-        to the workspace with the fileGrp USE given in the second position
-        of the output fileGrp, or ``OCR-D-IMG-BIN``, and an ID based on input
-        file and input element.
+        AlternativeImage in the segment element.
+        
+        Add the new image file to the workspace along with the output fileGrp,
+        and using a file ID with suffix ``.IMG-BIN`` along with further
+        identification of the input element.
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        assert_file_grp_cardinality(self.input_file_grp, 1)
+        assert_file_grp_cardinality(self.output_file_grp, 1)
+
         oplevel = self.parameter['operation_level']
         
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             for n, input_file in enumerate(self.input_files):
-                file_id = input_file.ID.replace(self.input_file_grp, self.image_grp)
+                file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
@@ -106,17 +105,14 @@ class TesserocrBinarize(Processor):
                                                   "line '%s'" % line.id, input_file.pageId,
                                                   file_id + '_' + region.id + '_' + line.id)
 
-                # Use input_file's basename for the new file -
-                # this way the files retain the same basenames:
-                file_id = input_file.ID.replace(self.input_file_grp, self.page_grp)
-                if file_id == input_file.ID:
-                    file_id = concat_padded(self.page_grp, n)
+                file_id = make_file_id(input_file, self.output_file_grp)
+                pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
                     ID=file_id,
-                    file_grp=self.page_grp,
+                    file_grp=self.output_file_grp,
                     pageId=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
-                    local_filename=os.path.join(self.page_grp,
+                    local_filename=os.path.join(self.output_file_grp,
                                                 file_id + '.xml'),
                     content=to_xml(pcgts))
 
@@ -131,9 +127,9 @@ class TesserocrBinarize(Processor):
             return
         # update METS (add the image file):
         file_path = self.workspace.save_image_file(image_bin,
-                                    file_id,
+                                    file_id + '.IMG-BIN',
                                     page_id=page_id,
-                                    file_grp=self.image_grp)
+                                    file_grp=self.output_file_grp)
         # update PAGE (reference the image file):
         features = xywh['features'] + ",binarized"
         segment.add_AlternativeImage(AlternativeImageType(
