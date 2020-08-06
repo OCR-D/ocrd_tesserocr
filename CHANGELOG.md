@@ -5,6 +5,8 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.9.0] - 2020-08-06
+
 Changed:
 
   * All processors write to a single file group, #133
@@ -195,6 +197,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.9.0]: v0.9.0...v0.8.5
 [0.8.5]: v0.8.5...v0.8.4
 [0.8.4]: v0.8.4...v0.8.3
 [0.8.3]: v0.8.3...v0.8.2
