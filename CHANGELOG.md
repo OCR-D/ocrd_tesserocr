@@ -5,6 +5,10 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Fixed:
+
+ * crop: allow running on deskewed page, clip Border to original frame
+
 ## [0.9.0] - 2020-08-06
 
 Changed:
