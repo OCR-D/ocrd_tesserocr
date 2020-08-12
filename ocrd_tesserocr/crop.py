@@ -5,9 +5,15 @@ import tesserocr
 from ocrd_utils import (
     getLogger, concat_padded,
     crop_image,
+    coordinates_for_segment,
+    coordinates_of_segment,
+    bbox_from_polygon,
+    bbox_from_points,
+    polygon_from_bbox,
+    points_from_polygon,
+    bbox_from_xywh,
     make_file_id,
     assert_file_grp_cardinality,
-    bbox_from_points, points_from_bbox, bbox_from_xywh,
     MIMETYPE_PAGE
 )
 from ocrd_modelfactory import page_from_file
@@ -21,6 +27,7 @@ from ocrd_models.ocrd_page_generateds import BorderType
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-crop'
 LOG = getLogger('processor.TesserocrCrop')
@@ -87,9 +94,9 @@ class TesserocrCrop(Processor):
                 
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id,
-                    # image must not have been rotated or cropped already,
+                    # image must not have been cropped already,
                     # abort if no such image can be produced:
-                    feature_filter='deskewed,cropped')
+                    feature_filter='cropped')
                 if self.parameter['dpi'] > 0:
                     dpi = self.parameter['dpi']
                     LOG.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
@@ -178,13 +185,18 @@ class TesserocrCrop(Processor):
                     min_y = max(min_y - padding, 0)
                     max_y = min(max_y + padding, page_image.height)
                     LOG.info("Padded page border: %i:%i,%i:%i", min_x, max_x, min_y, max_y)
+                    polygon = polygon_from_bbox(min_x, min_y, max_x, max_y)
+                    polygon = coordinates_for_segment(polygon, page_image, page_xywh)
+                    polygon = polygon_for_parent(polygon, page)
                     border = BorderType(Coords=CoordsType(
-                        points_from_bbox(min_x, min_y, max_x, max_y)))
+                        points_from_polygon(polygon)))
+                    # intersection with parent could have changed bbox,
+                    # so recalculate:
+                    bbox = bbox_from_polygon(coordinates_of_segment(border, page_image, page_xywh))
                     # update PAGE (annotate border):
                     page.set_Border(border)
                     # update METS (add the image file):
-                    page_image = crop_image(page_image,
-                        box=(min_x, min_y, max_x, max_y))
+                    page_image = crop_image(page_image, box=bbox)
                     page_xywh['features'] += ',cropped'
                     file_id = make_file_id(input_file, self.output_file_grp)
                     file_path = self.workspace.save_image_file(page_image,
