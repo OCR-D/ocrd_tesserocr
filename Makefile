@@ -64,14 +64,17 @@ deps-ubuntu:
 
 # Install python deps via pip
 deps:
+	$(PIP) install -U pip
 	$(PIP) install -r requirements.txt
 
 # Install testing python deps via pip
 deps-test:
+	$(PIP) install -U pip
 	$(PIP) install -r requirements_test.txt
 
 # Install
 install:
+	$(PIP) install -U pip
 	$(PIP) install .
 
 # Build docker image
