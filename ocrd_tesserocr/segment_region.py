@@ -325,7 +325,8 @@ def polygon_for_parent(polygon, parent):
     interp = childp.intersection(parentp)
     if interp.is_empty:
         # FIXME: we need a better strategy against this
-        raise Exception("intersection of would-be segment with parent is empty")
+        LOG.error("intersection of would-be segment with parent is empty")
+        return polygon
     if interp.type == 'MultiPolygon':
         interp = interp.convex_hull
     return interp.exterior.coords[:-1] # keep open
