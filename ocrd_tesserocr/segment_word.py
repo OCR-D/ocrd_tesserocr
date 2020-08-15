@@ -36,15 +36,15 @@ class TesserocrSegmentWord(Processor):
 
     def process(self):
         """Performs word segmentation with Tesseract on the workspace.
-        
+
         Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the textline level,
         and remove any existing Word elements (unless ``overwrite_words``
         is False).
-        
+
         Set up Tesseract to detect words, and add each one to the line
         at the detected coordinates.
-        
+
         Produce a new output file by serialising the resulting hierarchy.
         """
         assert_file_grp_cardinality(self.input_file_grp, 1)
@@ -61,7 +61,7 @@ class TesserocrSegmentWord(Processor):
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 page = pcgts.get_Page()
-                
+
                 # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
@@ -89,7 +89,7 @@ class TesserocrSegmentWord(Processor):
                     LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
                 if dpi:
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
-                
+
                 for region in page.get_TextRegion():
                     region_image, region_coords = self.workspace.image_from_segment(
                         region, page_image, page_coords)
@@ -111,7 +111,7 @@ class TesserocrSegmentWord(Processor):
                             word_points = points_from_polygon(word_polygon)
                             line.add_Word(WordType(
                                 id=word_id, Coords=CoordsType(word_points)))
-                            
+
                 file_id = make_file_id(input_file, self.output_file_grp)
                 pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(

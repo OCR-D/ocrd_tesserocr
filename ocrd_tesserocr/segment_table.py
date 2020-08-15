@@ -52,24 +52,24 @@ class TesserocrSegmentTable(Processor):
 
     def process(self):
         """Performs table cell segmentation with Tesseract on the workspace.
-        
+
         Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the block level
         for table regions. If ``overwrite_regions`` is enabled and any
         layout annotation already exists inside, then remove it.
-        
+
         Set up Tesseract to detect text blocks (as table cells).
         (This is not Tesseract's internal table structure recognition,
         but the general page segmentation.)
         Add each to the block at the detected coordinates.
-        
+
         Produce a new output file by serialising the resulting hierarchy.
         """
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
         overwrite_regions = self.parameter['overwrite_regions']
-        
+
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             # disable table detection here, so we won't get
             # tables inside tables, but try to analyse them as
@@ -80,7 +80,7 @@ class TesserocrSegmentTable(Processor):
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 page = pcgts.get_Page()
-                
+
                 # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
@@ -178,7 +178,7 @@ class TesserocrSegmentTable(Processor):
                         roelem.parent_object_.get_RegionRef().remove(roelem)
                         roelem = roelem2
                     self._process_region(layout, region, roelem, region_image, region_coords)
-                    
+
                 file_id = make_file_id(input_file, self.output_file_grp)
                 pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(

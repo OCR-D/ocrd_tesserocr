@@ -41,19 +41,19 @@ class TesserocrCrop(Processor):
 
     def process(self):
         """Performs page cropping with Tesseract on the workspace.
-        
+
         Open and deserialize PAGE input files and their respective images.
         Set up Tesseract to detect text blocks on each page, and find
         the largest coordinate extent spanning all of them. Use this
         extent in defining a Border, and add that to the page.
-        
+
         Moreover, crop the original image accordingly, and reference the
         resulting image file as AlternativeImage in the Page element.
-        
+
         Add the new image file to the workspace along with the output fileGrp,
         and using a file ID with suffix ``.IMG-CROP`` along with further
         identification of the input element.
-        
+
         Produce new output files by serialising the resulting hierarchy.
         """
         assert_file_grp_cardinality(self.input_file_grp, 1)
@@ -71,7 +71,7 @@ class TesserocrCrop(Processor):
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 page = pcgts.get_Page()
-                
+
                 # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
@@ -84,14 +84,14 @@ class TesserocrCrop(Processor):
                                          Label=[LabelType(type_=name,
                                                           value=self.parameter[name])
                                                 for name in self.parameter.keys()])]))
-                
+
                 # warn of existing Border:
                 border = page.get_Border()
                 if border:
                     left, top, right, bottom = bbox_from_points(border.get_Coords().points)
                     LOG.warning('Overwriting existing Border: %i:%i,%i:%i',
                                 left, top, right, bottom)
-                
+
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id,
                     # image must not have been cropped already,
@@ -113,7 +113,7 @@ class TesserocrCrop(Processor):
                     zoom = 300 / dpi
                 else:
                     zoom = 1
-                
+
                 # warn of existing segmentation:
                 regions = page.get_TextRegion()
                 if regions:
@@ -129,7 +129,7 @@ class TesserocrCrop(Processor):
                         max_y = max(max_y, bottom)
                     LOG.warning('Ignoring extent from existing TextRegions: %i:%i,%i:%i',
                                 min_x, max_x, min_y, max_y)
-                    
+
                 LOG.debug("Cropping with Tesseract")
                 tessapi.SetImage(page_image)
                 # PSM.SPARSE_TEXT: get as much text as possible in no particular order

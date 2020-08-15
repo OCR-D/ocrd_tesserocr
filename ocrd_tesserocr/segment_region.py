@@ -54,21 +54,21 @@ class TesserocrSegmentRegion(Processor):
 
     def process(self):
         """Performs region segmentation with Tesseract on the workspace.
-        
+
         Open and deserialize PAGE input files and their respective images,
         and remove any existing Region and ReadingOrder elements
         (unless ``overwrite_regions`` is False).
-        
+
         Set up Tesseract to detect blocks, and add each one to the page
         as a region according to BlockType at the detected coordinates.
         If ``find_tables`` is True, try to detect table blocks and add them
         as (atomic) TableRegion.
-        
+
         If ``crop_polygons`` is True, then query polygon outlines instead of
         bounding boxes from Tesseract for each region. (This is more precise,
         but due to some path representation errors does not always yield
         accurate/valid polygons.)
-        
+
         Produce a new output file by serialising the resulting hierarchy.
         """
         assert_file_grp_cardinality(self.input_file_grp, 1)
@@ -76,7 +76,7 @@ class TesserocrSegmentRegion(Processor):
 
         overwrite_regions = self.parameter['overwrite_regions']
         find_tables = self.parameter['find_tables']
-        
+
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             if find_tables:
                 tessapi.SetVariable("textord_tabfind_find_tables", "1") # (default)
@@ -94,7 +94,7 @@ class TesserocrSegmentRegion(Processor):
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 page = pcgts.get_Page()
-                
+
                 # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
@@ -146,7 +146,7 @@ class TesserocrSegmentRegion(Processor):
                         page.set_ReadingOrder(None)
                     else:
                         LOG.warning('keeping existing ReadingOrder')
-                
+
                 page_image, page_coords, page_image_info = self.workspace.image_from_page(
                     page, page_id)
                 if self.parameter['dpi'] > 0:
@@ -162,7 +162,7 @@ class TesserocrSegmentRegion(Processor):
                     LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
                 if dpi:
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
-                
+
                 LOG.info("Detecting regions in page '%s'", page_id)
                 tessapi.SetImage(page_image) # is already cropped to Border
                 tessapi.SetPageSegMode(PSM.SPARSE_TEXT if self.parameter['sparse_text'] else PSM.AUTO)
@@ -170,7 +170,7 @@ class TesserocrSegmentRegion(Processor):
                 # detect the region segments and types:
                 layout = tessapi.AnalyseLayout()
                 self._process_page(layout, page, page_image, page_coords, input_file.pageId)
-                
+
                 file_id = make_file_id(input_file, self.output_file_grp)
                 pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
@@ -307,7 +307,7 @@ class TesserocrSegmentRegion(Processor):
 
 def polygon_for_parent(polygon, parent):
     """Clip polygon to parent polygon range.
-    
+
     (Should be moved to ocrd_utils.coordinates_for_segment.)
     """
     childp = Polygon(polygon)

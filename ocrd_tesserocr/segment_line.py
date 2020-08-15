@@ -40,22 +40,22 @@ class TesserocrSegmentLine(Processor):
 
     def process(self):
         """Performs (text) line segmentation with Tesseract on the workspace.
-        
+
         Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the (text) region level,
         and remove any existing TextLine elements (unless ``overwrite_lines``
         is False).
-        
+
         Set up Tesseract to detect lines, and add each one to the region
         at the detected coordinates.
-        
+
         Produce a new output file by serialising the resulting hierarchy.
         """
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
         overwrite_lines = self.parameter['overwrite_lines']
-        
+
         with PyTessBaseAPI(
                 psm=PSM.SINGLE_BLOCK,
                 path=TESSDATA_PREFIX
@@ -65,7 +65,7 @@ class TesserocrSegmentLine(Processor):
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 page = pcgts.get_Page()
-                
+
                 # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
@@ -78,7 +78,7 @@ class TesserocrSegmentLine(Processor):
                                          Label=[LabelType(type_=name,
                                                           value=self.parameter[name])
                                                 for name in self.parameter.keys()])]))
-                
+
                 page_image, page_coords, page_image_info = self.workspace.image_from_page(
                     page, page_id)
                 if self.parameter['dpi'] > 0:
@@ -94,7 +94,7 @@ class TesserocrSegmentLine(Processor):
                     LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
                 if dpi:
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
-                
+
                 for region in itertools.chain.from_iterable(
                         [page.get_TextRegion()] +
                         [subregion.get_TextRegion() for subregion in page.get_TableRegion()]):
@@ -134,7 +134,7 @@ class TesserocrSegmentLine(Processor):
                         line_points = points_from_polygon(line_polygon)
                         region.add_TextLine(TextLineType(
                             id=line_id, Coords=CoordsType(line_points)))
-                
+
                 file_id = make_file_id(input_file, self.output_file_grp)
                 pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(

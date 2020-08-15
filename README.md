@@ -63,7 +63,7 @@ docker run -v path/to/workspaces:/data ocrd/tesserocr ocrd-tesserocrd-crop ...
 ```
 
 
-### From git 
+### From git
 
 This is the best option if you want to change the source code or install the latest, unpublished changes.
 

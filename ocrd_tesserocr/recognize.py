@@ -59,26 +59,26 @@ class TesserocrRecognize(Processor):
 
     def process(self):
         """Perform OCR recognition with Tesseract on the workspace.
-        
+
         Open and deserialise PAGE input files and their respective images,
         then iterate over the element hierarchy down to the requested
         ``textequiv_level`` if it exists and ``overwrite_words`` is disabled,
         or to the line level otherwise. In the latter case,
         (remove any existing segmentation below the line level, and)
         create new segmentation below the line level if necessary.
-        
+
         Set up Tesseract to recognise each segment's image (either from
         AlternativeImage or cropping the bounding box rectangle and masking
         it from the polygon outline) with the appropriate mode and ``model``.
-        
+
         Put text and confidence results into the TextEquiv at ``textequiv_level``,
         removing any existing TextEquiv.
-        
+
         Finally, make the higher levels consistent with these results by concatenation,
         ordered as appropriate for its readingDirection, textLineOrder, and ReadingOrder,
         and joined by whitespace, as appropriate for the respective level and Relation/join
         status.
-        
+
         Produce new output files by serialising the resulting hierarchy.
         """
         LOG.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
@@ -93,7 +93,7 @@ class TesserocrRecognize(Processor):
             for sub_model in model.split('+'):
                 if sub_model not in get_languages()[1]:
                     raise Exception("configured model " + sub_model + " is not installed")
-        
+
         with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
             LOG.info("Using model '%s' in %s for recognition at the %s level",
                      model, get_languages()[0], maxlevel)
@@ -158,7 +158,7 @@ class TesserocrRecognize(Processor):
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 page = pcgts.get_Page()
-                
+
                 # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
@@ -186,7 +186,7 @@ class TesserocrRecognize(Processor):
                     LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
                 if dpi:
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
-                
+
                 LOG.info("Processing page '%s'", page_id)
                 regions = itertools.chain.from_iterable(
                     [page.get_TextRegion()] +
@@ -196,7 +196,7 @@ class TesserocrRecognize(Processor):
                 else:
                     self._process_regions(tessapi, regions, page_image, page_xywh)
                 page_update_higher_textequiv_levels(maxlevel, pcgts)
-                
+
                 file_id = make_file_id(input_file, self.output_file_grp)
                 pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
@@ -405,7 +405,7 @@ class TesserocrRecognize(Processor):
                     break
                 # todo: consider SymbolIsSuperscript (TextStyle), SymbolIsDropcap (RelationType) etc
                 glyph.add_TextEquiv(TextEquivType(index=choice_no, Unicode=alternative_text, conf=alternative_conf))
-    
+
     def _process_glyphs_in_word(self, result_it, word, word_xywh):
         if not result_it or result_it.Empty(RIL.SYMBOL):
             LOG.debug("No glyph in word '%s'", word.id)
@@ -457,7 +457,7 @@ def page_element_conf0(element):
 
 def page_get_reading_order(ro, rogroup):
     """Add all elements from the given reading order group to the given dictionary.
-    
+
     Given a dict ``ro`` from layout element IDs to ReadingOrder element objects,
     and an object ``rogroup`` with additional ReadingOrder element objects,
     add all references to the dict, traversing the group recursively.
@@ -475,25 +475,25 @@ def page_get_reading_order(ro, rogroup):
         ro[elem.get_regionRef()] = elem
         if not isinstance(elem, (RegionRefType, RegionRefIndexedType)):
             page_get_reading_order(ro, elem)
-        
+
 def page_update_higher_textequiv_levels(level, pcgts):
     """Update the TextEquivs of all PAGE-XML hierarchy levels above ``level`` for consistency.
-    
+
     Starting with the hierarchy level chosen for processing,
     join all first TextEquiv.Unicode (by the rules governing the respective level)
     into TextEquiv.Unicode of the next higher level, replacing them.
-    
+
     When two successive elements appear in a ``Relation`` of type ``join``,
     then join them directly (without their respective white space).
-    
+
     Likewise, average all first TextEquiv.conf into TextEquiv.conf of the next higher level.
-    
+
     In the process, traverse the words and lines in their respective ``readingDirection``,
     the (text) regions which contain lines in their respective ``textLineOrder``, and
     the (text) regions which contain text regions in their ``ReadingOrder``
     (if they appear there as an ``OrderedGroup``).
     Where no direction/order can be found, use XML ordering.
-    
+
     Follow regions recursively, but make sure to traverse them in a depth-first strategy.
     """
     page = pcgts.get_Page()
@@ -502,7 +502,7 @@ def page_update_higher_textequiv_levels(level, pcgts):
         relations = relations.get_Relation() # get list of RelationType
     else:
         relations = []
-    joins = list() # 
+    joins = list() #
     for relation in relations:
         if relation.get_type() == 'join': # ignore 'link' type here
             joins.append((relation.get_SourceRegionRef().get_regionRef(),

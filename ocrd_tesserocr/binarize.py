@@ -37,25 +37,25 @@ class TesserocrBinarize(Processor):
 
     def process(self):
         """Performs binarization of the region / line with Tesseract on the workspace.
-        
+
         Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the requested level.
-        
+
         Set up Tesseract to recognize the segment image's layout, and get
         the binarized image. Create an image file, and reference it as
         AlternativeImage in the segment element.
-        
+
         Add the new image file to the workspace along with the output fileGrp,
         and using a file ID with suffix ``.IMG-BIN`` along with further
         identification of the input element.
-        
+
         Produce a new output file by serialising the resulting hierarchy.
         """
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
         oplevel = self.parameter['operation_level']
-        
+
         with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
             for n, input_file in enumerate(self.input_files):
                 file_id = make_file_id(input_file, self.output_file_grp)
@@ -63,7 +63,7 @@ class TesserocrBinarize(Processor):
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 page = pcgts.get_Page()
-                
+
                 # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
@@ -76,11 +76,11 @@ class TesserocrBinarize(Processor):
                                          Label=[LabelType(type_=name,
                                                           value=self.parameter[name])
                                                 for name in self.parameter.keys()])]))
-                
+
                 page_image, page_xywh, _ = self.workspace.image_from_page(
                     page, page_id)
                 LOG.info("Binarizing on '%s' level in page '%s'", oplevel, page_id)
-                
+
                 regions = page.get_TextRegion() + page.get_TableRegion()
                 if not regions:
                     LOG.warning("Page '%s' contains no text regions", page_id)

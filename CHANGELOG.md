@@ -50,7 +50,7 @@ Fixed:
   * segment-region: add `sparse_text` mode choice
   * segment-line: make intersection with parent more robust
   * segment-table: use `SPARSE_TEXT` mode for cells
-  
+
 Changed:
 
   * Depend on OCR-D/core v2.4.4
@@ -152,7 +152,7 @@ Changed:
   * Respect border cropping in segment_word
   * Add parameter overwrite_words in recognize
   * Make higher TextEquivs consistent after recognize
-  
+
 Fixed:
 
   * Remove invalid @externalRef from MetadataItem

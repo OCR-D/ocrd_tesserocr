@@ -52,18 +52,18 @@ class TesserocrDeskew(Processor):
         Set up Tesseract to recognise the region image's orientation, skew
         and script (with both OSD and AnalyseLayout). Rotate the image
         accordingly, and annotate the angle, readingDirection and textlineOrder.
-        
+
         Create a corresponding image file, and reference it as AlternativeImage
         in the element. Add the new image file to the workspace with the fileGrp USE
         given in the second position of the output fileGrp, or ``OCR-D-IMG-DESKEW``,
         and an ID based on input file and input element.
-        
+
         Produce a new output file by serialising the resulting hierarchy.
         """
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
         oplevel = self.parameter['operation_level']
-        
+
         with PyTessBaseAPI(
                 path=TESSDATA_PREFIX,
                 lang="osd", # osd required for legacy init!
@@ -77,7 +77,7 @@ class TesserocrDeskew(Processor):
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 pcgts.set_pcGtsId(file_id)
                 page = pcgts.get_Page()
-                
+
                 # add metadata about this operation and its runtime parameters:
                 metadata = pcgts.get_Metadata() # ensured by from_file()
                 metadata.add_MetadataItem(
@@ -90,7 +90,7 @@ class TesserocrDeskew(Processor):
                                          Label=[LabelType(type_=name,
                                                           value=self.parameter[name])
                                                 for name in self.parameter.keys()])]))
-                
+
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id,
                     # image must not have been rotated already,
@@ -110,9 +110,9 @@ class TesserocrDeskew(Processor):
                     LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
                 if dpi:
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
-                
+
                 LOG.info("Deskewing on '%s' level in page '%s'", oplevel, page_id)
-                
+
                 if oplevel == 'page':
                     self._process_segment(tessapi, page, page_image, page_xywh,
                                           "page '%s'" % page_id, input_file.pageId,
@@ -131,7 +131,7 @@ class TesserocrDeskew(Processor):
                         self._process_segment(tessapi, region, region_image, region_xywh,
                                               "region '%s'" % region.id, input_file.pageId,
                                               file_id + '_' + region.id)
-                
+
                 self.workspace.add_file(
                     ID=file_id,
                     file_grp=self.output_file_grp,
@@ -139,7 +139,7 @@ class TesserocrDeskew(Processor):
                     mimetype=MIMETYPE_PAGE,
                     local_filename=os.path.join(self.output_file_grp, file_id + '.xml'),
                     content=to_xml(pcgts))
-    
+
     def _process_segment(self, tessapi, segment, image, xywh, where, page_id, file_id):
         features = xywh['features'] # features already applied to image
         angle0 = xywh['angle'] # deskewing (w.r.t. top image) already applied to image
