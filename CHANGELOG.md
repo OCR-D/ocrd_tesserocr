@@ -8,6 +8,7 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 Fixed:
 
  * crop: allow running on deskewed page, clip Border to original frame
+ * deskew: refactoring artefact from #133, #142
 
 ## [0.9.0] - 2020-08-06
 
