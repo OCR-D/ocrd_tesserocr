@@ -289,7 +289,7 @@ class TesserocrDeskew(Processor):
         file_path = self.workspace.save_image_file(image,
                                     file_id,
                                     page_id=page_id,
-                                    file_grp=self.image_grp)
+                                    file_grp=self.output_file_grp)
         # update PAGE (reference the image file):
         segment.add_AlternativeImage(AlternativeImageType(
             filename=file_path, comments=features))
