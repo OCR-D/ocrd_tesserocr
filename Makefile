@@ -25,14 +25,14 @@ help:
 	@echo "                   from Alexander Pozdnyakov which provides 4.1.0."
 	@echo "                   See https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr"
 	@echo "                   for details.)"
-	@echo "    deps          Install python deps via pip"
-	@echo "    deps-test     Install testing python deps via pip"
-	@echo "    install       Install"
+	@echo "    deps          Install Python deps for install via pip"
+	@echo "    deps-test     Install Python deps for test via pip"
 	@echo "    docker        Build docker image"
-	@echo "    test          Run test"
+	@echo "    install       Install this package"
+	@echo "    test          Run regression test"
 	@echo "    test-cli      Test the command line tools"
-	@echo "    repo/assets   Clone OCR-D/assets to ./repo/assets"
 	@echo "    test/assets   Setup test assets"
+	@echo "    repo/assets   Clone OCR-D/assets to ./repo/assets"
 	@echo "    assets-clean  Remove symlinks in test/assets"
 	@echo ""
 	@echo "  Variables"
@@ -96,12 +96,12 @@ coverage: deps-test
 # Test the command line tools
 test-cli: test/assets
 	$(PIP) install -e .
-	rm -rfv test-workspace
-	cp -rv test/assets/kant_aufklaerung_1784 test-workspace
-	export LC_ALL=C.UTF-8; cd test-workspace/data && \
-		ocrd-tesserocr-segment-region -l DEBUG -m mets.xml -I OCR-D-IMG -O OCR-D-SEG-BLOCK ; \
-		ocrd-tesserocr-segment-line   -l DEBUG -m mets.xml -I OCR-D-SEG-BLOCK -O OCR-D-SEG-LINE ; \
-		ocrd-tesserocr-recognize      -l DEBUG -m mets.xml -I OCR-D-SEG-LINE -O OCR-D-TESS-OCR
+	rm -rfv test/workspace
+	cp -rv test/assets/kant_aufklaerung_1784 test/workspace
+	cd test/workspace/data && \
+		ocrd-tesserocr-segment-region -l DEBUG -I OCR-D-IMG -O OCR-D-SEG-REGION ; \
+		ocrd-tesserocr-segment-line   -l DEBUG -I OCR-D-SEG-REGION -O OCR-D-SEG-LINE ; \
+		ocrd-tesserocr-recognize      -l DEBUG -I OCR-D-SEG-LINE -O OCR-D-TESS-OCR
 
 .PHONY: test test-cli install deps deps-ubuntu deps-test help
 
@@ -110,6 +110,8 @@ test-cli: test/assets
 #
 
 # Clone OCR-D/assets to ./repo/assets
+# FIXME does not work if already checked out
+# FIXME should be a proper (VCed) submodule
 repo/assets:
 	mkdir -p $(dir $@)
 	git clone https://github.com/OCR-D/assets "$@"
