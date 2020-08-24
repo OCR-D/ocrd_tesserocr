@@ -80,7 +80,13 @@ class TesserocrSegmentLine(Processor):
                                                 for name in self.parameter.keys()])]))
                 
                 page_image, page_coords, page_image_info = self.workspace.image_from_page(
-                    page, page_id)
+                    page, page_id,
+                    # for some reason, external binarization
+                    # degrades Tesseract segmentation quality
+                    # (probably because C_OUTLINE::ComputeEdgeOffsets,
+                    #  which needs the greyscale image, is more
+                    #  accurate than C_OUTLINE::ComputeBinaryOffsets):
+                    feature_filter='binarized')
                 if self.parameter['dpi'] > 0:
                     dpi = self.parameter['dpi']
                     LOG.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
@@ -106,7 +112,13 @@ class TesserocrSegmentLine(Processor):
                             LOG.warning('keeping existing TextLines in region "%s"', region.id)
                     LOG.debug("Detecting lines in region '%s'", region.id)
                     region_image, region_coords = self.workspace.image_from_segment(
-                        region, page_image, page_coords)
+                        region, page_image, page_coords,
+                        # for some reason, external binarization
+                        # degrades Tesseract segmentation quality
+                        # (probably because C_OUTLINE::ComputeEdgeOffsets,
+                        #  which needs the greyscale image, is more
+                        #  accurate than C_OUTLINE::ComputeBinaryOffsets):
+                        feature_filter='binarized')
                     region_polygon = coordinates_of_segment(region, region_image, region_coords)
                     region_poly = Polygon(region_polygon)
                     tessapi.SetImage(region_image)

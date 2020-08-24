@@ -95,8 +95,13 @@ class TesserocrCrop(Processor):
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id,
                     # image must not have been cropped already,
-                    # abort if no such image can be produced:
-                    feature_filter='cropped')
+                    # abort if no such image can be produced;
+                    # moreover, for some reason, external binarization
+                    # degrades Tesseract segmentation quality
+                    # (probably because C_OUTLINE::ComputeEdgeOffsets,
+                    #  which needs the greyscale image, is more
+                    #  accurate than C_OUTLINE::ComputeBinaryOffsets):
+                    feature_filter='cropped,binarized')
                 if self.parameter['dpi'] > 0:
                     dpi = self.parameter['dpi']
                     LOG.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)

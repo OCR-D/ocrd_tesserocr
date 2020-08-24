@@ -95,7 +95,13 @@ class TesserocrSegmentTable(Processor):
                                                 for name in self.parameter.keys()])]))
 
                 page_image, page_coords, page_image_info = self.workspace.image_from_page(
-                    page, page_id)
+                    page, page_id,
+                    # for some reason, external binarization
+                    # degrades Tesseract segmentation quality
+                    # (probably because C_OUTLINE::ComputeEdgeOffsets,
+                    #  which needs the greyscale image, is more
+                    #  accurate than C_OUTLINE::ComputeBinaryOffsets):
+                    feature_filter='binarized')
                 if self.parameter['dpi'] > 0:
                     dpi = self.parameter['dpi']
                     LOG.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
@@ -141,7 +147,13 @@ class TesserocrSegmentTable(Processor):
                             LOG.warning('keeping existing TextRegions in block "%s" of page "%s"', region.id, page_id)
                     # get region image
                     region_image, region_coords = self.workspace.image_from_segment(
-                        region, page_image, page_coords)
+                        region, page_image, page_coords,
+                        # for some reason, external binarization
+                        # degrades Tesseract segmentation quality
+                        # (probably because C_OUTLINE::ComputeEdgeOffsets,
+                        #  which needs the greyscale image, is more
+                        #  accurate than C_OUTLINE::ComputeBinaryOffsets):
+                        feature_filter='binarized')
                     tessapi.SetImage(region_image)
                     LOG.info("Detecting table cells in region '%s'", region.id)
                     #
