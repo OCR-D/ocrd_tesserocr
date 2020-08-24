@@ -158,7 +158,14 @@ class TesserocrSegmentTable(Processor):
                     LOG.info("Detecting table cells in region '%s'", region.id)
                     #
                     # detect the region segments:
-                    tessapi.SetPageSegMode(PSM.SPARSE_TEXT) # retrieve "cells"
+                    tessapi.SetPageSegMode(PSM.SPARSE_TEXT_OSD) # retrieve "cells"
+                    # FIXME: _OSD is necessary to get VERTICAL_TEXT (90°) blocks, but
+                    #        this also causes looking for vertical gaps/alignments everywhere
+                    #        (not just blocks that end up as vertical), so often cells
+                    #        will span more than 1 line and some text will even be missed!
+                    #        We should check whether some strokewidth params can influence this.
+                    #        Otherwise, Tesseract should become more consistent in deciding for
+                    #        vertically aligned blobs (either the whole block, or keep horizontal).
                     # TODO: we should XY-cut the sparse cells in regroup them into consistent cells
                     layout = tessapi.AnalyseLayout()
                     roelem = reading_order.get(region.id)
