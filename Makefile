@@ -73,7 +73,7 @@ deps-test:
 	$(PIP) install -r requirements_test.txt
 
 # Install
-install:
+install: deps
 	$(PIP) install -U pip
 	$(PIP) install .
 
@@ -82,12 +82,12 @@ docker:
 	docker build -t $(DOCKER_TAG) .
 
 # Run unit tests
-test: test/assets
+test: test/assets deps-test
 	# declare -p HTTP_PROXY
 	$(PYTHON) -m pytest --continue-on-collection-errors test $(PYTEST_ARGS)
 
 # Run unit tests and determine test coverage
-coverage:
+coverage: deps-test
 	coverage erase
 	make test PYTHON="coverage run"
 	coverage report
