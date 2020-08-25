@@ -9,6 +9,7 @@ from ocrd_utils import (
     coordinates_of_segment,
     bbox_from_polygon,
     bbox_from_points,
+    polygon_for_parent,
     polygon_from_bbox,
     points_from_polygon,
     bbox_from_xywh,
@@ -27,7 +28,6 @@ from ocrd_models.ocrd_page_generateds import BorderType
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
-from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-crop'
 LOG = getLogger('processor.TesserocrCrop')

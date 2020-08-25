@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os.path
-from shapely.geometry import Polygon
 from tesserocr import (
     PyTessBaseAPI,
     PSM, RIL, PT
@@ -12,6 +11,7 @@ from ocrd_utils import (
     make_file_id,
     assert_file_grp_cardinality,
     coordinates_for_segment,
+    polygon_for_parent,
     polygon_from_points,
     polygon_from_x0y0x1y1,
     points_from_polygon,
@@ -23,7 +23,6 @@ from ocrd_models.ocrd_page import (
     MetadataItemType,
     LabelsType, LabelType,
     CoordsType,
-    PageType,
     OrderedGroupType,
     ReadingOrderType,
     RegionRefIndexedType,
@@ -304,28 +303,3 @@ class TesserocrSegmentRegion(Processor):
             not og.get_UnorderedGroupIndexed()):
             # schema forbids empty OrderedGroup
             ro.set_OrderedGroup(None)
-
-def polygon_for_parent(polygon, parent):
-    """Clip polygon to parent polygon range.
-    
-    (Should be moved to ocrd_utils.coordinates_for_segment.)
-    """
-    childp = Polygon(polygon)
-    if isinstance(parent, PageType):
-        if parent.get_Border():
-            parentp = Polygon(polygon_from_points(parent.get_Border().get_Coords().points))
-        else:
-            parentp = Polygon([[0,0], [0,parent.get_imageHeight()],
-                               [parent.get_imageWidth(),parent.get_imageHeight()],
-                               [parent.get_imageWidth(),0]])
-    else:
-        parentp = Polygon(polygon_from_points(parent.get_Coords().points))
-    if childp.within(parentp):
-        return polygon
-    interp = childp.intersection(parentp)
-    if interp.is_empty:
-        # FIXME: we need a better strategy against this
-        raise Exception("intersection of would-be segment with parent is empty")
-    if interp.type == 'MultiPolygon':
-        interp = interp.convex_hull
-    return interp.exterior.coords[:-1] # keep open
