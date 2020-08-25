@@ -20,19 +20,20 @@ help:
 	@echo ""
 	@echo "    deps-ubuntu   Dependencies for deployment in an ubuntu/debian linux"
 	@echo "                  (lib*-dev merely for building tesserocr with pip)"
-	@echo "                  (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0,"
+	@echo "                  (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0"
 	@echo "                   which is unsupported. Add the tesseract-ocr PPA"
 	@echo "                   from Alexander Pozdnyakov which provides 4.1.0."
 	@echo "                   See https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr"
 	@echo "                   for details.)"
 	@echo "    deps          Install Python deps for install via pip"
 	@echo "    deps-test     Install Python deps for test via pip"
+	@echo "    install       Build docker image"
 	@echo "    docker        Build docker image"
-	@echo "    install       Install this package"
 	@echo "    test          Run regression test"
+	@echo "    coverage      Run unit tests and determine test coverage"
 	@echo "    test-cli      Test the command line tools"
-	@echo "    test/assets   Setup test assets"
 	@echo "    repo/assets   Clone OCR-D/assets to ./repo/assets"
+	@echo "    test/assets   Setup test assets"
 	@echo "    assets-clean  Remove symlinks in test/assets"
 	@echo ""
 	@echo "  Variables"
@@ -62,17 +63,17 @@ deps-ubuntu:
 		tesseract-ocr-eng \
 		tesseract-ocr
 
-# Install python deps via pip
+# Install Python deps for install via pip
 deps:
 	$(PIP) install -U pip
 	$(PIP) install -r requirements.txt
 
-# Install testing python deps via pip
+# Install Python deps for test via pip
 deps-test:
 	$(PIP) install -U pip
 	$(PIP) install -r requirements_test.txt
 
-# Install
+# Build docker image
 install: deps
 	$(PIP) install -U pip
 	$(PIP) install .
@@ -81,7 +82,7 @@ install: deps
 docker:
 	docker build -t $(DOCKER_TAG) .
 
-# Run unit tests
+# Run regression test
 test: test/assets deps-test
 	# declare -p HTTP_PROXY
 	$(PYTHON) -m pytest --continue-on-collection-errors test $(PYTEST_ARGS)
