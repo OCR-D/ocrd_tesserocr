@@ -29,7 +29,8 @@ help:
 	@echo "    deps-test     Install Python deps for test via pip"
 	@echo "    docker        Build docker image"
 	@echo "    install       Install this package"
-	@echo "    test          Run regression test"
+	@echo "    test          Run unit tests"
+	@echo "    coverage      Run unit tests and determine test coverage"
 	@echo "    test-cli      Test the command line tools"
 	@echo "    test/assets   Setup test assets"
 	@echo "    repo/assets   Clone OCR-D/assets to ./repo/assets"
@@ -44,7 +45,7 @@ help:
 
 # Dependencies for deployment in an ubuntu/debian linux
 # (lib*-dev merely for building tesserocr with pip)
-# (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0
+# (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0,
 #  which is unsupported. Add the tesseract-ocr PPA
 #  from Alexander Pozdnyakov which provides 4.1.0.
 #  See https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr
@@ -62,24 +63,24 @@ deps-ubuntu:
 		tesseract-ocr-eng \
 		tesseract-ocr
 
-# Install python deps via pip
+# Install Python deps for install via pip
 deps:
 	$(PIP) install -U pip
 	$(PIP) install -r requirements.txt
 
-# Install testing python deps via pip
+# Install Python deps for test via pip
 deps-test:
 	$(PIP) install -U pip
 	$(PIP) install -r requirements_test.txt
 
-# Install
-install: deps
-	$(PIP) install -U pip
-	$(PIP) install .
-
 # Build docker image
 docker:
 	docker build -t $(DOCKER_TAG) .
+
+# Install this package
+install: deps
+	$(PIP) install -U pip
+	$(PIP) install .
 
 # Run unit tests
 test: test/assets deps-test
@@ -109,6 +110,12 @@ test-cli: test/assets
 # Assets
 #
 
+# Setup test assets (copy repo/assets)
+# FIXME remove/update if already present
+test/assets: repo/assets
+	mkdir -p $@
+	cp -r -t $@ repo/assets/data/*
+
 # Clone OCR-D/assets to ./repo/assets
 # FIXME does not work if already checked out
 # FIXME should be a proper (VCed) submodule
@@ -116,11 +123,6 @@ repo/assets:
 	mkdir -p $(dir $@)
 	git clone https://github.com/OCR-D/assets "$@"
 
-
-# Setup test assets
-test/assets: repo/assets
-	mkdir -p $@
-	cp -r -t $@ repo/assets/data/*
 
 .PHONY: assets-clean
 # Remove symlinks in test/assets
