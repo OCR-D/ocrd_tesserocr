@@ -6,11 +6,12 @@ jobs:
 
   build-python36:
     docker:
-      - image: ubuntu:18.04
+      - image: ocrd/core
     steps:
       - run: apt-get update && apt-get install -y --no-install-recommends make git curl
       - checkout
-      - run: make deps-ubuntu deps-test deps install repo/assets
+      - run: make deps-ubuntu
+      - run: make install
       - run: make test-cli
       - run: make coverage
       - codecov/upload

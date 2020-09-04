@@ -219,9 +219,15 @@ class TesserocrSegmentRegion(Processor):
             else:
                 polygon = polygon_from_x0y0x1y1(bbox)
             polygon = coordinates_for_segment(polygon, page_image, page_coords)
-            polygon = polygon_for_parent(polygon, page)
+            polygon2 = polygon_for_parent(polygon, page)
+            if polygon2 is not None:
+                polygon = polygon2
             points = points_from_polygon(polygon)
             coords = CoordsType(points=points)
+            if polygon2 is None:
+                LOG.info('Ignoring extant region: %s', points)
+                it.Next(RIL.BLOCK)
+                continue
             # if xywh['w'] < 30 or xywh['h'] < 30:
             #     LOG.info('Ignoring too small region: %s', points)
             #     it.Next(RIL.BLOCK)
@@ -324,8 +330,10 @@ def polygon_for_parent(polygon, parent):
         return polygon
     interp = childp.intersection(parentp)
     if interp.is_empty:
-        # FIXME: we need a better strategy against this
-        raise Exception("intersection of would-be segment with parent is empty")
+        # this happens if Tesseract "finds" something
+        # outside of the valid Border of a deskewed/cropped page
+        # (empty corners created by masking); will be ignored
+        return None
     if interp.type == 'MultiPolygon':
         interp = interp.convex_hull
     return interp.exterior.coords[:-1] # keep open
