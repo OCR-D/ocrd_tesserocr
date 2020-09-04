@@ -5,6 +5,13 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.9.2] - 2020-09-04
+
+Fixed:
+
+ * segment-region: just ignore region outside of page frame, #145
+ * deskew: add suffix to AlternativeImage file ID, #148
+
 ## [0.9.1] - 2020-08-16
 
 Fixed:
