@@ -287,7 +287,7 @@ class TesserocrDeskew(Processor):
             #     segment.add_Baseline(BaselineType(points=points))
         # update METS (add the image file):
         file_path = self.workspace.save_image_file(image,
-                                    file_id,
+                                    file_id + '.IMG-DESKEW',
                                     page_id=page_id,
                                     file_grp=self.output_file_grp)
         # update PAGE (reference the image file):
