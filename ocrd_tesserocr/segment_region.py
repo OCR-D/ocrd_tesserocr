@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import os.path
 from shapely.geometry import Polygon
+from shapely.ops import unary_union
 from tesserocr import (
     PyTessBaseAPI,
     PSM, RIL, PT
@@ -329,11 +330,16 @@ def polygon_for_parent(polygon, parent):
     if childp.within(parentp):
         return polygon
     interp = childp.intersection(parentp)
-    if interp.is_empty:
+    if interp.is_empty or interp.area == 0.0:
         # this happens if Tesseract "finds" something
         # outside of the valid Border of a deskewed/cropped page
         # (empty corners created by masking); will be ignored
         return None
+    if interp.type == 'GeometryCollection':
+        # heterogeneous result: filter zero-area shapes (LineString, Point)
+        interp = unary_union([geom for geom in interp.geoms if geom.area > 0])
     if interp.type == 'MultiPolygon':
+        # homogeneous result: construct convex hull to connect
+        # FIXME: construct concave hull / alpha shape
         interp = interp.convex_hull
     return interp.exterior.coords[:-1] # keep open
