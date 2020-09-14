@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
 import os.path
-from shapely.geometry import Polygon
+import numpy as np
+from shapely.geometry import Polygon, asPolygon
 from shapely.ops import unary_union
 from tesserocr import (
     PyTessBaseAPI,
@@ -327,8 +328,20 @@ def polygon_for_parent(polygon, parent):
                                [parent.get_imageWidth(),0]])
     else:
         parentp = Polygon(polygon_from_points(parent.get_Coords().points))
+    # check if clipping is necessary
     if childp.within(parentp):
         return polygon
+    # ensure input coords have valid paths (without self-intersection)
+    # (this can happen when shapes valid in floating point are rounded)
+    for tolerance in range(1, int(childp.area)):
+        if childp.is_valid:
+            break
+        childp = childp.simplify(tolerance)
+    for tolerance in range(1, int(parentp.area)):
+        if parentp.is_valid:
+            break
+        parentp = parentp.simplify(tolerance)
+    # clip to parent
     interp = childp.intersection(parentp)
     if interp.is_empty or interp.area == 0.0:
         # this happens if Tesseract "finds" something
@@ -342,4 +355,12 @@ def polygon_for_parent(polygon, parent):
         # homogeneous result: construct convex hull to connect
         # FIXME: construct concave hull / alpha shape
         interp = interp.convex_hull
+    if interp.minimum_clearance < 1.0:
+        # follow-up calculations will necessarily be integer;
+        # so anticipate rounding here and then ensure validity
+        interp = asPolygon(np.round(interp.exterior.coords))
+        for tolerance in range(1, int(interp.area)):
+            if interp.is_valid:
+                break
+            interp = interp.simplify(tolerance)
     return interp.exterior.coords[:-1] # keep open
