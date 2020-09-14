@@ -333,14 +333,8 @@ def polygon_for_parent(polygon, parent):
         return polygon
     # ensure input coords have valid paths (without self-intersection)
     # (this can happen when shapes valid in floating point are rounded)
-    for tolerance in range(1, int(childp.area)):
-        if childp.is_valid:
-            break
-        childp = childp.simplify(tolerance)
-    for tolerance in range(1, int(parentp.area)):
-        if parentp.is_valid:
-            break
-        parentp = parentp.simplify(tolerance)
+    childp = make_valid(childp)
+    parentp = make_valid(parentp)
     # clip to parent
     interp = childp.intersection(parentp)
     if interp.is_empty or interp.area == 0.0:
@@ -359,8 +353,19 @@ def polygon_for_parent(polygon, parent):
         # follow-up calculations will necessarily be integer;
         # so anticipate rounding here and then ensure validity
         interp = asPolygon(np.round(interp.exterior.coords))
-        for tolerance in range(1, int(interp.area)):
-            if interp.is_valid:
-                break
-            interp = interp.simplify(tolerance)
+        interp = make_valid(interp)
     return interp.exterior.coords[:-1] # keep open
+
+def make_valid(polygon):
+    for split in range(1, len(polygon.exterior.coords)-1):
+        if polygon.is_valid or polygon.simplify(polygon.area).is_valid:
+            break
+        # simplification may not be possible (at all) due to ordering
+        # in that case, try another starting point
+        polygon = Polygon(polygon.exterior.coords[-split:]+polygon.exterior.coords[:-split])
+    for tolerance in range(1, int(polygon.area)):
+        if polygon.is_valid:
+            break
+        # simplification may require a larger tolerance
+        polygon = polygon.simplify(tolerance)
+    return polygon
