@@ -6,7 +6,7 @@ from tesserocr import PyTessBaseAPI, RIL, PSM
 
 from ocrd import Processor
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
     make_file_id,
     assert_file_grp_cardinality,
     polygon_from_xywh,
@@ -93,7 +93,6 @@ class TesserocrSegmentLine(Processor):
                     LOG.debug("Detecting lines in region '%s'", region.id)
                     region_image, region_coords = self.workspace.image_from_segment(
                         region, page_image, page_coords)
-                    region_polygon = coordinates_of_segment(region, region_image, region_coords)
                     tessapi.SetImage(region_image)
                     for line_no, component in enumerate(tessapi.GetComponentImages(RIL.TEXTLINE, True, raw_image=True)):
                         line_id = '%s_line%04d' % (region.id, line_no)

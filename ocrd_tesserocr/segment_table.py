@@ -8,7 +8,6 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger,
-    concat_padded,
     make_file_id,
     assert_file_grp_cardinality,
     coordinates_for_segment,
@@ -23,15 +22,13 @@ from ocrd_models.ocrd_page import (
     TextRegionType,
     to_xml)
 from ocrd_models.ocrd_page_generateds import (
-    TableRegionType,
     TextTypeSimpleType,
     RegionRefType,
     RegionRefIndexedType,
     OrderedGroupType,
     OrderedGroupIndexedType,
     UnorderedGroupType,
-    UnorderedGroupIndexedType,
-    ReadingOrderType
+    UnorderedGroupIndexedType
 )
 from ocrd import Processor
 

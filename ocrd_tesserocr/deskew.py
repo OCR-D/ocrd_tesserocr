@@ -12,7 +12,7 @@ from tesserocr import (
 )
 
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
     make_file_id,
     assert_file_grp_cardinality,
     rotate_image, transpose_image,

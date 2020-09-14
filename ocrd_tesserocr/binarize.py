@@ -8,7 +8,6 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger,
-    concat_padded,
     assert_file_grp_cardinality,
     make_file_id,
     MIMETYPE_PAGE

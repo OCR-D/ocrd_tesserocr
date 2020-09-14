@@ -5,7 +5,7 @@ from tesserocr import RIL, PyTessBaseAPI, PSM
 
 from ocrd import Processor
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
     make_file_id,
     assert_file_grp_cardinality,
     polygon_from_xywh,
@@ -20,7 +20,8 @@ from ocrd_models.ocrd_page import (
     to_xml,
 )
 
-from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
+from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-segment-word'
 LOG = getLogger('processor.TesserocrSegmentWord')
@@ -95,7 +96,14 @@ class TesserocrSegmentWord(Processor):
                             word_id = '%s_word%04d' % (line.id, word_no)
                             word_polygon = polygon_from_xywh(component[1])
                             word_polygon = coordinates_for_segment(word_polygon, line_image, line_coords)
+                            word_polygon2 = polygon_for_parent(word_polygon, line)
+                            if word_polygon2 is not None:
+                                word_polygon = word_polygon2
                             word_points = points_from_polygon(word_polygon)
+                            if word_polygon2 is None:
+                                # could happen due to rotation
+                                LOG.info('Ignoring extant word: %s', word_points)
+                                continue
                             line.add_Word(WordType(
                                 id=word_id, Coords=CoordsType(word_points)))
                             

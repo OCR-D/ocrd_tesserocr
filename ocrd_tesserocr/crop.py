@@ -3,7 +3,7 @@ import os.path
 
 import tesserocr
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
     crop_image,
     coordinates_for_segment,
     coordinates_of_segment,
