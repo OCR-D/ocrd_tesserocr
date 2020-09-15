@@ -6,6 +6,7 @@ ignored-modules=cv2,tesserocr
 disable =
     ungrouped-imports,
     bad-continuation,
+    trailing-whitespace,
     missing-docstring,
     no-self-use,
     superfluous-parens,
@@ -15,6 +16,7 @@ disable =
     too-many-branches,
     too-many-statements,
     too-many-locals,
+    too-many-nested-blocks,
     too-few-public-methods,
     wrong-import-order,
     duplicate-code

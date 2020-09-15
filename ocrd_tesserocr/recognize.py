@@ -19,8 +19,6 @@ from ocrd_utils import (
 from ocrd_models.ocrd_page import (
     CoordsType,
     GlyphType, WordType,
-    LabelType, LabelsType,
-    MetadataItemType,
     TextEquivType, TextStyleType,
     to_xml)
 from ocrd_models.ocrd_page_generateds import (
@@ -37,6 +35,7 @@ from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-recognize'
 LOG = getLogger('processor.TesserocrRecognize')
@@ -157,20 +156,9 @@ class TesserocrRecognize(Processor):
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                self.add_metadata(pcgts)
                 page = pcgts.get_Page()
                 
-                # add metadata about this operation and its runtime parameters:
-                metadata = pcgts.get_Metadata() # ensured by from_file()
-                metadata.add_MetadataItem(
-                    MetadataItemType(type_="processingStep",
-                                     name=self.ocrd_tool['steps'][0],
-                                     value=TOOL,
-                                     Labels=[LabelsType(
-                                         externalModel="ocrd-tool",
-                                         externalId="parameters",
-                                         Label=[LabelType(type_=name,
-                                                          value=self.parameter[name])
-                                                for name in self.parameter.keys()])]))
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id)
                 if self.parameter['dpi'] > 0:
@@ -297,9 +285,16 @@ class TesserocrRecognize(Processor):
             # convert to absolute coordinates:
             polygon = coordinates_for_segment(polygon_from_x0y0x1y1(bbox),
                                               None, line_xywh) - self.parameter['padding']
+            polygon2 = polygon_for_parent(polygon, line)
+            if polygon2 is not None:
+                polygon = polygon2
             points = points_from_polygon(polygon)
             word = WordType(id=word_id, Coords=CoordsType(points))
-            line.add_Word(word)
+            if polygon2 is None:
+                # could happen due to rotation
+                LOG.info('Ignoring extant word: %s', points)
+            else:
+                line.add_Word(word)
             # todo: determine if font attributes available for word level will work with LSTM models
             word_attributes = result_it.WordFontAttributes()
             if word_attributes:
@@ -422,9 +417,16 @@ class TesserocrRecognize(Processor):
             # convert to absolute coordinates:
             polygon = coordinates_for_segment(polygon_from_x0y0x1y1(bbox),
                                               None, word_xywh) - self.parameter['padding']
+            polygon2 = polygon_for_parent(polygon, word)
+            if polygon2 is not None:
+                polygon = polygon2
             points = points_from_polygon(polygon)
             glyph = GlyphType(id=glyph_id, Coords=CoordsType(points))
-            word.add_Glyph(glyph)
+            if polygon2 is None:
+                # could happen due to rotation
+                LOG.info('Ignoring extant glyph: %s', points)
+            else:
+                word.add_Glyph(glyph)
             choice_it = result_it.GetChoiceIterator()
             for (choice_no, choice) in enumerate(choice_it):
                 alternative_text = choice.GetUTF8Text()
@@ -534,7 +536,7 @@ def page_update_higher_textequiv_levels(level, pcgts):
                                         reading_order[subregion.id].index)
                 region_unicode = page_element_unicode0(subregions[0])
                 for subregion, next_subregion in zip(subregions, subregions[1:]):
-                    if not (subregion.id, next_subregion.id) in joins:
+                    if (subregion.id, next_subregion.id) not in joins:
                         region_unicode += '\n' # or '\f'?
                     region_unicode += page_element_unicode0(next_subregion)
                 region_conf = sum(page_element_conf0(subregion) for subregion in subregions)

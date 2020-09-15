@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 import os.path
-from shapely.geometry import Polygon
+import numpy as np
+from shapely.geometry import Polygon, asPolygon
+from shapely.ops import unary_union
 from tesserocr import (
     PyTessBaseAPI,
     PSM, RIL, PT
@@ -20,8 +22,6 @@ from ocrd_utils import (
 )
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
-    MetadataItemType,
-    LabelsType, LabelType,
     CoordsType,
     PageType,
     OrderedGroupType,
@@ -93,21 +93,9 @@ class TesserocrSegmentRegion(Processor):
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                self.add_metadata(pcgts)
                 page = pcgts.get_Page()
                 
-                # add metadata about this operation and its runtime parameters:
-                metadata = pcgts.get_Metadata() # ensured by from_file()
-                metadata.add_MetadataItem(
-                    MetadataItemType(type_="processingStep",
-                                     name=self.ocrd_tool['steps'][0],
-                                     value=TOOL,
-                                     Labels=[LabelsType(
-                                         externalModel="ocrd-tool",
-                                         externalId="parameters",
-                                         Label=[LabelType(type_=name,
-                                                          value=self.parameter[name])
-                                                for name in self.parameter.keys()])]))
-
                 # delete or warn of existing regions:
                 if (page.get_AdvertRegion() or
                     page.get_ChartRegion() or
@@ -326,14 +314,44 @@ def polygon_for_parent(polygon, parent):
                                [parent.get_imageWidth(),0]])
     else:
         parentp = Polygon(polygon_from_points(parent.get_Coords().points))
+    # check if clipping is necessary
     if childp.within(parentp):
         return polygon
+    # ensure input coords have valid paths (without self-intersection)
+    # (this can happen when shapes valid in floating point are rounded)
+    childp = make_valid(childp)
+    parentp = make_valid(parentp)
+    # clip to parent
     interp = childp.intersection(parentp)
-    if interp.is_empty:
+    if interp.is_empty or interp.area == 0.0:
         # this happens if Tesseract "finds" something
         # outside of the valid Border of a deskewed/cropped page
         # (empty corners created by masking); will be ignored
         return None
+    if interp.type == 'GeometryCollection':
+        # heterogeneous result: filter zero-area shapes (LineString, Point)
+        interp = unary_union([geom for geom in interp.geoms if geom.area > 0])
     if interp.type == 'MultiPolygon':
+        # homogeneous result: construct convex hull to connect
+        # FIXME: construct concave hull / alpha shape
         interp = interp.convex_hull
+    if interp.minimum_clearance < 1.0:
+        # follow-up calculations will necessarily be integer;
+        # so anticipate rounding here and then ensure validity
+        interp = asPolygon(np.round(interp.exterior.coords))
+        interp = make_valid(interp)
     return interp.exterior.coords[:-1] # keep open
+
+def make_valid(polygon):
+    for split in range(1, len(polygon.exterior.coords)-1):
+        if polygon.is_valid or polygon.simplify(polygon.area).is_valid:
+            break
+        # simplification may not be possible (at all) due to ordering
+        # in that case, try another starting point
+        polygon = Polygon(polygon.exterior.coords[-split:]+polygon.exterior.coords[:-split])
+    for tolerance in range(1, int(polygon.area)):
+        if polygon.is_valid:
+            break
+        # simplification may require a larger tolerance
+        polygon = polygon.simplify(tolerance)
+    return polygon
