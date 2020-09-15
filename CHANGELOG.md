@@ -5,6 +5,13 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.9.3] - 2020-09-15
+
+Fixed:
+
+ * segmentation: ensure new elements fit into their parent coords
+ * segmentation: ensure valid coords
+
 ## [0.9.2] - 2020-09-04
 
 Fixed:
