@@ -202,13 +202,7 @@ class TesserocrRecognize(Processor):
                 region, page_image, page_xywh)
             if self.parameter['textequiv_level'] == 'region':
                 if self.parameter['padding']:
-                    bg = tuple(ImageStat.Stat(region_image).median)
-                    pad = self.parameter['padding']
-                    padded = Image.new(region_image.mode,
-                                       (region_image.width + 2 * pad,
-                                        region_image.height + 2 * pad), bg)
-                    padded.paste(region_image, (pad, pad))
-                    tessapi.SetImage(padded)
+                    tessapi.SetImage(pad_image(region_image, self.parameter['padding']))
                 else:
                     tessapi.SetImage(region_image)
                 tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
@@ -237,13 +231,7 @@ class TesserocrRecognize(Processor):
                 line, region_image, region_xywh)
             # todo: Tesseract works better if the line images have a 5px margin everywhere
             if self.parameter['padding']:
-                bg = tuple(ImageStat.Stat(line_image).median)
-                pad = self.parameter['padding']
-                padded = Image.new(line_image.mode,
-                                   (line_image.width + 2 * pad,
-                                    line_image.height + 2 * pad), bg)
-                padded.paste(line_image, (pad, pad))
-                tessapi.SetImage(padded)
+                tessapi.SetImage(pad_image(line_image, self.parameter['padding']))
             else:
                 tessapi.SetImage(line_image)
             if self.parameter['raw_lines']:
@@ -331,13 +319,7 @@ class TesserocrRecognize(Processor):
             word_image, word_xywh = self.workspace.image_from_segment(
                 word, line_image, line_xywh)
             if self.parameter['padding']:
-                bg = tuple(ImageStat.Stat(word_image).median)
-                pad = self.parameter['padding']
-                padded = Image.new(word_image.mode,
-                                   (word_image.width + 2 * pad,
-                                    word_image.height + 2 * pad), bg)
-                padded.paste(word_image, (pad, pad))
-                tessapi.SetImage(padded)
+                tessapi.SetImage(pad_image(word_image, self.parameter['padding']))
             else:
                 tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
@@ -368,13 +350,7 @@ class TesserocrRecognize(Processor):
             glyph_image, _ = self.workspace.image_from_segment(
                 glyph, word_image, word_xywh)
             if self.parameter['padding']:
-                bg = tuple(ImageStat.Stat(glyph_image).median)
-                pad = self.parameter['padding']
-                padded = Image.new(glyph_image.mode,
-                                   (glyph_image.width + 2 * pad,
-                                    glyph_image.height + 2 * pad), bg)
-                padded.paste(glyph_image, (pad, pad))
-                tessapi.SetImage(padded)
+                tessapi.SetImage(pad_image(glyph_image, self.parameter['padding']))
             else:
                 tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
@@ -590,3 +566,17 @@ def page_update_higher_textequiv_levels(level, pcgts):
                     region_conf /= len(lines)
             region.set_TextEquiv( # replace old, if any
                 [TextEquivType(Unicode=region_unicode, conf=region_conf)])
+
+def pad_image(image, padding):
+    stat = ImageStat.Stat(image)
+    # workaround for Pillow#4925
+    if len(stat.bands) > 1:
+        background = tuple(stat.median)
+    else:
+        background = stat.median[0]
+    padded = Image.new(image.mode,
+                       (image.width + 2 * padding,
+                        image.height + 2 * padding),
+                       background)
+    padded.paste(image, (padding, padding))
+    return padded
