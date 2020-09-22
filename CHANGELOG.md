@@ -5,6 +5,10 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Fixed:
+
+ * recognize: be robust to different input image modes, Pillow#4925
+
 ## [0.9.3] - 2020-09-15
 
 Fixed:
