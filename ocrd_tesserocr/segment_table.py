@@ -36,7 +36,6 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .recognize import page_get_reading_order
 
 TOOL = 'ocrd-tesserocr-segment-table'
-LOG = getLogger('processor.TesserocrSegmentTable')
 
 class TesserocrSegmentTable(Processor):
 
@@ -60,6 +59,7 @@ class TesserocrSegmentTable(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrSegmentTable')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
@@ -175,6 +175,7 @@ class TesserocrSegmentTable(Processor):
                     content=to_xml(pcgts))
 
     def _process_region(self, it, region, rogroup, region_image, region_coords):
+        LOG = getLogger('processor.TesserocrSegmentTable')
         # equivalent to GetComponentImages with raw_image=True,
         # (which would also give raw coordinates),
         # except we are also interested in the iterator's BlockType() here,

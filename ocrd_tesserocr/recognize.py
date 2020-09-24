@@ -38,7 +38,6 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-recognize'
-LOG = getLogger('processor.TesserocrRecognize')
 
 CHOICE_THRESHOLD_NUM = 6 # maximum number of choices to query and annotate
 CHOICE_THRESHOLD_CONF = 0.2 # maximum score drop from best choice to query and annotate
@@ -80,6 +79,7 @@ class TesserocrRecognize(Processor):
         
         Produce new output files by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrRecognize')
         LOG.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
 
         assert_file_grp_cardinality(self.input_file_grp, 1)
@@ -197,6 +197,7 @@ class TesserocrRecognize(Processor):
                     content=to_xml(pcgts))
 
     def _process_regions(self, tessapi, regions, page_image, page_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         for region in regions:
             region_image, region_xywh = self.workspace.image_from_segment(
                 region, page_image, page_xywh)
@@ -224,6 +225,7 @@ class TesserocrRecognize(Processor):
                 self._process_lines(tessapi, textlines, region_image, region_xywh)
 
     def _process_lines(self, tessapi, textlines, region_image, region_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         for line in textlines:
             if self.parameter['overwrite_words']:
                 line.set_Word([])
@@ -261,6 +263,7 @@ class TesserocrRecognize(Processor):
                 self._process_words_in_line(tessapi.GetIterator(), line, line_xywh)
 
     def _process_words_in_line(self, result_it, line, line_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         if not result_it or result_it.Empty(RIL.WORD):
             LOG.warning("No text in line '%s'", line.id)
             return
@@ -315,6 +318,7 @@ class TesserocrRecognize(Processor):
                 result_it.Next(RIL.WORD)
 
     def _process_existing_words(self, tessapi, words, line_image, line_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         for word in words:
             word_image, word_xywh = self.workspace.image_from_segment(
                 word, line_image, line_xywh)
@@ -346,6 +350,7 @@ class TesserocrRecognize(Processor):
                 self._process_glyphs_in_word(tessapi.GetIterator(), word, word_xywh)
 
     def _process_existing_glyphs(self, tessapi, glyphs, word_image, word_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         for glyph in glyphs:
             glyph_image, _ = self.workspace.image_from_segment(
                 glyph, word_image, word_xywh)
@@ -378,6 +383,7 @@ class TesserocrRecognize(Processor):
                 glyph.add_TextEquiv(TextEquivType(index=choice_no, Unicode=alternative_text, conf=alternative_conf))
     
     def _process_glyphs_in_word(self, result_it, word, word_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         if not result_it or result_it.Empty(RIL.SYMBOL):
             LOG.debug("No glyph in word '%s'", word.id)
             return
