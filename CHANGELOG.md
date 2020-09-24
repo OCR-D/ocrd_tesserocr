@@ -5,9 +5,12 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.9.4] - 2020-09-24
+
 Fixed:
 
  * recognize: be robust to different input image modes, Pillow#4925
+ * logging according to https://github.com/OCR-D/core/pull/599
 
 ## [0.9.3] - 2020-09-15
 
@@ -222,6 +225,9 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.9.4]: v0.9.4...v0.9.3
+[0.9.3]: v0.9.3...v0.9.2
+[0.9.2]: v0.9.2...v0.9.1
 [0.9.1]: v0.9.1...v0.9.0
 [0.9.0]: v0.9.0...v0.8.5
 [0.8.5]: v0.8.5...v0.8.4
