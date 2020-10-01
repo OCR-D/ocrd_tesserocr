@@ -30,7 +30,6 @@ from ocrd import Processor
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-deskew'
-FALLBACK_FILEGRP_IMG = 'OCR-D-IMG-DESKEW'
 
 class TesserocrDeskew(Processor):
 
