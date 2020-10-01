@@ -78,7 +78,13 @@ class TesserocrSegmentTable(Processor):
                 page = pcgts.get_Page()
                 
                 page_image, page_coords, page_image_info = self.workspace.image_from_page(
-                    page, page_id)
+                    page, page_id,
+                    # for some reason, external binarization
+                    # degrades Tesseract segmentation quality
+                    # (probably because C_OUTLINE::ComputeEdgeOffsets,
+                    #  which needs the greyscale image, is more
+                    #  accurate than C_OUTLINE::ComputeBinaryOffsets):
+                    feature_filter='binarized')
                 if self.parameter['dpi'] > 0:
                     dpi = self.parameter['dpi']
                     LOG.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
@@ -124,12 +130,25 @@ class TesserocrSegmentTable(Processor):
                             LOG.warning('keeping existing TextRegions in block "%s" of page "%s"', region.id, page_id)
                     # get region image
                     region_image, region_coords = self.workspace.image_from_segment(
-                        region, page_image, page_coords)
+                        region, page_image, page_coords,
+                        # for some reason, external binarization
+                        # degrades Tesseract segmentation quality
+                        # (probably because C_OUTLINE::ComputeEdgeOffsets,
+                        #  which needs the greyscale image, is more
+                        #  accurate than C_OUTLINE::ComputeBinaryOffsets):
+                        feature_filter='binarized')
                     tessapi.SetImage(region_image)
                     LOG.info("Detecting table cells in region '%s'", region.id)
                     #
                     # detect the region segments:
-                    tessapi.SetPageSegMode(PSM.SPARSE_TEXT) # retrieve "cells"
+                    tessapi.SetPageSegMode(PSM.SPARSE_TEXT_OSD) # retrieve "cells"
+                    # FIXME: _OSD is necessary to get VERTICAL_TEXT (90°) blocks, but
+                    #        this also causes looking for vertical gaps/alignments everywhere
+                    #        (not just blocks that end up as vertical), so often cells
+                    #        will span more than 1 line and some text will even be missed!
+                    #        We should check whether some strokewidth params can influence this.
+                    #        Otherwise, Tesseract should become more consistent in deciding for
+                    #        vertically aligned blobs (either the whole block, or keep horizontal).
                     # TODO: we should XY-cut the sparse cells in regroup them into consistent cells
                     layout = tessapi.AnalyseLayout()
                     roelem = reading_order.get(region.id)

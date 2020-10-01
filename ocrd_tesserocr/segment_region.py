@@ -136,7 +136,13 @@ class TesserocrSegmentRegion(Processor):
                         LOG.warning('keeping existing ReadingOrder')
                 
                 page_image, page_coords, page_image_info = self.workspace.image_from_page(
-                    page, page_id)
+                    page, page_id,
+                    # for some reason, external binarization
+                    # degrades Tesseract segmentation quality
+                    # (probably because C_OUTLINE::ComputeEdgeOffsets,
+                    #  which needs the greyscale image, is more
+                    #  accurate than C_OUTLINE::ComputeBinaryOffsets):
+                    feature_filter='binarized')
                 if self.parameter['dpi'] > 0:
                     dpi = self.parameter['dpi']
                     LOG.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
