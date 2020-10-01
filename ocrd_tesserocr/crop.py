@@ -3,7 +3,7 @@ import os.path
 
 import tesserocr
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
     crop_image,
     coordinates_for_segment,
     coordinates_of_segment,
@@ -18,8 +18,6 @@ from ocrd_utils import (
 )
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
-    MetadataItemType,
-    LabelsType, LabelType,
     CoordsType, AlternativeImageType,
     to_xml
 )
@@ -30,7 +28,6 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-crop'
-LOG = getLogger('processor.TesserocrCrop')
 
 class TesserocrCrop(Processor):
 
@@ -56,6 +53,7 @@ class TesserocrCrop(Processor):
         
         Produce new output files by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrCrop')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
@@ -70,20 +68,8 @@ class TesserocrCrop(Processor):
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                self.add_metadata(pcgts)
                 page = pcgts.get_Page()
-                
-                # add metadata about this operation and its runtime parameters:
-                metadata = pcgts.get_Metadata() # ensured by from_file()
-                metadata.add_MetadataItem(
-                    MetadataItemType(type_="processingStep",
-                                     name=self.ocrd_tool['steps'][0],
-                                     value=TOOL,
-                                     Labels=[LabelsType(
-                                         externalModel="ocrd-tool",
-                                         externalId="parameters",
-                                         Label=[LabelType(type_=name,
-                                                          value=self.parameter[name])
-                                                for name in self.parameter.keys()])]))
                 
                 # warn of existing Border:
                 border = page.get_Border()

@@ -8,15 +8,12 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger,
-    concat_padded,
     assert_file_grp_cardinality,
     make_file_id,
     MIMETYPE_PAGE
 )
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
-    MetadataItemType,
-    LabelsType, LabelType,
     AlternativeImageType,
     TextRegionType,
     to_xml
@@ -26,7 +23,6 @@ from ocrd import Processor
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-binarize'
-LOG = getLogger('processor.TesserocrBinarize')
 
 class TesserocrBinarize(Processor):
 
@@ -51,6 +47,7 @@ class TesserocrBinarize(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrBinarize')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
@@ -62,20 +59,8 @@ class TesserocrBinarize(Processor):
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                self.add_metadata(pcgts)
                 page = pcgts.get_Page()
-                
-                # add metadata about this operation and its runtime parameters:
-                metadata = pcgts.get_Metadata() # ensured by from_file()
-                metadata.add_MetadataItem(
-                    MetadataItemType(type_="processingStep",
-                                     name=self.ocrd_tool['steps'][0],
-                                     value=TOOL,
-                                     Labels=[LabelsType(
-                                         externalModel="ocrd-tool",
-                                         externalId="parameters",
-                                         Label=[LabelType(type_=name,
-                                                          value=self.parameter[name])
-                                                for name in self.parameter.keys()])]))
                 
                 page_image, page_xywh, _ = self.workspace.image_from_page(
                     page, page_id)
@@ -117,6 +102,7 @@ class TesserocrBinarize(Processor):
                     content=to_xml(pcgts))
 
     def _process_segment(self, tessapi, ril, segment, image, xywh, where, page_id, file_id):
+        LOG = getLogger('processor.TesserocrBinarize')
         tessapi.SetImage(image)
         image_bin = None
         layout = tessapi.AnalyseLayout()

@@ -12,7 +12,7 @@ from tesserocr import (
 )
 
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
     make_file_id,
     assert_file_grp_cardinality,
     rotate_image, transpose_image,
@@ -21,8 +21,6 @@ from ocrd_utils import (
 )
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
-    MetadataItemType,
-    LabelsType, LabelType,
     AlternativeImageType,
     TextRegionType, PageType,
     to_xml
@@ -32,8 +30,6 @@ from ocrd import Processor
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-deskew'
-LOG = getLogger('processor.TesserocrDeskew')
-FALLBACK_FILEGRP_IMG = 'OCR-D-IMG-DESKEW'
 
 class TesserocrDeskew(Processor):
 
@@ -60,6 +56,7 @@ class TesserocrDeskew(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrDeskew')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
         oplevel = self.parameter['operation_level']
@@ -76,20 +73,8 @@ class TesserocrDeskew(Processor):
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 pcgts.set_pcGtsId(file_id)
+                self.add_metadata(pcgts)
                 page = pcgts.get_Page()
-                
-                # add metadata about this operation and its runtime parameters:
-                metadata = pcgts.get_Metadata() # ensured by from_file()
-                metadata.add_MetadataItem(
-                    MetadataItemType(type_="processingStep",
-                                     name=self.ocrd_tool['steps'][0],
-                                     value=TOOL,
-                                     Labels=[LabelsType(
-                                         externalModel="ocrd-tool",
-                                         externalId="parameters",
-                                         Label=[LabelType(type_=name,
-                                                          value=self.parameter[name])
-                                                for name in self.parameter.keys()])]))
                 
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id,
@@ -141,6 +126,7 @@ class TesserocrDeskew(Processor):
                     content=to_xml(pcgts))
     
     def _process_segment(self, tessapi, segment, image, xywh, where, page_id, file_id):
+        LOG = getLogger('processor.TesserocrDeskew')
         features = xywh['features'] # features already applied to image
         angle0 = xywh['angle'] # deskewing (w.r.t. top image) already applied to image
         angle = 0. # additional angle to be applied at current level
@@ -287,7 +273,7 @@ class TesserocrDeskew(Processor):
             #     segment.add_Baseline(BaselineType(points=points))
         # update METS (add the image file):
         file_path = self.workspace.save_image_file(image,
-                                    file_id,
+                                    file_id + '.IMG-DESKEW',
                                     page_id=page_id,
                                     file_grp=self.output_file_grp)
         # update PAGE (reference the image file):

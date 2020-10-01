@@ -5,6 +5,33 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.9.5] - 2020-10-02
+
+Fixed:
+
+ * logging according to https://github.com/OCR-D/core/pull/599 (again)
+
+## [0.9.4] - 2020-09-24
+
+Fixed:
+
+ * recognize: be robust to different input image modes, Pillow#4925
+ * logging according to https://github.com/OCR-D/core/pull/599
+
+## [0.9.3] - 2020-09-15
+
+Fixed:
+
+ * segmentation: ensure new elements fit into their parent coords
+ * segmentation: ensure valid coords
+
+## [0.9.2] - 2020-09-04
+
+Fixed:
+
+ * segment-region: just ignore region outside of page frame, #145
+ * deskew: add suffix to AlternativeImage file ID, #148
+
 ## [0.9.1] - 2020-08-16
 
 Fixed:
@@ -204,25 +231,28 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
-[0.9.1]: v0.9.1...v0.9.0
-[0.9.0]: v0.9.0...v0.8.5
-[0.8.5]: v0.8.5...v0.8.4
-[0.8.4]: v0.8.4...v0.8.3
-[0.8.3]: v0.8.3...v0.8.2
-[0.8.2]: v0.8.2...v0.8.1
-[0.8.1]: v0.8.1...v0.8.0
-[0.8.0]: v0.8.0...v0.7.0
-[0.7.0]: v0.7.0...v0.6.0
-[0.6.0]: v0.6.0...v0.5.1
-[0.5.1]: v0.5.1...v0.5.0
-[0.5.0]: v0.5.0...v0.4.1
-[0.4.1]: v0.4.1...v0.4.0
-[0.4.0]: v0.4.0...v0.3.0
-[0.3.0]: v0.3.0...v0.2.2
-[0.2.2]: v0.2.2...v0.2.1
-[0.2.1]: v0.2.1...v0.2.0
-[0.2.0]: v0.2.0...v0.1.2
-[0.1.3]: v0.1.3...v0.1.2
-[0.1.2]: v0.1.2...v0.1.1
-[0.1.1]: v0.1.1...v0.1.0
+[0.9.4]: ../../compare/v0.9.3...v0.9.4
+[0.9.3]: ../../compare/v0.9.2...v0.9.3
+[0.9.2]: ../../compare/v0.9.1...v0.9.2
+[0.9.1]: ../../compare/v0.9.0...v0.9.1
+[0.9.0]: ../../compare/v0.8.5...v0.9.0
+[0.8.5]: ../../compare/v0.8.4...v0.8.5
+[0.8.4]: ../../compare/v0.8.3...v0.8.4
+[0.8.3]: ../../compare/v0.8.2...v0.8.3
+[0.8.2]: ../../compare/v0.8.1...v0.8.2
+[0.8.1]: ../../compare/v0.8.0...v0.8.1
+[0.8.0]: ../../compare/v0.7.0...v0.8.0
+[0.7.0]: ../../compare/v0.6.0...v0.7.0
+[0.6.0]: ../../compare/v0.5.1...v0.6.0
+[0.5.1]: ../../compare/v0.5.0...v0.5.1
+[0.5.0]: ../../compare/v0.4.1...v0.5.0
+[0.4.1]: ../../compare/v0.4.0...v0.4.1
+[0.4.0]: ../../compare/v0.3.0...v0.4.0
+[0.3.0]: ../../compare/v0.2.2...v0.3.0
+[0.2.2]: ../../compare/v0.2.1...v0.2.2
+[0.2.1]: ../../compare/v0.2.0...v0.2.1
+[0.2.0]: ../../compare/v0.1.2...v0.2.0
+[0.1.3]: ../../compare/v0.1.2...v0.1.3
+[0.1.2]: ../../compare/v0.1.1...v0.1.2
+[0.1.1]: ../../compare/v0.1.0...v0.1.1
 [0.1.0]: ../../compare/HEAD...v0.1.0

@@ -8,7 +8,6 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger,
-    concat_padded,
     make_file_id,
     assert_file_grp_cardinality,
     coordinates_for_segment,
@@ -19,21 +18,17 @@ from ocrd_utils import (
 )
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
-    MetadataItemType,
-    LabelsType, LabelType,
     CoordsType,
     TextRegionType,
     to_xml)
 from ocrd_models.ocrd_page_generateds import (
-    TableRegionType,
     TextTypeSimpleType,
     RegionRefType,
     RegionRefIndexedType,
     OrderedGroupType,
     OrderedGroupIndexedType,
     UnorderedGroupType,
-    UnorderedGroupIndexedType,
-    ReadingOrderType
+    UnorderedGroupIndexedType
 )
 from ocrd import Processor
 
@@ -41,7 +36,6 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .recognize import page_get_reading_order
 
 TOOL = 'ocrd-tesserocr-segment-table'
-LOG = getLogger('processor.TesserocrSegmentTable')
 
 class TesserocrSegmentTable(Processor):
 
@@ -65,6 +59,7 @@ class TesserocrSegmentTable(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrSegmentTable')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
@@ -79,21 +74,9 @@ class TesserocrSegmentTable(Processor):
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                self.add_metadata(pcgts)
                 page = pcgts.get_Page()
                 
-                # add metadata about this operation and its runtime parameters:
-                metadata = pcgts.get_Metadata() # ensured by from_file()
-                metadata.add_MetadataItem(
-                    MetadataItemType(type_="processingStep",
-                                     name=self.ocrd_tool['steps'][0],
-                                     value=TOOL,
-                                     Labels=[LabelsType(
-                                         externalModel="ocrd-tool",
-                                         externalId="parameters",
-                                         Label=[LabelType(type_=name,
-                                                          value=self.parameter[name])
-                                                for name in self.parameter.keys()])]))
-
                 page_image, page_coords, page_image_info = self.workspace.image_from_page(
                     page, page_id,
                     # for some reason, external binarization
@@ -211,6 +194,7 @@ class TesserocrSegmentTable(Processor):
                     content=to_xml(pcgts))
 
     def _process_region(self, it, region, rogroup, region_image, region_coords):
+        LOG = getLogger('processor.TesserocrSegmentTable')
         # equivalent to GetComponentImages with raw_image=True,
         # (which would also give raw coordinates),
         # except we are also interested in the iterator's BlockType() here,

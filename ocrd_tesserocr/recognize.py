@@ -19,8 +19,6 @@ from ocrd_utils import (
 from ocrd_models.ocrd_page import (
     CoordsType,
     GlyphType, WordType,
-    LabelType, LabelsType,
-    MetadataItemType,
     TextEquivType, TextStyleType,
     to_xml)
 from ocrd_models.ocrd_page_generateds import (
@@ -37,9 +35,9 @@ from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-recognize'
-LOG = getLogger('processor.TesserocrRecognize')
 
 CHOICE_THRESHOLD_NUM = 6 # maximum number of choices to query and annotate
 CHOICE_THRESHOLD_CONF = 0.2 # maximum score drop from best choice to query and annotate
@@ -81,6 +79,7 @@ class TesserocrRecognize(Processor):
         
         Produce new output files by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrRecognize')
         LOG.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
 
         assert_file_grp_cardinality(self.input_file_grp, 1)
@@ -157,20 +156,9 @@ class TesserocrRecognize(Processor):
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                self.add_metadata(pcgts)
                 page = pcgts.get_Page()
                 
-                # add metadata about this operation and its runtime parameters:
-                metadata = pcgts.get_Metadata() # ensured by from_file()
-                metadata.add_MetadataItem(
-                    MetadataItemType(type_="processingStep",
-                                     name=self.ocrd_tool['steps'][0],
-                                     value=TOOL,
-                                     Labels=[LabelsType(
-                                         externalModel="ocrd-tool",
-                                         externalId="parameters",
-                                         Label=[LabelType(type_=name,
-                                                          value=self.parameter[name])
-                                                for name in self.parameter.keys()])]))
                 page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id)
                 if self.parameter['dpi'] > 0:
@@ -209,18 +197,13 @@ class TesserocrRecognize(Processor):
                     content=to_xml(pcgts))
 
     def _process_regions(self, tessapi, regions, page_image, page_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         for region in regions:
             region_image, region_xywh = self.workspace.image_from_segment(
                 region, page_image, page_xywh)
             if self.parameter['textequiv_level'] == 'region':
                 if self.parameter['padding']:
-                    bg = tuple(ImageStat.Stat(region_image).median)
-                    pad = self.parameter['padding']
-                    padded = Image.new(region_image.mode,
-                                       (region_image.width + 2 * pad,
-                                        region_image.height + 2 * pad), bg)
-                    padded.paste(region_image, (pad, pad))
-                    tessapi.SetImage(padded)
+                    tessapi.SetImage(pad_image(region_image, self.parameter['padding']))
                 else:
                     tessapi.SetImage(region_image)
                 tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
@@ -242,6 +225,7 @@ class TesserocrRecognize(Processor):
                 self._process_lines(tessapi, textlines, region_image, region_xywh)
 
     def _process_lines(self, tessapi, textlines, region_image, region_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         for line in textlines:
             if self.parameter['overwrite_words']:
                 line.set_Word([])
@@ -249,13 +233,7 @@ class TesserocrRecognize(Processor):
                 line, region_image, region_xywh)
             # todo: Tesseract works better if the line images have a 5px margin everywhere
             if self.parameter['padding']:
-                bg = tuple(ImageStat.Stat(line_image).median)
-                pad = self.parameter['padding']
-                padded = Image.new(line_image.mode,
-                                   (line_image.width + 2 * pad,
-                                    line_image.height + 2 * pad), bg)
-                padded.paste(line_image, (pad, pad))
-                tessapi.SetImage(padded)
+                tessapi.SetImage(pad_image(line_image, self.parameter['padding']))
             else:
                 tessapi.SetImage(line_image)
             if self.parameter['raw_lines']:
@@ -285,6 +263,7 @@ class TesserocrRecognize(Processor):
                 self._process_words_in_line(tessapi.GetIterator(), line, line_xywh)
 
     def _process_words_in_line(self, result_it, line, line_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         if not result_it or result_it.Empty(RIL.WORD):
             LOG.warning("No text in line '%s'", line.id)
             return
@@ -297,9 +276,16 @@ class TesserocrRecognize(Processor):
             # convert to absolute coordinates:
             polygon = coordinates_for_segment(polygon_from_x0y0x1y1(bbox),
                                               None, line_xywh) - self.parameter['padding']
+            polygon2 = polygon_for_parent(polygon, line)
+            if polygon2 is not None:
+                polygon = polygon2
             points = points_from_polygon(polygon)
             word = WordType(id=word_id, Coords=CoordsType(points))
-            line.add_Word(word)
+            if polygon2 is None:
+                # could happen due to rotation
+                LOG.info('Ignoring extant word: %s', points)
+            else:
+                line.add_Word(word)
             # todo: determine if font attributes available for word level will work with LSTM models
             word_attributes = result_it.WordFontAttributes()
             if word_attributes:
@@ -332,17 +318,12 @@ class TesserocrRecognize(Processor):
                 result_it.Next(RIL.WORD)
 
     def _process_existing_words(self, tessapi, words, line_image, line_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         for word in words:
             word_image, word_xywh = self.workspace.image_from_segment(
                 word, line_image, line_xywh)
             if self.parameter['padding']:
-                bg = tuple(ImageStat.Stat(word_image).median)
-                pad = self.parameter['padding']
-                padded = Image.new(word_image.mode,
-                                   (word_image.width + 2 * pad,
-                                    word_image.height + 2 * pad), bg)
-                padded.paste(word_image, (pad, pad))
-                tessapi.SetImage(padded)
+                tessapi.SetImage(pad_image(word_image, self.parameter['padding']))
             else:
                 tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
@@ -369,17 +350,12 @@ class TesserocrRecognize(Processor):
                 self._process_glyphs_in_word(tessapi.GetIterator(), word, word_xywh)
 
     def _process_existing_glyphs(self, tessapi, glyphs, word_image, word_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         for glyph in glyphs:
             glyph_image, _ = self.workspace.image_from_segment(
                 glyph, word_image, word_xywh)
             if self.parameter['padding']:
-                bg = tuple(ImageStat.Stat(glyph_image).median)
-                pad = self.parameter['padding']
-                padded = Image.new(glyph_image.mode,
-                                   (glyph_image.width + 2 * pad,
-                                    glyph_image.height + 2 * pad), bg)
-                padded.paste(glyph_image, (pad, pad))
-                tessapi.SetImage(padded)
+                tessapi.SetImage(pad_image(glyph_image, self.parameter['padding']))
             else:
                 tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
@@ -407,6 +383,7 @@ class TesserocrRecognize(Processor):
                 glyph.add_TextEquiv(TextEquivType(index=choice_no, Unicode=alternative_text, conf=alternative_conf))
     
     def _process_glyphs_in_word(self, result_it, word, word_xywh):
+        LOG = getLogger('processor.TesserocrRecognize')
         if not result_it or result_it.Empty(RIL.SYMBOL):
             LOG.debug("No glyph in word '%s'", word.id)
             return
@@ -422,9 +399,16 @@ class TesserocrRecognize(Processor):
             # convert to absolute coordinates:
             polygon = coordinates_for_segment(polygon_from_x0y0x1y1(bbox),
                                               None, word_xywh) - self.parameter['padding']
+            polygon2 = polygon_for_parent(polygon, word)
+            if polygon2 is not None:
+                polygon = polygon2
             points = points_from_polygon(polygon)
             glyph = GlyphType(id=glyph_id, Coords=CoordsType(points))
-            word.add_Glyph(glyph)
+            if polygon2 is None:
+                # could happen due to rotation
+                LOG.info('Ignoring extant glyph: %s', points)
+            else:
+                word.add_Glyph(glyph)
             choice_it = result_it.GetChoiceIterator()
             for (choice_no, choice) in enumerate(choice_it):
                 alternative_text = choice.GetUTF8Text()
@@ -534,7 +518,7 @@ def page_update_higher_textequiv_levels(level, pcgts):
                                         reading_order[subregion.id].index)
                 region_unicode = page_element_unicode0(subregions[0])
                 for subregion, next_subregion in zip(subregions, subregions[1:]):
-                    if not (subregion.id, next_subregion.id) in joins:
+                    if (subregion.id, next_subregion.id) not in joins:
                         region_unicode += '\n' # or '\f'?
                     region_unicode += page_element_unicode0(next_subregion)
                 region_conf = sum(page_element_conf0(subregion) for subregion in subregions)
@@ -588,3 +572,17 @@ def page_update_higher_textequiv_levels(level, pcgts):
                     region_conf /= len(lines)
             region.set_TextEquiv( # replace old, if any
                 [TextEquivType(Unicode=region_unicode, conf=region_conf)])
+
+def pad_image(image, padding):
+    stat = ImageStat.Stat(image)
+    # workaround for Pillow#4925
+    if len(stat.bands) > 1:
+        background = tuple(stat.median)
+    else:
+        background = stat.median[0]
+    padded = Image.new(image.mode,
+                       (image.width + 2 * padding,
+                        image.height + 2 * padding),
+                       background)
+    padded.paste(image, (padding, padding))
+    return padded

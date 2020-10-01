@@ -5,7 +5,7 @@ from tesserocr import RIL, PyTessBaseAPI, PSM
 
 from ocrd import Processor
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
     make_file_id,
     assert_file_grp_cardinality,
     polygon_from_xywh,
@@ -16,16 +16,14 @@ from ocrd_utils import (
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
     CoordsType,
-    LabelType, LabelsType,
-    MetadataItemType,
     WordType,
     to_xml,
 )
 
-from ocrd_tesserocr.config import TESSDATA_PREFIX, OCRD_TOOL
+from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-segment-word'
-LOG = getLogger('processor.TesserocrSegmentWord')
 
 class TesserocrSegmentWord(Processor):
 
@@ -47,6 +45,7 @@ class TesserocrSegmentWord(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrSegmentWord')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
@@ -60,20 +59,9 @@ class TesserocrSegmentWord(Processor):
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                self.add_metadata(pcgts)
                 page = pcgts.get_Page()
                 
-                # add metadata about this operation and its runtime parameters:
-                metadata = pcgts.get_Metadata() # ensured by from_file()
-                metadata.add_MetadataItem(
-                    MetadataItemType(type_="processingStep",
-                                     name=self.ocrd_tool['steps'][0],
-                                     value=TOOL,
-                                     Labels=[LabelsType(
-                                         externalModel="ocrd-tool",
-                                         externalId="parameters",
-                                         Label=[LabelType(type_=name,
-                                                          value=self.parameter[name])
-                                                for name in self.parameter.keys()])]))
                 page_image, page_coords, page_image_info = self.workspace.image_from_page(
                     page, page_id)
                 if self.parameter['dpi'] > 0:
@@ -108,7 +96,14 @@ class TesserocrSegmentWord(Processor):
                             word_id = '%s_word%04d' % (line.id, word_no)
                             word_polygon = polygon_from_xywh(component[1])
                             word_polygon = coordinates_for_segment(word_polygon, line_image, line_coords)
+                            word_polygon2 = polygon_for_parent(word_polygon, line)
+                            if word_polygon2 is not None:
+                                word_polygon = word_polygon2
                             word_points = points_from_polygon(word_polygon)
+                            if word_polygon2 is None:
+                                # could happen due to rotation
+                                LOG.info('Ignoring extant word: %s', word_points)
+                                continue
                             line.add_Word(WordType(
                                 id=word_id, Coords=CoordsType(word_points)))
                             

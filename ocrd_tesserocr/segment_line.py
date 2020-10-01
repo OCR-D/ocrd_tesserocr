@@ -2,12 +2,11 @@ from __future__ import absolute_import
 
 import itertools
 import os.path
-from shapely.geometry import Polygon, LinearRing
 from tesserocr import PyTessBaseAPI, RIL, PSM
 
 from ocrd import Processor
 from ocrd_utils import (
-    getLogger, concat_padded,
+    getLogger,
     make_file_id,
     assert_file_grp_cardinality,
     polygon_from_xywh,
@@ -19,16 +18,14 @@ from ocrd_utils import (
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
     CoordsType,
-    LabelType, LabelsType,
-    MetadataItemType,
     TextLineType,
     to_xml
 )
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-segment-line'
-LOG = getLogger('processor.TesserocrSegmentLine')
 
 class TesserocrSegmentLine(Processor):
 
@@ -51,6 +48,7 @@ class TesserocrSegmentLine(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrSegmentLine')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
@@ -64,20 +62,8 @@ class TesserocrSegmentLine(Processor):
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
+                self.add_metadata(pcgts)
                 page = pcgts.get_Page()
-                
-                # add metadata about this operation and its runtime parameters:
-                metadata = pcgts.get_Metadata() # ensured by from_file()
-                metadata.add_MetadataItem(
-                    MetadataItemType(type_="processingStep",
-                                     name=self.ocrd_tool['steps'][0],
-                                     value=TOOL,
-                                     Labels=[LabelsType(
-                                         externalModel="ocrd-tool",
-                                         externalId="parameters",
-                                         Label=[LabelType(type_=name,
-                                                          value=self.parameter[name])
-                                                for name in self.parameter.keys()])]))
                 
                 page_image, page_coords, page_image_info = self.workspace.image_from_page(
                     page, page_id,
@@ -119,31 +105,19 @@ class TesserocrSegmentLine(Processor):
                         #  which needs the greyscale image, is more
                         #  accurate than C_OUTLINE::ComputeBinaryOffsets):
                         feature_filter='binarized')
-                    region_polygon = coordinates_of_segment(region, region_image, region_coords)
-                    region_poly = Polygon(region_polygon)
                     tessapi.SetImage(region_image)
                     for line_no, component in enumerate(tessapi.GetComponentImages(RIL.TEXTLINE, True, raw_image=True)):
                         line_id = '%s_line%04d' % (region.id, line_no)
                         line_polygon = polygon_from_xywh(component[1])
-                        line_poly = Polygon(line_polygon)
-                        if not line_poly.within(region_poly):
-                            # this could happen due to rotation
-                            interline = line_poly.intersection(region_poly)
-                            if interline.is_empty:
-                                continue # ignore this line
-                            if hasattr(interline, 'geoms'):
-                                # is (heterogeneous) GeometryCollection
-                                area = 0
-                                for geom in interline.geoms:
-                                    if geom.area > area:
-                                        area = geom.area
-                                        interline = geom
-                                if not area:
-                                    continue
-                            line_poly = interline.convex_hull
-                            line_polygon = line_poly.exterior.coords
                         line_polygon = coordinates_for_segment(line_polygon, region_image, region_coords)
+                        line_polygon2 = polygon_for_parent(line_polygon, region)
+                        if line_polygon2 is not None:
+                            line_polygon = line_polygon2
                         line_points = points_from_polygon(line_polygon)
+                        if line_polygon2 is None:
+                            # could happen due to rotation
+                            LOG.info('Ignoring extant line: %s', line_points)
+                            continue
                         region.add_TextLine(TextLineType(
                             id=line_id, Coords=CoordsType(line_points)))
                 
