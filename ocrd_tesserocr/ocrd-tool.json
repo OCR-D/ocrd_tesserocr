@@ -20,7 +20,7 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "operation_level": {
           "type": "string",
@@ -33,6 +33,38 @@
           "format": "float",
           "default": 1.5,
           "description": "Minimum confidence score to apply orientation as detected by OSD"
+        }
+      }
+    },
+    "ocrd-tesserocr-fontshape": {
+      "executable": "ocrd-tesserocr-fontshape",
+      "categories": ["Text recognition and optimization"],
+      "description": "Recognize font shapes (family/monospace/bold/italic) and size in segmented words with Tesseract (using annotated derived images, or masking and cropping images from coordinate polygons), annotating TextStyle",
+      "input_file_grp": [
+        "OCR-D-SEG-WORD",
+        "OCR-D-OCR"
+      ],
+      "output_file_grp": [
+        "OCR-D-OCR-STYLE"
+      ],
+      "steps": ["recognition/font-identification"],
+      "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "default": 0
+        },
+        "padding": {
+          "type": "number",
+          "format": "integer",
+          "default": 0,
+          "description": "Number of background-filled pixels to add around the word image (i.e. the annotated AlternativeImage if it exists or the higher-level image cropped to the bounding box and masked by the polygon otherwise) on each side before recognition."
+        },
+        "model": {
+          "type": "string",
+          "default": "osd",
+          "description": "tessdata model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or osd); must be an old (pre-LSTM) model"
         }
       }
     },
@@ -55,7 +87,7 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "textequiv_level": {
           "type": "string",
@@ -100,7 +132,55 @@
         }
       }
     },
-     "ocrd-tesserocr-segment-region": {
+     "ocrd-tesserocr-segment": {
+      "executable": "ocrd-tesserocr-segment",
+      "categories": ["Layout analysis"],
+      "description": "Segment page into regions and lines with Tesseract",
+      "input_file_grp": [
+        "OCR-D-IMG",
+        "OCR-D-SEG-PAGE",
+        "OCR-D-GT-SEG-PAGE"
+      ],
+      "output_file_grp": [
+        "OCR-D-SEG-LINE"
+      ],
+      "steps": ["layout/segmentation/region", "layout/segmentation/line"],
+      "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "default": 0
+        },
+        "overwrite_regions": {
+          "type": "boolean",
+          "default": true,
+          "description": "remove existing layout and text annotation below the Page level"
+        },
+        "padding": {
+          "type": "number",
+          "format": "integer",
+          "description": "extend detected region rectangles by this many (true) pixels",
+          "default": 4
+        },
+        "block_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "annotate polygon coordinates instead of bounding box rectangles"
+        },
+        "find_tables": {
+          "type": "boolean",
+          "default": true,
+          "description": "recognise tables as table regions (textord_tabfind_find_tables)"
+        },
+        "sparse_text": {
+          "type": "boolean",
+          "default": false,
+          "description": "use 'sparse text' page segmentation mode (find as much text as possible in no particular order): only text regions, single lines without vertical or horizontal space"
+        }
+      }
+   },
+   "ocrd-tesserocr-segment-region": {
       "executable": "ocrd-tesserocr-segment-region",
       "categories": ["Layout analysis"],
       "description": "Segment page into regions with Tesseract",
@@ -118,7 +198,7 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "overwrite_regions": {
           "type": "boolean",
@@ -165,7 +245,7 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "overwrite_regions": {
           "type": "boolean",
@@ -191,7 +271,7 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "overwrite_lines": {
           "type": "boolean",
@@ -217,7 +297,7 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "overwrite_words": {
           "type": "boolean",
@@ -242,7 +322,7 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "padding": {
           "type": "number",

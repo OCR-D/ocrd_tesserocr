@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import itertools
 import os.path
 from tesserocr import PyTessBaseAPI, RIL, PSM
 
@@ -81,9 +80,7 @@ class TesserocrSegmentLine(Processor):
                 if dpi:
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                 
-                for region in itertools.chain.from_iterable(
-                        [page.get_TextRegion()] +
-                        [subregion.get_TextRegion() for subregion in page.get_TableRegion()]):
+                for region in page.get_AllRegions(classes=['Text']):
                     if region.get_TextLine():
                         if overwrite_lines:
                             LOG.info('removing existing TextLines in region "%s"', region.id)

@@ -79,18 +79,21 @@ make install     # or pip install .
 
 ## Usage
 
-See docstrings and in the individual processors and [ocrd-tool.json](ocrd_tesserocr/ocrd-tool.json) descriptions.
+See docstrings in the individual processors and [ocrd-tool.json](ocrd_tesserocr/ocrd-tool.json) descriptions,
+or simply `--help`.
 
-Available processors are:
+Available [OCR-D processors](https://ocr-d.de/en/spec/cli) are:
 
-- [ocrd-tesserocr-crop](ocrd_tesserocr/crop.py)
-- [ocrd-tesserocr-deskew](ocrd_tesserocr/deskew.py)
-- [ocrd-tesserocr-binarize](ocrd_tesserocr/binarize.py)
-- [ocrd-tesserocr-segment-region](ocrd_tesserocr/segment_region.py)
-- [ocrd-tesserocr-segment-table](ocrd_tesserocr/segment_table.py)
-- [ocrd-tesserocr-segment-line](ocrd_tesserocr/segment_line.py)
-- [ocrd-tesserocr-segment-word](ocrd_tesserocr/segment_word.py)
-- [ocrd-tesserocr-recognize](ocrd_tesserocr/recognize.py)
+- [ocrd-tesserocr-crop](ocrd_tesserocr/crop.py) (simplistic)
+- [ocrd-tesserocr-deskew](ocrd_tesserocr/deskew.py) (also orientation)
+- [ocrd-tesserocr-binarize](ocrd_tesserocr/binarize.py) (Otsu – not recommended)
+- [ocrd-tesserocr-recognize](ocrd_tesserocr/recognize.py) (optionally including segmentation)
+- [ocrd-tesserocr-segment](ocrd_tesserocr/segment.py) (all-in-one segmentation – recommended)
+- [ocrd-tesserocr-segment-region](ocrd_tesserocr/segment_region.py) (only regions – with overlapping bboxes)
+- [ocrd-tesserocr-segment-table](ocrd_tesserocr/segment_table.py) (only table cells)
+- [ocrd-tesserocr-segment-line](ocrd_tesserocr/segment_line.py) (only lines – from overlapping regions)
+- [ocrd-tesserocr-segment-word](ocrd_tesserocr/segment_word.py) (only words)
+- [ocrd-tesserocr-fontshape](ocrd_tesserocr/fontshape.py) (only text style – via Tesseract 3)
 
 ## Testing
 

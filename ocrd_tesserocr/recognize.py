@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 import os.path
-import itertools
 from PIL import Image, ImageStat
 
 from tesserocr import (
@@ -176,9 +175,7 @@ class TesserocrRecognize(Processor):
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                 
                 LOG.info("Processing page '%s'", page_id)
-                regions = itertools.chain.from_iterable(
-                    [page.get_TextRegion()] +
-                    [subregion.get_TextRegion() for subregion in page.get_TableRegion()])
+                regions = page.get_AllRegions(classes=['Text'])
                 if not regions:
                     LOG.warning("Page '%s' contains no text regions", page_id)
                 else:
@@ -490,17 +487,14 @@ def page_update_higher_textequiv_levels(level, pcgts):
     if ro:
         page_get_reading_order(reading_order, ro.get_OrderedGroup() or ro.get_UnorderedGroup())
     if level != 'region':
-        for region in itertools.chain.from_iterable(
-                # order is important here, because regions can be recursive,
-                # and we want to concatenate by depth first;
-                # typical recursion structures would be:
-                #  - TextRegion/@type=paragraph inside TextRegion
-                #  - TextRegion/@type=drop-capital followed by TextRegion/@type=paragraph inside TextRegion
-                #  - any region (including TableRegion or TextRegion) inside a TextRegion/@type=footnote
-                #  - TextRegion inside TableRegion
-                [subregion.get_TextRegion() for subregion in page.get_TextRegion()] +
-                [subregion.get_TextRegion() for subregion in page.get_TableRegion()] +
-                [page.get_TextRegion()]):
+        for region in page.get_AllRegions(classes=['Text']):
+            # order is important here, because regions can be recursive,
+            # and we want to concatenate by depth first;
+            # typical recursion structures would be:
+            #  - TextRegion/@type=paragraph inside TextRegion
+            #  - TextRegion/@type=drop-capital followed by TextRegion/@type=paragraph inside TextRegion
+            #  - any region (including TableRegion or TextRegion) inside a TextRegion/@type=footnote
+            #  - TextRegion inside TableRegion
             subregions = region.get_TextRegion()
             if subregions: # already visited in earlier iterations
                 # do we have a reading order for these?

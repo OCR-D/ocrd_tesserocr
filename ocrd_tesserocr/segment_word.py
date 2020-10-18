@@ -78,7 +78,7 @@ class TesserocrSegmentWord(Processor):
                 if dpi:
                     tessapi.SetVariable('user_defined_dpi', str(dpi))
                 
-                for region in page.get_TextRegion():
+                for region in page.get_AllRegions(classes=['Text']):
                     region_image, region_coords = self.workspace.image_from_segment(
                         region, page_image, page_coords)
                     for line in region.get_TextLine():
