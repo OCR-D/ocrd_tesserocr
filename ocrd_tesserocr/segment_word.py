@@ -24,7 +24,6 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-segment-word'
-LOG = getLogger('processor.TesserocrSegmentWord')
 
 class TesserocrSegmentWord(Processor):
 
@@ -46,6 +45,7 @@ class TesserocrSegmentWord(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrSegmentWord')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 

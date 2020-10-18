@@ -30,8 +30,6 @@ from ocrd import Processor
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-deskew'
-LOG = getLogger('processor.TesserocrDeskew')
-FALLBACK_FILEGRP_IMG = 'OCR-D-IMG-DESKEW'
 
 class TesserocrDeskew(Processor):
 
@@ -58,6 +56,7 @@ class TesserocrDeskew(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrDeskew')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
         oplevel = self.parameter['operation_level']
@@ -127,6 +126,7 @@ class TesserocrDeskew(Processor):
                     content=to_xml(pcgts))
     
     def _process_segment(self, tessapi, segment, image, xywh, where, page_id, file_id):
+        LOG = getLogger('processor.TesserocrDeskew')
         features = xywh['features'] # features already applied to image
         angle0 = xywh['angle'] # deskewing (w.r.t. top image) already applied to image
         angle = 0. # additional angle to be applied at current level

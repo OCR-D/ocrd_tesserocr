@@ -28,7 +28,6 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-crop'
-LOG = getLogger('processor.TesserocrCrop')
 
 class TesserocrCrop(Processor):
 
@@ -54,6 +53,7 @@ class TesserocrCrop(Processor):
         
         Produce new output files by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrCrop')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 

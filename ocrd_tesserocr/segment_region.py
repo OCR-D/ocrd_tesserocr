@@ -43,7 +43,6 @@ from ocrd import Processor
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-segment-region'
-LOG = getLogger('processor.TesserocrSegmentRegion')
 
 class TesserocrSegmentRegion(Processor):
 
@@ -71,6 +70,7 @@ class TesserocrSegmentRegion(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrSegmentRegion')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
@@ -171,6 +171,7 @@ class TesserocrSegmentRegion(Processor):
                     content=to_xml(pcgts))
 
     def _process_page(self, it, page, page_image, page_coords, page_id):
+        LOG = getLogger('processor.TesserocrSegmentRegion')
         # equivalent to GetComponentImages with raw_image=True,
         # (which would also give raw coordinates),
         # except we are also interested in the iterator's BlockType() here,

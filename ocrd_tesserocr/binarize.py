@@ -23,7 +23,6 @@ from ocrd import Processor
 from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-binarize'
-LOG = getLogger('processor.TesserocrBinarize')
 
 class TesserocrBinarize(Processor):
 
@@ -48,6 +47,7 @@ class TesserocrBinarize(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrBinarize')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
@@ -102,6 +102,7 @@ class TesserocrBinarize(Processor):
                     content=to_xml(pcgts))
 
     def _process_segment(self, tessapi, ril, segment, image, xywh, where, page_id, file_id):
+        LOG = getLogger('processor.TesserocrBinarize')
         tessapi.SetImage(image)
         image_bin = None
         layout = tessapi.AnalyseLayout()

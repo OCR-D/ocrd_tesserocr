@@ -25,7 +25,6 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 from .segment_region import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-segment-line'
-LOG = getLogger('processor.TesserocrSegmentLine')
 
 class TesserocrSegmentLine(Processor):
 
@@ -48,6 +47,7 @@ class TesserocrSegmentLine(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        LOG = getLogger('processor.TesserocrSegmentLine')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
