@@ -283,25 +283,6 @@ class TesserocrRecognize(Processor):
                 LOG.info('Ignoring extant word: %s', points)
             else:
                 line.add_Word(word)
-            # todo: determine if font attributes available for word level will work with LSTM models
-            word_attributes = result_it.WordFontAttributes()
-            if word_attributes:
-                word_style = TextStyleType(
-                    fontSize=word_attributes['pointsize']
-                    if 'pointsize' in word_attributes else None,
-                    fontFamily=word_attributes['font_name']
-                    if 'font_name' in word_attributes else None,
-                    bold=word_attributes['bold']
-                    if 'bold' in word_attributes else None,
-                    italic=word_attributes['italic']
-                    if 'italic' in word_attributes else None,
-                    underlined=word_attributes['underlined']
-                    if 'underlined' in word_attributes else None,
-                    monospace=word_attributes['monospace']
-                    if 'monospace' in word_attributes else None,
-                    serif=word_attributes['serif']
-                    if 'serif' in word_attributes else None)
-                word.set_TextStyle(word_style) # (or somewhere in custom attribute?)
             # add word annotation unconditionally (i.e. even for glyph level):
             word.add_TextEquiv(TextEquivType(
                 Unicode=result_it.GetUTF8Text(RIL.WORD),
