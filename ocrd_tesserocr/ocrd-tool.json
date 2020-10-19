@@ -89,46 +89,71 @@
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
           "default": 0
         },
-        "textequiv_level": {
-          "type": "string",
-          "enum": ["region", "line", "word", "glyph"],
-          "default": "word",
-          "description": "Lowest PAGE XML hierarchy level to add the TextEquiv results to; when below `region`, implicitly adds segmentation below the line level, but requires existing line segmentation"
+        "padding": {
+          "type": "number",
+          "format": "integer",
+          "default": 4,
+          "description": "Extend detected region/line/word rectangles by this many (true) pixels, or extend existing region/line/word images (i.e. the annotated AlternativeImage if it exists or the higher-level image cropped to the bounding box and masked by the polygon otherwise) by this many (background/white) pixels on each side before recognition."
+        },
+        "overwrite_regions": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove existing layout and text annotation below the page level."
+        },
+        "overwrite_lines": {
+          "type": "boolean",
+          "default": false,
+          "description": "Remove existing layout and text annotation below the region level (unless textequiv_level is region)."
         },
         "overwrite_words": {
           "type": "boolean",
           "default": false,
-          "description": "Remove existing layout and text annotation below the TextLine level (regardless of textequiv_level)."
+          "description": "Remove existing layout and text annotation below the text line level (unless textequiv_level is region or line)."
         },
-        "padding": {
-          "type": "number",
-          "format": "integer",
-          "default": 0,
-          "description": "Number of background-filled pixels to add around the line image (i.e. the annotated AlternativeImage if it exists or the higher-level image cropped to the bounding box and masked by the polygon otherwise) on each side before recognition."
+        "textequiv_level": {
+          "type": "string",
+          "enum": ["region", "table", "line", "word", "glyph", "none"],
+          "default": "word",
+          "description": "Lowest PAGE XML hierarchy level to re-use or detect segments for and add the TextEquiv results to (before projecting upwards); when ``none``, adds segmentation up to the glyph level but does not attempt recognition at all."
+        },
+        "block_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting regions, annotate polygon coordinates instead of bounding box rectangles."
+        },
+        "find_tables": {
+          "type": "boolean",
+          "default": true,
+          "description": "When detecting regions, recognise tables as table regions (``textord_tabfind_find_tables=1``)."
+        },
+        "sparse_text": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting regions, use 'sparse text' page segmentation mode (finding as much text as possible in no particular order): only text regions, single lines without vertical or horizontal space."
         },
         "raw_lines": {
           "type": "boolean",
           "default": false,
-          "description": "Do not attempt additional segmentation (baseline+xheight+ascenders/descenders prediction) when using line images (i.e. when textequiv_level<region). Can increase accuracy for certain workflows. Disable when line segments/images may contain components of more than 1 line, or larger gaps/white-spaces."
+          "description": "When detecting lines, do not attempt additional segmentation (baseline+xheight+ascenders/descenders prediction) on line images. Can increase accuracy for certain workflows. Disable when line segments/images may contain components of more than 1 line, or larger gaps/white-spaces."
         },
         "char_whitelist": {
           "type": "string",
           "default": "",
-          "description": "Enumeration of character hypotheses (from the model) to allow exclusively; overruled by blacklist if set."
+          "description": "When recognizing text, enumeration of character hypotheses (from the model) to allow exclusively; overruled by blacklist if set."
         },
         "char_blacklist": {
           "type": "string",
           "default": "",
-          "description": "Enumeration of character hypotheses (from the model) to suppress; overruled by unblacklist if set."
+          "description": "When recognizing text, enumeration of character hypotheses (from the model) to suppress; overruled by unblacklist if set."
         },
         "char_unblacklist": {
           "type": "string",
           "default": "",
-          "description": "Enumeration of character hypotheses (from the model) to allow inclusively."
+          "description": "When recognizing text, enumeration of character hypotheses (from the model) to allow inclusively."
         },
         "model": {
           "type": "string",
-          "description": "tessdata model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)"
+          "description": "The tessdata text recognition model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)."
         }
       }
     },

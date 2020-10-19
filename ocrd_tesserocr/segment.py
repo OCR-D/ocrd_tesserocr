@@ -161,7 +161,7 @@ class TesserocrSegment(Processor):
 
                 # detect the region segments and types:
                 layout = tessapi.AnalyseLayout()
-                self._process_page(layout, page, page_image, page_coords, input_file.pageId, dpi)
+                self._process_page(layout, page, page_coords, dpi)
                 
                 file_id = make_file_id(input_file, self.output_file_grp)
                 pcgts.set_pcGtsId(file_id)
@@ -174,7 +174,7 @@ class TesserocrSegment(Processor):
                                                 file_id + '.xml'),
                     content=to_xml(pcgts))
 
-    def _process_page(self, it, page, page_image, page_coords, page_id, dpi):
+    def _process_page(self, it, page, page_coords, dpi):
         LOG = getLogger('processor.TesserocrSegment')
         index = 0
         ro = page.get_ReadingOrder()
@@ -212,7 +212,7 @@ class TesserocrSegment(Processor):
             else:
                 polygon = polygon_from_x0y0x1y1(x0y0x1y1)
             xywh = xywh_from_polygon(polygon)
-            polygon = coordinates_for_segment(polygon, page_image, page_coords)
+            polygon = coordinates_for_segment(polygon, None, page_coords)
             polygon2 = polygon_for_parent(polygon, page)
             if polygon2 is not None:
                 polygon = polygon2
@@ -272,7 +272,7 @@ class TesserocrSegment(Processor):
                 elif block_type == PT.CAPTION_TEXT:
                     region.set_type(TextTypeSimpleType.CAPTION)
                 page.add_TextRegion(region)
-                self._process_region(it, region, page_image, page_coords, page_id)
+                self._process_region(it, region, page_coords)
             elif block_type in [PT.FLOWING_IMAGE,
                                 PT.HEADING_IMAGE,
                                 PT.PULLOUT_IMAGE]:
@@ -295,7 +295,7 @@ class TesserocrSegment(Processor):
                 # but this can be achieved afterwards by segment-table
                 region = TableRegionType(id=ID, Coords=coords)
                 page.add_TableRegion(region)
-                self._process_table(it, region, page_image, page_coords, page_id)
+                self._process_table(it, region, page_coords)
             else:
                 region = NoiseRegionType(id=ID, Coords=coords)
                 page.add_NoiseRegion()
@@ -311,12 +311,12 @@ class TesserocrSegment(Processor):
             # schema forbids empty OrderedGroup
             ro.set_OrderedGroup(None)
 
-    def _process_table(self, it, region, page_image, page_coords, page_id):
+    def _process_table(self, it, region, page_coords):
         LOG = getLogger('processor.TesserocrSegment')
         for index, it in enumerate(iterate_level(it, RIL.PARA)):
             bbox = it.BoundingBox(RIL.PARA, padding=self.parameter['padding'])
             polygon = polygon_from_x0y0x1y1(bbox)
-            polygon = coordinates_for_segment(polygon, page_image, page_coords)
+            polygon = coordinates_for_segment(polygon, None, page_coords)
             polygon2 = polygon_for_parent(polygon, region)
             if polygon2 is not None:
                 polygon = polygon2
@@ -329,21 +329,21 @@ class TesserocrSegment(Processor):
             LOG.info("Detected cell '%s': %s", ID, points)
             cell = TextRegionType(id=ID, Coords=coords)
             region.add_TextRegion(cell)
-            self._process_region(it, cell, page_image, page_coords, page_id)
+            self._process_region(it, cell, page_coords)
             
-    def _process_region(self, it, region, page_image, page_coords, page_id):
+    def _process_region(self, it, region, page_coords):
         LOG = getLogger('processor.TesserocrSegment')
         if self.parameter['sparse_text']:
             region.set_type(TextTypeSimpleType.OTHER)
             line = TextLineType(id=region.id + '_line',
                                 Coords=region.get_Coords())
             region.add_TextLine(line)
-            self._process_line(it, line, page_image, page_coords, page_id)
+            self._process_line(it, line, page_coords)
             return
         for index, it in enumerate(iterate_level(it, RIL.TEXTLINE)):
             bbox = it.BoundingBox(RIL.TEXTLINE, padding=self.parameter['padding'])
             polygon = polygon_from_x0y0x1y1(bbox)
-            polygon = coordinates_for_segment(polygon, page_image, page_coords)
+            polygon = coordinates_for_segment(polygon, None, page_coords)
             polygon2 = polygon_for_parent(polygon, region)
             if polygon2 is not None:
                 polygon = polygon2
@@ -356,14 +356,14 @@ class TesserocrSegment(Processor):
             LOG.info("Detected line '%s': %s", ID, points)
             line = TextLineType(id=ID, Coords=coords)
             region.add_TextLine(line)
-            self._process_line(it, line, page_image, page_coords, page_id)
+            self._process_line(it, line, page_coords)
 
-    def _process_line(self, it, line, page_image, page_coords, page_id):
+    def _process_line(self, it, line, page_coords):
         LOG = getLogger('processor.TesserocrSegment')
         for index, it in enumerate(iterate_level(it, RIL.WORD)):
             bbox = it.BoundingBox(RIL.WORD, padding=self.parameter['padding'])
             polygon = polygon_from_x0y0x1y1(bbox)
-            polygon = coordinates_for_segment(polygon, page_image, page_coords)
+            polygon = coordinates_for_segment(polygon, None, page_coords)
             polygon2 = polygon_for_parent(polygon, line)
             if polygon2 is not None:
                 polygon = polygon2
