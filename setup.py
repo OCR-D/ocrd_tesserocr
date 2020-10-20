@@ -2,16 +2,16 @@
 """
 Installs the following command-line executables:
 
-    - ocrd_tesserocr_binarize
-    - ocrd_tesserocr_crop
-    - ocrd_tesserocr_deskew
-    - ocrd_tesserocr_recognize
-    - ocrd_tesserocr_segment
-    - ocrd_tesserocr_segment_region
-    - ocrd_tesserocr_segment_table
-    - ocrd_tesserocr_segment_line
-    - ocrd_tesserocr_segment_word
-    - ocrd_tesserocr_fontshape
+    - ocrd-tesserocr-binarize
+    - ocrd-tesserocr-crop
+    - ocrd-tesserocr-deskew
+    - ocrd-tesserocr-recognize
+    - ocrd-tesserocr-segment
+    - ocrd-tesserocr-segment-region
+    - ocrd-tesserocr-segment-table
+    - ocrd-tesserocr-segment-line
+    - ocrd-tesserocr-segment-word
+    - ocrd-tesserocr-fontshape
 """
 import codecs
 import json

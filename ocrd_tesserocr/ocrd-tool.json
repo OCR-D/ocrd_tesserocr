@@ -98,17 +98,17 @@
         "overwrite_regions": {
           "type": "boolean",
           "default": false,
-          "description": "Remove existing layout and text annotation below the page level."
+          "description": "Remove existing layout and text annotation below the page level, and detect new regions."
         },
         "overwrite_lines": {
           "type": "boolean",
           "default": false,
-          "description": "Remove existing layout and text annotation below the region level (unless textequiv_level is region)."
+          "description": "Remove existing layout and text annotation below the region level, and detect new lines (unless textequiv_level is region)."
         },
         "overwrite_words": {
           "type": "boolean",
-          "default": false,
-          "description": "Remove existing layout and text annotation below the text line level (unless textequiv_level is region or line)."
+          "default": true,
+          "description": "Remove existing layout and text annotation below the text line level, and detect new words (unless textequiv_level is region or line)."
         },
         "textequiv_level": {
           "type": "string",
@@ -176,11 +176,6 @@
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
           "default": 0
-        },
-        "overwrite_regions": {
-          "type": "boolean",
-          "default": true,
-          "description": "remove existing layout and text annotation below the Page level"
         },
         "padding": {
           "type": "number",
