@@ -5,6 +5,20 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.10.0] - 2020-10-21
+
+Fixed:
+
+ * when padding images, add the offset to coords of new segments
+ 
+Changed:
+
+ * recognize: add all-in-one segmentation with flexible entry point
+ * recognize: re-parameterize to `segmentation_level`+`textequiv_level`
+ * segment*: forbid `overwrite_*=false` (not useful yet)
+ * segment*: delegate to recognize
+ * fontshape: new processor for TextStyle detection via pre-LSTM models
+
 ## [0.9.5] - 2020-10-02
 
 Fixed:
