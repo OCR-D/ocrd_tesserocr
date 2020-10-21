@@ -71,17 +71,27 @@
     "ocrd-tesserocr-recognize": {
       "executable": "ocrd-tesserocr-recognize",
       "categories": ["Text recognition and optimization"],
-      "description": "Recognize text in lines with Tesseract (using annotated derived images, or masking and cropping images from coordinate polygons)",
+      "description": "Segment and/or recognize text with Tesseract (using annotated derived images, or masking and cropping images from coordinate polygons) on any level of the PAGE hierarchy.",
       "input_file_grp": [
-        "OCR-D-SEG-BLOCK",
+        "OCR-D-SEG-PAGE",
+        "OCR-D-SEG-REGION",
+        "OCR-D-SEG-TABLE",
         "OCR-D-SEG-LINE",
-        "OCR-D-SEG-WORD",
-        "OCR-D-SEG-GLYPH"
+        "OCR-D-SEG-WORD"
       ],
       "output_file_grp": [
+        "OCR-D-SEG-REGION",
+        "OCR-D-SEG-TABLE",
+        "OCR-D-SEG-LINE",
+        "OCR-D-SEG-WORD",
+        "OCR-D-SEG-GLYPH",
         "OCR-D-OCR-TESS"
       ],
-      "steps": ["recognition/text-recognition"],
+      "steps": [
+        "layout/segmentation/region",
+        "layout/segmentation/line",
+        "recognition/text-recognition"
+      ],
       "parameters": {
         "dpi": {
           "type": "number",
@@ -93,28 +103,19 @@
           "type": "number",
           "format": "integer",
           "default": 4,
-          "description": "Extend detected region/line/word rectangles by this many (true) pixels, or extend existing region/line/word images (i.e. the annotated AlternativeImage if it exists or the higher-level image cropped to the bounding box and masked by the polygon otherwise) by this many (background/white) pixels on each side before recognition."
+          "description": "Extend detected region/cell/line/word rectangles by this many (true) pixels, or extend existing region/line/word images (i.e. the annotated AlternativeImage if it exists or the higher-level image cropped to the bounding box and masked by the polygon otherwise) by this many (background/white) pixels on each side before recognition."
         },
-        "overwrite_regions": {
-          "type": "boolean",
-          "default": false,
-          "description": "Remove existing layout and text annotation below the page level, and detect new regions."
-        },
-        "overwrite_lines": {
-          "type": "boolean",
-          "default": false,
-          "description": "Remove existing layout and text annotation below the region level, and detect new lines (unless textequiv_level is region)."
-        },
-        "overwrite_words": {
-          "type": "boolean",
-          "default": true,
-          "description": "Remove existing layout and text annotation below the text line level, and detect new words (unless textequiv_level is region or line)."
+        "segmentation_level": {
+          "type": "string",
+          "enum": ["region", "cell", "line", "word", "glyph", "none"],
+          "default": "none",
+          "description": "Highest PAGE XML hierarchy level to remove existing annotation from and detect segments for (before iterating downwards); if ``none``, does not attempt any new segmentation; if ``cell``, starts at table regions, detecting text regions (cells). Ineffective when lower than ``textequiv_level``."
         },
         "textequiv_level": {
           "type": "string",
-          "enum": ["region", "table", "line", "word", "glyph", "none"],
+          "enum": ["region", "cell", "line", "word", "glyph", "none"],
           "default": "word",
-          "description": "Lowest PAGE XML hierarchy level to re-use or detect segments for and add the TextEquiv results to (before projecting upwards); when ``none``, adds segmentation up to the glyph level but does not attempt recognition at all."
+          "description": "Lowest PAGE XML hierarchy level to re-use or detect segments for and add the TextEquiv results to (before projecting upwards); if ``none``, adds segmentation down to the glyph level, but does not attempt recognition at all; if ``cell``, stops short before text lines, adding text of text regions inside tables (cells) or on page level only."
         },
         "block_polygons": {
           "type": "boolean",
@@ -124,7 +125,7 @@
         "find_tables": {
           "type": "boolean",
           "default": true,
-          "description": "When detecting regions, recognise tables as table regions (``textord_tabfind_find_tables=1``)."
+          "description": "When detecting regions, recognise tables as table regions (Tesseract's ``textord_tabfind_find_tables=1``)."
         },
         "sparse_text": {
           "type": "boolean",

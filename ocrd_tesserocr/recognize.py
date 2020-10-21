@@ -13,6 +13,7 @@ from ocrd_utils import (
     getLogger,
     make_file_id,
     assert_file_grp_cardinality,
+    shift_coordinates,
     coordinates_for_segment,
     polygon_from_x0y0x1y1,
     polygon_from_points,
@@ -76,21 +77,32 @@ class TesserocrRecognize(Processor):
         
         Open and deserialise PAGE input files and their respective images,
         then iterate over the element hierarchy down to the requested
-        ``textequiv_level`` if it exists, and if each level's respective
-        ``overwrite_LEVEL`` is disabled. 
-        Otherwise stop at the highest level with ``overwrite_LEVEL==True``,
-        and remove any existing segmentation at that level.
+        ``textequiv_level`` if it exists and if ``segmentation_level``
+        is lower (i.e. more granular) or ``none``.
+        Otherwise stop before ``segmentation_level``, and remove any
+        existing segmentation at that level and below.
         
         Set up Tesseract to recognise each segment's image (either from
         AlternativeImage or cropping the bounding box rectangle and masking
         it from the polygon outline) with the appropriate mode and ``model``.
         
         Next, iterate over the result hierarchy from the current level
-        in the PAGE hierarchy down to the requested ``textequiv_level``,
-        creating new segmentation at each level.
+        in the PAGE hierarchy down to the requested ``textequiv_level``
+        (if there is a gap), creating new segmentation at each level
+        (as well as reading order references at the region/table level).
         
-        Put text and confidence results into the TextEquiv at ``textequiv_level``,
+        Put text and confidence results into TextEquiv at ``textequiv_level``,
         removing any existing TextEquiv.
+        
+        The special value ``textequiv_level=none`` behaves like ``glyph``,
+        except that no actual text recognition will be performed, only
+        layout analysis (so no ``model`` is needed, and new segmentation
+        is created down to the glyph level).
+        
+        The special value ``segmentation_level=none`` likewise is lowest,
+        i.e. no actual layout analysis will be performed, only
+        text recognition (so existing segmentation is needed down to
+        ``textequiv_level``).
         
         Finally, make all higher levels consistent with these text results
         by concatenation, ordering according to each level's respective
@@ -98,27 +110,48 @@ class TesserocrRecognize(Processor):
         by whitespace as appropriate for each level and according to its
         Relation/join status.
         
-        The special value ``none`` for ``textequiv_level`` behaves like ``word``,
-        except that no actual text recognition will be performed, only layout
-        analysis.
-        
         In other words:
-        - If ``overwrite_regions``, segment regions, else iterate existing regions.
-        - If ``textequiv_level==region``, then recognize text in the region,
+        - If ``segmentation_level=region``, then segment the page into regions, 
+          else iterate existing regions.
+        - If ``textequiv_level=region``, then recognize text in the region,
           annotate it, and continue with the next region. Otherwise...
-        - If ``overwrite_lines``, segment lines, else iterate existing text lines.
-        - If ``textequiv_level==line``, then recognize text in the text lines,
+        - If ``segmentation_level=cell`` or higher,
+          then segment table regions into cells (text regions in the table),
+          else iterate existing cells.
+        - If ``textequiv_level=cell``, then recognize text in the cell,
+          annotate it, and continue with the next cell. Otherwise...
+        - If ``segmentation_level=line`` or higher,
+          then segment text regions into text lines,
+          else iterate existing text lines.
+        - If ``textequiv_level=line``, then recognize text in the text lines,
           annotate it, and continue with the next line. Otherwise...
-        - If ``overwrite_words``, segment words, else iterate existing words.
-        - If ``textequiv_level==word``, then recognize text in the words,
+        - If ``segmentation_level=word`` or higher,
+          then segment text lines into words,
+          else iterate existing words.
+        - If ``textequiv_level=word``, then recognize text in the words,
           annotate it, and continue with the next word. Otherwise...
-        - If ``textequiv_level==glyph``, then recognize text in the glyphs and
+        - If ``segmentation_level=glyph`` or higher,
+          then segment words into glyphs,
+          else iterate existing glyphs.
+        - If ``textequiv_level=glyph``, then recognize text in the glyphs and
           continue with the next glyph. Otherwise...
-        - (i.e. ``none``) annotate no text and be done with segmentation.
+        - (i.e. ``none``) annotate no text and be done.
         
-        Thus, enabling the ``overwrite_*`` modes makes this processor behave more
-        like a segmentation processor, and setting ``textequiv_level`` to ``none``
-        makes it a segmentation-only processor.
+        Note that ``cell`` is an _optional_ level that is only relevant for
+        table regions, not text or other regions. 
+        Also, when segmenting tables in the same run that detects them
+        (via ``segmentation_level=region`` and ``find_tables``), cells will
+        just be 'paragraphs'. In contrast, when segmenting tables that already exist
+        (via ``segmentation_level=cell``), cells will be detected in ``sparse_text``
+        mode, i.e. as single-line text regions.
+        
+        Thus, ``segmentation_level`` is the entry point level for layout analysis,
+        and setting it to ``none`` makes this processor behave as recognition-only.
+        Whereas ``textequiv_level`` selects the exit point level for segmentation,
+        and setting it to ``none`` makes this processor behave as segmentation-only.
+        
+        All segments above ``segmentation_level`` must already exist, and
+        no segments below ``textequiv_level`` will be newly created.
         
         If ``find_tables``, then during region segmentation, also try to detect
         table blocks and add them as TableRegion, then query the page iterator
@@ -130,16 +163,19 @@ class TesserocrRecognize(Processor):
         not always yield accurate/valid polygons.)
         
         If ``sparse_text``, then during region segmentation, attempt to find
-        single-line text blocks in no particular order.
+        single-line text blocks in no particular order (Tesseract's page segmentation
+        mode ``SPARSE_TEXT``).
         
-        Produce new output files by serialising the resulting hierarchy.
+        Finally, produce new output files by serialising the resulting hierarchy.
         """
         self.logger.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
 
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
-        maxlevel = self.parameter['textequiv_level']
+        inlevel = self.parameter['segmentation_level']
+        outlevel = self.parameter['textequiv_level']
+        
         model = get_languages()[1][-1] # last installed model
         if 'model' in self.parameter:
             model = self.parameter['model']
@@ -148,32 +184,20 @@ class TesserocrRecognize(Processor):
                     raise Exception("configured model " + sub_model + " is not installed")
         
         with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
-            if self.parameter['find_tables']:
-                if maxlevel == 'region':
-                    raise Exception("When find_tables is enabled, textequiv_level must be at least table, because text results cannot be annotated on tables directly.")
-                tessapi.SetVariable("textord_tabfind_find_tables", "1") # (default)
-                # this should yield additional blocks within the table blocks
-                # from the page iterator, but does not in fact (yet?):
-                # (and it can run into assertion errors when the table structure
-                #  does not meet certain homogeneity expectations)
-                #tessapi.SetVariable("textord_tablefind_recognize_tables", "1")
-            else:
-                # disable table detection here, so tables will be
-                # analysed as independent text/line blocks:
-                tessapi.SetVariable("textord_tabfind_find_tables", "0")
             self.logger.info("Using model '%s' in %s for recognition at the %s level",
-                             model, get_languages()[0], maxlevel)
-            if maxlevel == 'glyph':
+                             model, get_languages()[0], outlevel)
+            if outlevel == 'glyph':
                 # populate GetChoiceIterator() with LSTM models, too:
                 tessapi.SetVariable("lstm_choice_mode", "2") # aggregate symbols
                 tessapi.SetVariable("lstm_choice_iterations", "15") # squeeze out more best paths
-            # TODO: maybe warn/raise when illegal combinations or characters not in the model unicharset?
-            if self.parameter['char_whitelist']:
-                tessapi.SetVariable("tessedit_char_whitelist", self.parameter['char_whitelist'])
-            if self.parameter['char_blacklist']:
-                tessapi.SetVariable("tessedit_char_blacklist", self.parameter['char_blacklist'])
-            if self.parameter['char_unblacklist']:
-                tessapi.SetVariable("tessedit_char_unblacklist", self.parameter['char_unblacklist'])
+            if outlevel != 'none':
+                # TODO: maybe warn/raise when illegal combinations or characters not in the model unicharset?
+                if self.parameter['char_whitelist']:
+                    tessapi.SetVariable("tessedit_char_whitelist", self.parameter['char_whitelist'])
+                if self.parameter['char_blacklist']:
+                    tessapi.SetVariable("tessedit_char_blacklist", self.parameter['char_blacklist'])
+                if self.parameter['char_unblacklist']:
+                    tessapi.SetVariable("tessedit_char_unblacklist", self.parameter['char_unblacklist'])
             # todo: determine relevancy of these variables:
             # tessapi.SetVariable("tessedit_single_match", "0")
             #
@@ -247,11 +271,12 @@ class TesserocrRecognize(Processor):
                 
                 self.logger.info("Processing page '%s'", page_id)
                 # FIXME: We should somehow _mask_ existing regions in order to annotate incrementally (not redundantly).
-                #        Currently overwrite_regions also means detect regions, but we could
-                #        have an independent setting for that, and attempt to detect regions
-                #        only where nothing exists yet (by clipping to background before, or
-                #        by removing clashing predictions after detection).
-                if self.parameter['overwrite_regions']:
+                #        Currently segmentation_level=region also means removing regions,
+                #        but we could have an independent setting for that, and attempt
+                #        to detect regions only where nothing exists yet (by clipping to
+                #        background before, or by removing clashing predictions after
+                #        detection).
+                if inlevel == 'region':
                     for regiontype in [
                             'AdvertRegion',
                             'ChartRegion',
@@ -267,20 +292,45 @@ class TesserocrRecognize(Processor):
                             'TextRegion',
                             'UnknownRegion']:
                         if getattr(page, 'get_' + regiontype)():
-                            self.logger.info('Removing existing %ss', regiontype)
+                            self.logger.info('Removing existing %ss on page %s', regiontype, page_id)
                         getattr(page, 'set_' + regiontype)([])
                     page.set_ReadingOrder(None)
+                    # prepare Tesseract
+                    if self.parameter['find_tables']:
+                        if outlevel == 'region':
+                            raise Exception("When segmentation_level is region and find_tables is enabled, textequiv_level must be at least cell, because text results cannot be annotated on tables directly.")
+                        tessapi.SetVariable("textord_tabfind_find_tables", "1") # (default)
+                        # this should yield additional blocks within the table blocks
+                        # from the page iterator, but does not in fact (yet?):
+                        # (and it can run into assertion errors when the table structure
+                        #  does not meet certain homogeneity expectations)
+                        #tessapi.SetVariable("textord_tablefind_recognize_tables", "1")
+                    else:
+                        # disable table detection here, so tables will be
+                        # analysed as independent text/line blocks:
+                        tessapi.SetVariable("textord_tabfind_find_tables", "0")
                     tessapi.SetImage(page_image) # is already cropped to Border
                     tessapi.SetPageSegMode(PSM.SPARSE_TEXT
                                            if self.parameter['sparse_text']
                                            else PSM.AUTO)
-                    if maxlevel == 'none':
+                    if outlevel == 'none':
                         self.logger.debug("Detecting regions in page '%s'", page_id)
                         tessapi.AnalyseLayout()
                     else:
                         self.logger.debug("Recognizing text in page '%s'", page_id)
                         tessapi.Recognize()
                     self._process_regions_in_page(tessapi.GetIterator(), page, page_coords, dpi)
+                elif inlevel == 'cell':
+                    # Tables are obligatorily recursive regions;
+                    # they might have existing text regions (cells),
+                    # which will be processed in the next branch
+                    # (because the iterator is recursive to depth),
+                    # or be empty. This is independent of whether
+                    # or not they should be segmented into cells.
+                    if outlevel == 'region':
+                        raise Exception("When segmentation_level is cell, textequiv_level must be at least cell too, because text results cannot be annotated on tables directly.")
+                    tables = page.get_AllRegions(classes=['Table'])
+                    self._process_existing_tables(tessapi, tables, page, page_image, page_coords)
                 else:
                     regions = page.get_AllRegions(classes=['Text'])
                     if not regions:
@@ -288,8 +338,8 @@ class TesserocrRecognize(Processor):
                     else:
                         self._process_existing_regions(tessapi, regions, page_image, page_coords)
                 
-                if maxlevel != 'none':
-                    page_update_higher_textequiv_levels(maxlevel, pcgts)
+                if outlevel != 'none':
+                    page_update_higher_textequiv_levels(outlevel, pcgts)
                 
                 file_id = make_file_id(input_file, self.output_file_grp)
                 pcgts.set_pcGtsId(file_id)
@@ -368,13 +418,10 @@ class TesserocrRecognize(Processor):
                 self.logger.info('Ignoring binary-empty region: %s', points)
                 continue
             #
-            # add the region reference in the reading order element
-            # (will be removed again if Separator/Noise region below)
+            # keep and annotate new region
             ID = "region%04d" % index
-            og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
             #
             # region type switch
-            #
             block_type = it.BlockType()
             self.logger.info("Detected region '%s': %s (%s)",
                              ID, points, membername(PT, block_type))
@@ -400,6 +447,7 @@ class TesserocrRecognize(Processor):
                 elif block_type == PT.CAPTION_TEXT:
                     region.set_type(TextTypeSimpleType.CAPTION)
                 page.add_TextRegion(region)
+                og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
                 if self.parameter['textequiv_level'] == 'region':
                     region.add_TextEquiv(TextEquivType(
                         Unicode=it.GetUTF8Text().rstrip("\n\f"),
@@ -412,16 +460,16 @@ class TesserocrRecognize(Processor):
                                 PT.PULLOUT_IMAGE]:
                 region = ImageRegionType(id=ID, Coords=coords)
                 page.add_ImageRegion(region)
+                og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
             elif block_type in [PT.HORZ_LINE,
                                 PT.VERT_LINE]:
                 region = SeparatorRegionType(id=ID, Coords=coords)
                 page.add_SeparatorRegion(region)
-                # undo appending in ReadingOrder
-                og.set_RegionRefIndexed(og.get_RegionRefIndexed()[:-1])
             elif block_type in [PT.INLINE_EQUATION,
                                 PT.EQUATION]:
                 region = MathsRegionType(id=ID, Coords=coords)
                 page.add_MathsRegion(region)
+                og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
             elif block_type == PT.TABLE:
                 # without API access to StructuredTable we cannot
                 # do much for a TableRegionType (i.e. nrows, ncols,
@@ -429,6 +477,8 @@ class TesserocrRecognize(Processor):
                 # but this can be achieved afterwards by segment-table
                 region = TableRegionType(id=ID, Coords=coords)
                 page.add_TableRegion(region)
+                rogroup = OrderedGroupIndexedType(id=ID + '_order', regionRef=ID, index=index)
+                og.add_OrderedGroupIndexed(rogroup)
                 if self.parameter['textequiv_level'] == 'region':
                     pass # impossible (see exception above)
                     # todo: TableRegionType has no TextEquiv in PAGE
@@ -437,12 +487,10 @@ class TesserocrRecognize(Processor):
                     #     # iterator scores are arithmetic averages, too
                     #     conf=it.MeanTextConf()/100.0))
                 else:
-                    self._process_cells_in_table(it, region, page_coords)
+                    self._process_cells_in_table(it, region, rogroup, page_coords)
             else:
                 region = NoiseRegionType(id=ID, Coords=coords)
                 page.add_NoiseRegion()
-                # undo appending in ReadingOrder
-                og.set_RegionRefIndexed(og.get_RegionRefIndexed()[:-1])
             #
             # iterator increment
             #
@@ -453,9 +501,13 @@ class TesserocrRecognize(Processor):
             # schema forbids empty OrderedGroup
             ro.set_OrderedGroup(None)
     
-    def _process_cells_in_table(self, result_it, region, page_coords):
-        for index, it in enumerate(iterate_level(result_it, RIL.PARA)):
-            bbox = it.BoundingBox(RIL.PARA, padding=self.parameter['padding'])
+    def _process_cells_in_table(self, result_it, region, rogroup, page_coords):
+        if self.parameter['segmentation_level'] == 'cell':
+            ril = RIL.BLOCK # for sparse_text mode
+        else:
+            ril = RIL.PARA # for "cells" in PT.TABLE block
+        for index, it in enumerate(iterate_level(result_it, ril)):
+            bbox = it.BoundingBox(ril, padding=self.parameter['padding'])
             polygon = polygon_from_x0y0x1y1(bbox)
             polygon = coordinates_for_segment(polygon, None, page_coords)
             polygon2 = polygon_for_parent(polygon, region)
@@ -470,7 +522,9 @@ class TesserocrRecognize(Processor):
             self.logger.info("Detected cell '%s': %s", ID, points)
             cell = TextRegionType(id=ID, Coords=coords)
             region.add_TextRegion(cell)
-            if self.parameter['textequiv_level'] == 'table':
+            if rogroup:
+                rogroup.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
+            if self.parameter['textequiv_level'] == 'cell':
                 cell.add_TextEquiv(TextEquivType(
                     Unicode=it.GetUTF8Text().rstrip("\n\f"),
                     # iterator scores are arithmetic averages, too
@@ -532,15 +586,15 @@ class TesserocrRecognize(Processor):
                 self.logger.info('Ignoring extant word: %s', points)
                 continue
             ID = line.id + "_word%04d" % index
-            self.logger.info("Detected word '%s': %s", ID, points)
+            self.logger.debug("Detected word '%s': %s", ID, points)
             word = WordType(id=ID, Coords=CoordsType(points=points))
             line.add_Word(word)
-            if self.parameter['textequiv_level'] in ['word', 'glyph']:
+            if self.parameter['textequiv_level'] == 'word':
                 word.add_TextEquiv(TextEquivType(
                     Unicode=it.GetUTF8Text(RIL.WORD),
                     # iterator scores are arithmetic averages, too
                     conf=it.Confidence(RIL.WORD)/100.0))
-            if self.parameter['textequiv_level'] == 'glyph':
+            else:
                 self._process_glyphs_in_word(it, word, coords)
     
     def _process_glyphs_in_word(self, result_it, word, coords):
@@ -556,25 +610,99 @@ class TesserocrRecognize(Processor):
                 self.logger.info('Ignoring extant glyph: %s', points)
                 continue
             ID = word.id + '_glyph%04d' % index
-            self.logger.debug("Detected glyph '%s': %s", ID, points)
+            #self.logger.debug("Detected glyph '%s': %s", ID, points)
             glyph = GlyphType(id=ID, Coords=CoordsType(points))
             word.add_Glyph(glyph)
-            # glyph_text = it.GetUTF8Text(RIL.SYMBOL) # equals first choice?
-            glyph_conf = it.Confidence(RIL.SYMBOL)/100 # equals first choice?
-            #self.logger.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
-            choice_it = it.GetChoiceIterator()
-            for choice_no, choice in enumerate(choice_it):
-                alternative_text = choice.GetUTF8Text()
-                alternative_conf = choice.Confidence()/100
-                #self.logger.debug('alternative glyph: "%s" [%f]', alternative_text, alternative_conf)
-                if (glyph_conf - alternative_conf > CHOICE_THRESHOLD_CONF or
-                    choice_no > CHOICE_THRESHOLD_NUM):
-                    break
-                # todo: consider SymbolIsSuperscript (TextStyle), SymbolIsDropcap (RelationType) etc
-                glyph.add_TextEquiv(TextEquivType(
-                    index=choice_no,
-                    Unicode=alternative_text,
-                    conf=alternative_conf))
+            if self.parameter['textequiv_level'] == 'glyph':
+                # glyph_text = it.GetUTF8Text(RIL.SYMBOL) # equals first choice?
+                glyph_conf = it.Confidence(RIL.SYMBOL)/100 # equals first choice?
+                #self.logger.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
+                choice_it = it.GetChoiceIterator()
+                for choice_no, choice in enumerate(choice_it):
+                    alternative_text = choice.GetUTF8Text()
+                    alternative_conf = choice.Confidence()/100
+                    #self.logger.debug('alternative glyph: "%s" [%f]', alternative_text, alternative_conf)
+                    if (glyph_conf - alternative_conf > CHOICE_THRESHOLD_CONF or
+                        choice_no > CHOICE_THRESHOLD_NUM):
+                        break
+                    # todo: consider SymbolIsSuperscript (TextStyle), SymbolIsDropcap (RelationType) etc
+                    glyph.add_TextEquiv(TextEquivType(
+                        index=choice_no,
+                        Unicode=alternative_text,
+                        conf=alternative_conf))
+
+    def _process_existing_tables(self, tessapi, regions, page, page_image, page_coords):
+        # prepare dict of reading order
+        reading_order = dict()
+        ro = page.get_ReadingOrder()
+        if not ro:
+            self.logger.warning("Page contains no ReadingOrder")
+            rogroup = None
+        else:
+            rogroup = ro.get_OrderedGroup() or ro.get_UnorderedGroup()
+            page_get_reading_order(reading_order, rogroup)
+        # dive into tables
+        for region in regions:
+            if region.get_TextRegion():
+                self.logger.info('Removing existing TextRegion cells in table %s', region.id)
+                for cell in region.get_TextRegion():
+                    if cell.id in reading_order:
+                        regionref = reading_order[cell.id]
+                        self.logger.debug('removing cell %s ref %s', cell.id, regionref.regionRef)
+                        # could be any of the 6 types above:
+                        regionrefs = regionref.parent_object_.__getattribute__(
+                            regionref.__class__.__name__.replace('Type', ''))
+                        # remove in-place
+                        regionrefs.remove(regionref)
+                        del reading_order[cell.id]
+                        # TODO: adjust index to make contiguous again?
+            region.set_TextRegion([])
+            roelem = reading_order.get(region.id)
+            if not roelem:
+                self.logger.warning("Table '%s' is not referenced in reading order (%s)",
+                                    region.id, "no target to add cells into")
+            elif isinstance(roelem, (OrderedGroupType, OrderedGroupIndexedType)):
+                self.logger.warning("Table '%s' already has an ordered group (%s)",
+                                    region.id, "cells will be appended")
+            elif isinstance(roelem, (UnorderedGroupType, UnorderedGroupIndexedType)):
+                self.logger.warning("Table '%s' already has an unordered group (%s)",
+                                    region.id, "cells will not be appended")
+                roelem = None
+            elif isinstance(roelem, RegionRefIndexedType):
+                # replace regionref by group with same index and ref
+                # (which can then take the cells as subregions)
+                roelem2 = OrderedGroupIndexedType(id=region.id + '_order',
+                                                  index=roelem.index,
+                                                  regionRef=roelem.regionRef)
+                roelem.parent_object_.add_OrderedGroupIndexed(roelem2)
+                roelem.parent_object_.get_RegionRefIndexed().remove(roelem)
+                roelem = roelem2
+            elif isinstance(roelem, RegionRefType):
+                # replace regionref by group with same ref
+                # (which can then take the cells as subregions)
+                roelem2 = OrderedGroupType(id=region.id + '_order',
+                                           regionRef=roelem.regionRef)
+                roelem.parent_object_.add_OrderedGroup(roelem2)
+                roelem.parent_object_.get_RegionRef().remove(roelem)
+                roelem = roelem2
+            # set table image
+            region_image, region_coords = self.workspace.image_from_segment(
+                region, page_image, page_coords)
+            if self.parameter['padding']:
+                tessapi.SetImage(pad_image(region_image, self.parameter['padding']))
+                region_coords['transform'] = shift_coordinates(
+                    region_coords['transform'], 2*[self.parameter['padding']])
+            else:
+                tessapi.SetImage(region_image)
+            tessapi.SetPageSegMode(PSM.SPARSE_TEXT) # retrieve "cells"
+            # TODO: we should XY-cut the sparse cells in regroup them into consistent cells
+            if self.parameter['textequiv_level'] == 'none':
+                self.logger.debug("Detecting cells in table '%s'", region.id)
+                tessapi.AnalyseLayout()
+            else:
+                self.logger.debug("Recognizing text in table '%s'", region.id)
+                tessapi.Recognize()
+            self._process_cells_in_table(tessapi.GetIterator(), region, roelem, region_coords)
     
     def _process_existing_regions(self, tessapi, regions, page_image, page_coords):
         for region in regions:
@@ -582,6 +710,8 @@ class TesserocrRecognize(Processor):
                 region, page_image, page_coords)
             if self.parameter['padding']:
                 tessapi.SetImage(pad_image(region_image, self.parameter['padding']))
+                region_coords['transform'] = shift_coordinates(
+                    region_coords['transform'], 2*[self.parameter['padding']])
             else:
                 tessapi.SetImage(region_image)
             tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
@@ -600,9 +730,9 @@ class TesserocrRecognize(Processor):
                 continue # next region (to avoid indentation below)
             ## line, word, or glyph level:
             textlines = region.get_TextLine()
-            if self.parameter['overwrite_lines']:
+            if self.parameter['segmentation_level'] == 'line':
                 if textlines:
-                    self.logger.info('Removing existing text lines')
+                    self.logger.info('Removing existing text lines in region %s', region.id)
                 region.set_TextLine([])
                 if self.parameter['textequiv_level'] == 'none':
                     self.logger.debug("Detecting lines in region '%s'", region.id)
@@ -623,6 +753,8 @@ class TesserocrRecognize(Processor):
                 line, region_image, region_coords)
             if self.parameter['padding']:
                 tessapi.SetImage(pad_image(line_image, self.parameter['padding']))
+                line_coords['transform'] = shift_coordinates(
+                    line_coords['transform'], 2*[self.parameter['padding']])
             else:
                 tessapi.SetImage(line_image)
             if self.parameter['raw_lines']:
@@ -644,9 +776,9 @@ class TesserocrRecognize(Processor):
                 continue # next line (to avoid indentation below)
             ## word, or glyph level:
             words = line.get_Word()
-            if self.parameter['overwrite_words']:
+            if self.parameter['segmentation_level'] == 'word':
                 if words:
-                    self.logger.info('Removing existing words')
+                    self.logger.info('Removing existing words in line %s', line.id)
                 line.set_Word([])
                 if self.parameter['textequiv_level'] == 'none':
                     self.logger.debug("Detecting words in line '%s'", line.id)
@@ -654,13 +786,12 @@ class TesserocrRecognize(Processor):
                 else:
                     self.logger.debug("Recognizing text in line '%s'", line.id)
                     tessapi.Recognize()
-                    ## internal word and glyph layout:
+                ## internal word and glyph layout:
                 self._process_words_in_line(tessapi.GetIterator(), line, line_coords)
-            else:
-                if words:
-                    ## external word layout:
-                    self.logger.warning("Line '%s' contains words already, recognition might be suboptimal", line.id)
-                    self._process_existing_words(tessapi, words, line_image, line_coords)
+            elif words:
+                ## external word layout:
+                self.logger.warning("Line '%s' contains words already, recognition might be suboptimal", line.id)
+                self._process_existing_words(tessapi, words, line_image, line_coords)
 
     def _process_existing_words(self, tessapi, words, line_image, line_coords):
         for word in words:
@@ -668,6 +799,8 @@ class TesserocrRecognize(Processor):
                 word, line_image, line_coords)
             if self.parameter['padding']:
                 tessapi.SetImage(pad_image(word_image, self.parameter['padding']))
+                word_coords['transform'] = shift_coordinates(
+                    word_coords['transform'], 2*[self.parameter['padding']])
             else:
                 tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
@@ -682,19 +815,24 @@ class TesserocrRecognize(Processor):
                     Unicode=tessapi.GetUTF8Text().rstrip("\n\f"),
                     conf=word_conf[0]/100.0 if word_conf else 0.0))
                 continue # next word (to avoid indentation below)
-            if self.parameter['textequiv_level'] == 'none':
-                continue
             ## glyph level:
             glyphs = word.get_Glyph()
-            if glyphs:
+            if self.parameter['segmentation_level'] == 'glyph':
+                if glyphs:
+                    self.logger.info('Removing existing glyphs in word %s', word.id)
+                word.set_Glyph([])
+                if self.parameter['textequiv_level'] == 'none':
+                    self.logger.debug("Detecting glyphs in word '%s'", word.id)
+                    tessapi.AnalyseLayout()
+                else:
+                    self.logger.debug("Recognizing text in word '%s'", word.id)
+                    tessapi.Recognize()
+                ## internal glyph layout:
+                self._process_glyphs_in_word(tessapi.GetIterator(), word, word_coords)
+            elif glyphs:
                 ## external glyph layout:
                 self.logger.warning("Word '%s' contains glyphs already, recognition might be suboptimal", word.id)
                 self._process_existing_glyphs(tessapi, glyphs, word_image, word_coords)
-            else:
-                ## internal glyph layout:
-                self.logger.debug("Recognizing text in word '%s'", word.id)
-                tessapi.Recognize()
-                self._process_glyphs_in_word(tessapi.GetIterator(), word, word_coords)
 
     def _process_existing_glyphs(self, tessapi, glyphs, word_image, word_xywh):
         for glyph in glyphs:
