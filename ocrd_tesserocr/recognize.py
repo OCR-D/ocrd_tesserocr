@@ -70,7 +70,9 @@ class TesserocrRecognize(Processor):
         kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrRecognize, self).__init__(*args, **kwargs)
-        self.logger = getLogger('processor.TesserocrRecognize')
+        
+        if hasattr(self, 'workspace'):
+            self.logger = getLogger('processor.TesserocrRecognize')
 
     def process(self):
         """Perform layout segmentation and/or text recognition with Tesseract on the workspace.
