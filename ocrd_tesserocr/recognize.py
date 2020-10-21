@@ -330,11 +330,16 @@ class TesserocrRecognize(Processor):
                     if outlevel == 'region':
                         raise Exception("When segmentation_level is cell, textequiv_level must be at least cell too, because text results cannot be annotated on tables directly.")
                     tables = page.get_AllRegions(classes=['Table'])
-                    self._process_existing_tables(tessapi, tables, page, page_image, page_coords)
+                    if not tables:
+                        self.logger.warning("Page '%s' contains no table regions (but segmentation is off)",
+                                            page_id)
+                    else:
+                        self._process_existing_tables(tessapi, tables, page, page_image, page_coords)
                 else:
                     regions = page.get_AllRegions(classes=['Text'])
                     if not regions:
-                        self.logger.warning("Page '%s' contains no text regions", page_id)
+                        self.logger.warning("Page '%s' contains no text regions (but segmentation is off)",
+                                            page_id)
                     else:
                         self._process_existing_regions(tessapi, regions, page_image, page_coords)
                 
@@ -741,11 +746,11 @@ class TesserocrRecognize(Processor):
                     self.logger.debug("Recognizing text in region '%s'", region.id)
                     tessapi.Recognize()
                 self._process_lines_in_region(tessapi.GetIterator(), region, region_coords)
+            elif textlines:
+                self._process_existing_lines(tessapi, textlines, region_image, region_coords)
             else:
-                if not textlines:
-                    self.logger.warning("Region '%s' contains no text lines", region.id)
-                else:
-                    self._process_existing_lines(tessapi, textlines, region_image, region_coords)
+                self.logger.warning("Region '%s' contains no text lines (but segmentation is off)",
+                                    region.id)
 
     def _process_existing_lines(self, tessapi, textlines, region_image, region_coords):
         for line in textlines:
@@ -792,6 +797,9 @@ class TesserocrRecognize(Processor):
                 ## external word layout:
                 self.logger.warning("Line '%s' contains words already, recognition might be suboptimal", line.id)
                 self._process_existing_words(tessapi, words, line_image, line_coords)
+            else:
+                self.logger.warning("Line '%s' contains no words (but segmentation if off)",
+                                    line.id)
 
     def _process_existing_words(self, tessapi, words, line_image, line_coords):
         for word in words:
@@ -833,6 +841,9 @@ class TesserocrRecognize(Processor):
                 ## external glyph layout:
                 self.logger.warning("Word '%s' contains glyphs already, recognition might be suboptimal", word.id)
                 self._process_existing_glyphs(tessapi, glyphs, word_image, word_coords)
+            else:
+                self.logger.warning("Word '%s' contains no glyphs (but segmentation if off)",
+                                    word.id)
 
     def _process_existing_glyphs(self, tessapi, glyphs, word_image, word_xywh):
         for glyph in glyphs:
