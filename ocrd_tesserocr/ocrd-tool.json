@@ -223,8 +223,9 @@
         },
         "overwrite_regions": {
           "type": "boolean",
+          "enum": [true],
           "default": true,
-          "description": "remove existing layout and text annotation below the Page level"
+          "description": "Remove existing layout and text annotation below the Page level (cannot be disabled currently; no incremental annotation yet)."
         },
         "padding": {
           "type": "number",
@@ -270,8 +271,9 @@
         },
         "overwrite_regions": {
           "type": "boolean",
+          "enum": [true],
           "default": true,
-          "description": "remove existing layout and text annotation below the region level"
+          "description": "Remove existing layout and text annotation below the TableRegion level (cannot be disabled currently; no incremental annotation yet)."
         }
       }
      },
@@ -296,8 +298,9 @@
         },
         "overwrite_lines": {
           "type": "boolean",
+          "enum": [true],
           "default": true,
-          "description": "remove existing layout and text annotation below the TextRegion level"
+          "description": "Remove existing layout and text annotation below the TextRegion level (cannot be disabled currently; no incremental annotation yet)."
         }
       }
     },
@@ -322,8 +325,9 @@
         },
         "overwrite_words": {
           "type": "boolean",
+          "enum": [true],
           "default": true,
-          "description": "remove existing layout and text annotation below the TextLine level"
+          "description": "Remove existing layout and text annotation below the TextLine level (cannot be disabled currently; no incremental annotation yet)."
         }
       }
     },

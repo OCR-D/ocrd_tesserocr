@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from ocrd_utils import getLogger
 from ocrd import Processor
 
-from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
 
 TOOL = 'ocrd-tesserocr-segment'
@@ -21,7 +21,7 @@ class TesserocrSegment(Processor):
             recognize_kwargs.pop('show_help', None)
             recognize_kwargs.pop('show_version', None)
             recognize_kwargs['parameter'] = self.parameter
-            recognize_kwargs['parameter']['overwrite_regions'] = True
+            recognize_kwargs['parameter']['segmentation_level'] = "region"
             recognize_kwargs['parameter']['textequiv_level'] = "none"
             self.recognizer = TesserocrRecognize(self.workspace, **recognize_kwargs)
             self.recognizer.logger = getLogger('processor.TesserocrSegment')

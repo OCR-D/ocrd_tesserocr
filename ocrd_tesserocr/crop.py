@@ -25,7 +25,7 @@ from ocrd_models.ocrd_page_generateds import BorderType
 from ocrd import Processor
 
 from .config import TESSDATA_PREFIX, OCRD_TOOL
-from .segment_region import polygon_for_parent
+from .recognize import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-crop'
 
