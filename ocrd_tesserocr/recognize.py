@@ -715,7 +715,10 @@ class TesserocrRecognize(Processor):
         for region in regions:
             region_image, region_coords = self.workspace.image_from_segment(
                 region, page_image, page_coords)
-            if self.parameter['padding']:
+            if (self.parameter['textequiv_level'] != 'region' and
+                self.parameter['segmentation_level'] != 'line'):
+                pass # image not used here
+            elif self.parameter['padding']:
                 tessapi.SetImage(pad_image(region_image, self.parameter['padding']))
                 region_coords['transform'] = shift_coordinates(
                     region_coords['transform'], 2*[self.parameter['padding']])
@@ -758,7 +761,10 @@ class TesserocrRecognize(Processor):
         for line in textlines:
             line_image, line_coords = self.workspace.image_from_segment(
                 line, region_image, region_coords)
-            if self.parameter['padding']:
+            if (self.parameter['textequiv_level'] != 'line' and
+                self.parameter['segmentation_level'] != 'word'):
+                pass # image not used here
+            elif self.parameter['padding']:
                 tessapi.SetImage(pad_image(line_image, self.parameter['padding']))
                 line_coords['transform'] = shift_coordinates(
                     line_coords['transform'], 2*[self.parameter['padding']])
@@ -807,7 +813,10 @@ class TesserocrRecognize(Processor):
         for word in words:
             word_image, word_coords = self.workspace.image_from_segment(
                 word, line_image, line_coords)
-            if self.parameter['padding']:
+            if (self.parameter['textequiv_level'] != 'word' and
+                self.parameter['segmentation_level'] != 'glyph'):
+                pass # image not used here
+            elif self.parameter['padding']:
                 tessapi.SetImage(pad_image(word_image, self.parameter['padding']))
                 word_coords['transform'] = shift_coordinates(
                     word_coords['transform'], 2*[self.parameter['padding']])
