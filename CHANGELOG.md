@@ -5,18 +5,21 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-## [0.10.0] - 2020-10-21
+## [0.10.0] - 2020-10-24
 
 Fixed:
 
  * when padding images, add the offset to coords of new segments
+ * when segmenting regions, skip empty candidates more robustly
  
 Changed:
 
  * recognize: add all-in-one segmentation with flexible entry point
  * recognize: re-parameterize to `segmentation_level`+`textequiv_level`
- * segment*: forbid `overwrite_*=false` (not useful yet)
+ * recognize: :fire: abandon `overwrite_words`
+ * segment*: forbid `overwrite_*=false` (not useful ATM)
  * segment*: delegate to recognize
+ * recognize: also annotate orientation and skew when segmenting regions
  * fontshape: new processor for TextStyle detection via pre-LSTM models
 
 ## [0.9.5] - 2020-10-02
@@ -245,6 +248,8 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.10.0]: ../../compare/v0.9.5...v0.10.0
+[0.9.5]: ../../compare/v0.9.4...v0.9.5
 [0.9.4]: ../../compare/v0.9.3...v0.9.4
 [0.9.3]: ../../compare/v0.9.2...v0.9.3
 [0.9.2]: ../../compare/v0.9.1...v0.9.2
