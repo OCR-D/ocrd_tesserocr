@@ -11,7 +11,7 @@
 
 This package offers [OCR-D](https://ocr-d.de/en/spec) compliant [workspace processors](https://ocr-d.de/en/spec/cli) for (much of) the functionality of [Tesseract](https://github.com/tesseract-ocr) via its Python API wrapper [tesserocr](https://github.com/sirfz/tesserocr). (Each processor is a parameterizable step in a configurable [workflow](https://ocr-d.de/en/workflows) of the [OCR-D functional model](https://ocr-d.de/en/about). There are usually various alternative processor implementations for each step. Data is represented with [METS](https://ocr-d.de/en/spec/mets) and [PAGE](https://ocr-d.de/en/spec/page).)
 
-It includes image preprocessing (cropping, binarization, deskewing), layout analysis (region, table, line, word segmentation), script identification, font style recognition and OCR proper. 
+It includes image preprocessing (cropping, binarization, deskewing), layout analysis (region, table, line, word segmentation), script identification, font style recognition and text recognition. 
 
 Most processors can operate on different levels of the PAGE hierarchy, depending on the workflow configuration. In PAGE, image results are referenced (read and written) via `AlternativeImage`, text results via `TextEquiv`, font attributes via `TextStyle`, script via `@primaryScript`, deskewing via `@orientation`, cropping via `Border` and segmentation via `Region` / `TextLine` / `Word` elements with `Coords/@points`.
 
@@ -87,26 +87,26 @@ or simply `--help`.
 Available [OCR-D processors](https://ocr-d.de/en/spec/cli) are:
 
 - [ocrd-tesserocr-crop](ocrd_tesserocr/crop.py) (simplistic)
-  - sets `Border` and adds `AlternativeImage` files to the output fileGrp
+  - sets `Border` of pages and adds `AlternativeImage` files to the output fileGrp
 - [ocrd-tesserocr-deskew](ocrd_tesserocr/deskew.py) (for skew and orientation; mind `operation_level`)
-  - sets `@orientation` and adds `AlternativeImage` files to the output fileGrp
+  - sets `@orientation` of regions or pages and adds `AlternativeImage` files to the output fileGrp
 - [ocrd-tesserocr-binarize](ocrd_tesserocr/binarize.py) (Otsu – not recommended)  
   - adds `AlternativeImage` files to the output fileGrp
 - [ocrd-tesserocr-recognize](ocrd_tesserocr/recognize.py) (optionally including segmentation; mind `segmentation_level` and `textequiv_level`)
-  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s and `ReadingOrder` to `Page` (optionally)
-  - adds `TextRegion`s to `TableRegion`s (optionally)
+  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s and `ReadingOrder` to `Page` and sets their `@orientation` (optionally)
+  - adds `TextRegion`s to `TableRegion`s and sets their `@orientation` (optionally)
   - adds `TextLine`s to `TextRegion`s (optionally)
   - adds `Word`s to `TextLine`s (optionally)
   - adds `Glyph`s to `Word`s (optionally)
   - adds `TextEquiv`
 - [ocrd-tesserocr-segment](ocrd_tesserocr/segment.py) (all-in-one segmentation – recommended; delegates to `recognize`)  
-  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s and `ReadingOrder` to `Page`
-  - adds `TextRegion`s to `TableRegion`s
+  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s and `ReadingOrder` to `Page` and sets their `@orientation`
+  - adds `TextRegion`s to `TableRegion`s and sets their `@orientation`
   - adds `TextLine`s to `TextRegion`s
   - adds `Word`s to `TextLine`s
   - adds `Glyph`s to `Word`s
 - [ocrd-tesserocr-segment-region](ocrd_tesserocr/segment_region.py) (only regions – with overlapping bboxes; delegates to `recognize`)
-  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s and `ReadingOrder` to `Page`
+  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s and `ReadingOrder` to `Page` and sets their `@orientation`
 - [ocrd-tesserocr-segment-table](ocrd_tesserocr/segment_table.py) (only table cells; delegates to `recognize`)
   - adds `TextRegion`s to `TableRegion`s
 - [ocrd-tesserocr-segment-line](ocrd_tesserocr/segment_line.py) (only lines – from overlapping regions; delegates to `recognize`)

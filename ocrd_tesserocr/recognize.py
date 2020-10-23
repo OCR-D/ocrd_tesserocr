@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import os.path
+import math
 from PIL import Image, ImageStat
 import numpy as np
 from shapely.geometry import Polygon, asPolygon
@@ -7,6 +8,9 @@ from shapely.ops import unary_union
 
 from tesserocr import (
     RIL, PSM, PT,
+    Orientation,
+    WritingDirection,
+    TextlineOrder,
     PyTessBaseAPI, get_languages as get_languages_)
 
 from ocrd_utils import (
@@ -91,7 +95,8 @@ class TesserocrRecognize(Processor):
         Next, iterate over the result hierarchy from the current level
         in the PAGE hierarchy down to the requested ``textequiv_level``
         (if there is a gap), creating new segmentation at each level
-        (as well as reading order references at the region/table level).
+        (as well as reading order references, text line order, reading direction
+         and orientation at the region/table level).
         
         Put text and confidence results into TextEquiv at ``textequiv_level``,
         removing any existing TextEquiv.
@@ -498,6 +503,11 @@ class TesserocrRecognize(Processor):
             else:
                 region = NoiseRegionType(id=ID, Coords=coords)
                 page.add_NoiseRegion()
+            # 
+            # add orientation
+            if isinstance(region, (TextRegionType, TableRegionType,
+                                   ImageRegionType, MathsRegionType)):
+                self._add_orientation(it, region, page_coords)
             #
             # iterator increment
             #
@@ -529,6 +539,7 @@ class TesserocrRecognize(Processor):
             self.logger.info("Detected cell '%s': %s", ID, points)
             cell = TextRegionType(id=ID, Coords=coords)
             region.add_TextRegion(cell)
+            self._add_orientation(it, cell, page_coords)
             if rogroup:
                 rogroup.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
             if self.parameter['textequiv_level'] == 'cell':
@@ -888,6 +899,55 @@ class TesserocrRecognize(Processor):
                 # todo: consider SymbolIsSuperscript (TextStyle), SymbolIsDropcap (RelationType) etc
                 glyph.add_TextEquiv(TextEquivType(
                     index=choice_no, Unicode=alternative_text, conf=alternative_conf))
+    
+    def _add_orientation(self, result_it, region, coords):
+        # Tesseract layout analysis already rotates the image, even for each
+        # sub-segment (depending on RIL).
+        # (These images can be queried via GetBinaryImage/GetImage, cf. segment_region)
+        # Unfortunately, it does _not_ use expand=True, but chops off corners.
+        # So the accuracy is not as good as setting the image to the sub-segments and
+        # running without iterator. But there are other reasons to do all-in-one
+        # segmentation (like overlaps), and its up to the user now.
+        # Here we don't know whether the iterator will be used or the created PAGE segments.
+        # For the latter case at least, we must annotate the angle, so the segment image
+        # can be rotated before the next step.
+        orientation, writing_direction, textline_order, deskew_angle = result_it.Orientation()
+        # defined as 'how many radians does one have to rotate the block anti-clockwise'
+        # i.e. positive amount to be applied counter-clockwise for deskewing:
+        deskew_angle *= 180 / math.pi
+        self.logger.debug('orientation/deskewing for %s: %s / %s / %s / %.3f°', region.id,
+                          membername(Orientation, orientation),
+                          membername(WritingDirection, writing_direction),
+                          membername(TextlineOrder, textline_order),
+                          deskew_angle)
+        # defined as 'the amount of clockwise rotation to be applied to the input image'
+        # i.e. the negative amount to be applied counter-clockwise for deskewing:
+        # (as defined in Tesseract OrientationIdToValue):
+        angle = {
+            Orientation.PAGE_RIGHT: 90,
+            Orientation.PAGE_DOWN: 180,
+            Orientation.PAGE_LEFT: 270
+        }.get(orientation, 0)
+        # annotate result:
+        angle += deskew_angle
+        # get deskewing (w.r.t. top image) already applied to image
+        angle0 = coords['angle']
+        # page angle: PAGE @orientation is defined clockwise,
+        # whereas PIL/ndimage rotation is in mathematical direction:
+        orientation = -(angle + angle0)
+        orientation = 180 - (180 - orientation) % 360 # map to [-179.999,180]
+        region.set_orientation(orientation)
+        if isinstance(region, TextRegionType):
+            region.set_readingDirection({
+                WritingDirection.LEFT_TO_RIGHT: 'left-to-right',
+                WritingDirection.RIGHT_TO_LEFT: 'right-to-left',
+                WritingDirection.TOP_TO_BOTTOM: 'top-to-bottom'
+            }.get(writing_direction, 'bottom-to-top'))
+            region.set_textLineOrder({
+                TextlineOrder.LEFT_TO_RIGHT: 'left-to-right',
+                TextlineOrder.RIGHT_TO_LEFT: 'right-to-left',
+                TextlineOrder.TOP_TO_BOTTOM: 'top-to-bottom'
+            }.get(textline_order, 'bottom-to-top'))
 
 def page_element_unicode0(element):
     """Get Unicode string of the first text result."""
