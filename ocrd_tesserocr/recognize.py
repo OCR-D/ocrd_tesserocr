@@ -426,7 +426,7 @@ class TesserocrRecognize(Processor):
                 self.logger.info('Ignoring too small region: %s', points)
                 continue
             region_image_bin = it.GetBinaryImage(RIL.BLOCK)
-            if not region_image_bin.getbbox():
+            if not region_image_bin or not region_image_bin.getbbox():
                 self.logger.info('Ignoring binary-empty region: %s', points)
                 continue
             #
