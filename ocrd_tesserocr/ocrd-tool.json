@@ -108,7 +108,7 @@
         "segmentation_level": {
           "type": "string",
           "enum": ["region", "cell", "line", "word", "glyph", "none"],
-          "default": "none",
+          "default": "word",
           "description": "Highest PAGE XML hierarchy level to remove existing annotation from and detect segments for (before iterating downwards); if ``none``, does not attempt any new segmentation; if ``cell``, starts at table regions, detecting text regions (cells). Ineffective when lower than ``textequiv_level``."
         },
         "textequiv_level": {
