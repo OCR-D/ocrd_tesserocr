@@ -65,6 +65,7 @@ class TesserocrCrop(Processor):
             # page:
             tessapi.SetVariable("textord_tabfind_find_tables", "0")
             for (n, input_file) in enumerate(self.input_files):
+                file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
                 LOG.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
@@ -184,7 +185,6 @@ class TesserocrCrop(Processor):
                     # update METS (add the image file):
                     page_image = crop_image(page_image, box=bbox)
                     page_xywh['features'] += ',cropped'
-                    file_id = make_file_id(input_file, self.output_file_grp)
                     file_path = self.workspace.save_image_file(page_image,
                                                 file_id + '.IMG-CROP',
                                                 page_id=input_file.pageId,
