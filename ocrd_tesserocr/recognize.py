@@ -548,9 +548,9 @@ class TesserocrRecognize(Processor):
                     # iterator scores are arithmetic averages, too
                     conf=it.MeanTextConf()/100.0))
             else:
-                self._process_lines_in_region(it, cell, page_coords)
+                self._process_lines_in_region(it, cell, page_coords, parent_ril=ril)
         
-    def _process_lines_in_region(self, result_it, region, page_coords):
+    def _process_lines_in_region(self, result_it, region, page_coords, parent_ril=RIL.BLOCK):
         if self.parameter['sparse_text']:
             it = result_it
             region.set_type(TextTypeSimpleType.OTHER)
@@ -566,7 +566,7 @@ class TesserocrRecognize(Processor):
             else:
                 self._process_words_in_line(it, line, page_coords)
             return
-        for index, it in enumerate(iterate_level(result_it, RIL.TEXTLINE)):
+        for index, it in enumerate(iterate_level(result_it, RIL.TEXTLINE, parent=parent_ril)):
             bbox = it.BoundingBox(RIL.TEXTLINE, padding=self.parameter['padding'])
             polygon = polygon_from_x0y0x1y1(bbox)
             polygon = coordinates_for_segment(polygon, None, page_coords)
@@ -1165,12 +1165,14 @@ def make_valid(polygon):
         polygon = polygon.simplify(tolerance)
     return polygon
 
-def iterate_level(it, ril):
+def iterate_level(it, ril, parent=None):
     # improves over tesserocr.iterate_level by
     # honouring multi-level semantics so iterators
     # can be combined across levels
+    if parent is None:
+        parent = ril - 1
     while it and not it.Empty(ril):
         yield it
-        if ril > 0 and it.IsAtFinalElement(ril - 1, ril):
+        if ril > 0 and it.IsAtFinalElement(parent, ril):
             break
         it.Next(ril)
