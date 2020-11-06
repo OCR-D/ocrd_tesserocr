@@ -248,7 +248,7 @@ class TesserocrDeskew(Processor):
             if deskew_angle:
                 LOG.debug('About to rotate %s by %.2f° counter-clockwise', where, deskew_angle)
                 image = rotate_image(image, deskew_angle, fill='background', transparency=True)
-                features += ',deskewed'
+            features += ',deskewed'
             # annotate result:
             angle += deskew_angle
             # page angle: PAGE @orientation is defined clockwise,
