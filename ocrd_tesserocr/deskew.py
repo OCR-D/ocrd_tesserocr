@@ -127,7 +127,6 @@ class TesserocrDeskew(Processor):
     
     def _process_segment(self, tessapi, segment, image, xywh, where, page_id, file_id):
         LOG = getLogger('processor.TesserocrDeskew')
-        features = xywh['features'] # features already applied to image
         angle0 = xywh['angle'] # deskewing (w.r.t. top image) already applied to image
         angle = 0. # additional angle to be applied at current level
         tessapi.SetImage(image)
@@ -206,76 +205,76 @@ class TesserocrDeskew(Processor):
         # orientation/skew
         #
         layout = tessapi.AnalyseLayout()
-        if layout:
-            orientation, writing_direction, textline_order, deskew_angle = layout.Orientation()
-            # defined as 'how many radians does one have to rotate the block anti-clockwise'
-            # i.e. positive amount to be applied counter-clockwise for deskewing:
-            deskew_angle *= 180 / math.pi
-            LOG.info('orientation/deskewing for %s: %s / %s / %s / %.3f°', where,
-                      membername(Orientation, orientation),
-                      membername(WritingDirection, writing_direction),
-                      membername(TextlineOrder, textline_order),
-                      deskew_angle)
-            # defined as 'the amount of clockwise rotation to be applied to the input image'
-            # i.e. the negative amount to be applied counter-clockwise for deskewing:
-            # (as defined in Tesseract OrientationIdToValue):
-            angle2 = {
-                Orientation.PAGE_RIGHT: 90,
-                Orientation.PAGE_DOWN: 180,
-                Orientation.PAGE_LEFT: 270
-            }.get(orientation, 0)
-            if angle2 != angle:
-                # This effectively ignores Orientation from AnalyseLayout,
-                # because it is usually wrong when it deviates from OSD results.
-                # (We do keep deskew_angle, though – see below.)
-                LOG.warning('inconsistent angles from layout analysis (%d) and orientation detection (%d) in %s',
-                            angle2, angle, where)
-            # For the orientation parts of the angle, rotate the image by transposition
-            # (which is more accurate than the general method below):
-            if angle:
-                image = transpose_image(image, {
-                    90: Image.ROTATE_90,
-                    180: Image.ROTATE_180,
-                    270: Image.ROTATE_270
-                }.get(angle)) # no default
-                features += ',rotated-%d' % angle
-            # Tesseract layout analysis already rotates the image, even for each
-            # sub-segment (depending on RIL), but the accuracy is not as good
-            # as setting the image to the sub-segments and running without iterator.
-            # (These images can be queried via GetBinaryImage/GetImage, cf. segment_region)
-            # Unfortunately, it does _not_ use expand=True, but chops off corners.
-            # So we must do it here from the original image ourself:
-            if deskew_angle:
-                LOG.debug('About to rotate %s by %.2f° counter-clockwise', where, deskew_angle)
-                image = rotate_image(image, deskew_angle, fill='background', transparency=True)
-            features += ',deskewed'
-            # annotate result:
-            angle += deskew_angle
-            # page angle: PAGE @orientation is defined clockwise,
-            # whereas PIL/ndimage rotation is in mathematical direction:
-            orientation = -(angle + angle0)
-            orientation = 180 - (180 - orientation) % 360 # map to [-179.999,180]
-            segment.set_orientation(orientation)
-            if isinstance(segment, (TextRegionType, PageType)):
-                segment.set_readingDirection({
-                    WritingDirection.LEFT_TO_RIGHT: 'left-to-right',
-                    WritingDirection.RIGHT_TO_LEFT: 'right-to-left',
-                    WritingDirection.TOP_TO_BOTTOM: 'top-to-bottom'
-                }.get(writing_direction, 'bottom-to-top'))
-                segment.set_textLineOrder({
-                    TextlineOrder.LEFT_TO_RIGHT: 'left-to-right',
-                    TextlineOrder.RIGHT_TO_LEFT: 'right-to-left',
-                    TextlineOrder.TOP_TO_BOTTOM: 'top-to-bottom'
-                }.get(textline_order, 'bottom-to-top'))
-            # baseline = layout.Baseline(RIL.BLOCK)
-            # if baseline:
-            #     points = points_from_x0y0x1y1(list(baseline[0]) + list(baseline[1]))
-            #     segment.add_Baseline(BaselineType(points=points))
+        if not layout:
+            LOG.warning('no result iterator in %s', where)
+            return
+        orientation, writing_direction, textline_order, deskew_angle = layout.Orientation()
+        if isinstance(segment, (TextRegionType, PageType)):
+            segment.set_readingDirection({
+                WritingDirection.LEFT_TO_RIGHT: 'left-to-right',
+                WritingDirection.RIGHT_TO_LEFT: 'right-to-left',
+                WritingDirection.TOP_TO_BOTTOM: 'top-to-bottom'
+            }.get(writing_direction, 'bottom-to-top'))
+            segment.set_textLineOrder({
+                TextlineOrder.LEFT_TO_RIGHT: 'left-to-right',
+                TextlineOrder.RIGHT_TO_LEFT: 'right-to-left',
+                TextlineOrder.TOP_TO_BOTTOM: 'top-to-bottom'
+            }.get(textline_order, 'bottom-to-top'))
+        # baseline = layout.Baseline(RIL.BLOCK)
+        # if baseline:
+        #     points = points_from_x0y0x1y1(list(baseline[0]) + list(baseline[1]))
+        #     segment.add_Baseline(BaselineType(points=points))
+        # defined as 'how many radians does one have to rotate the block anti-clockwise'
+        # i.e. positive amount to be applied counter-clockwise for deskewing:
+        deskew_angle *= 180 / math.pi
+        LOG.info('orientation/deskewing for %s: %s / %s / %s / %.3f°', where,
+                  membername(Orientation, orientation),
+                  membername(WritingDirection, writing_direction),
+                  membername(TextlineOrder, textline_order),
+                  deskew_angle)
+        # defined as 'the amount of clockwise rotation to be applied to the input image'
+        # i.e. the negative amount to be applied counter-clockwise for deskewing:
+        # (as defined in Tesseract OrientationIdToValue):
+        angle2 = {
+            Orientation.PAGE_RIGHT: 90,
+            Orientation.PAGE_DOWN: 180,
+            Orientation.PAGE_LEFT: 270
+        }.get(orientation, 0)
+        if angle2 != angle:
+            # This effectively ignores Orientation from AnalyseLayout,
+            # because it is usually wrong when it deviates from OSD results.
+            # (We do keep deskew_angle, though – see below.)
+            LOG.warning('inconsistent angles from layout analysis (%d) and orientation detection (%d) in %s',
+                        angle2, angle, where)
+        # annotate result:
+        angle += deskew_angle
+        # page angle: PAGE @orientation is defined clockwise,
+        # whereas PIL/ndimage rotation is in mathematical direction:
+        orientation = -(angle + angle0)
+        orientation = 180 - (180 - orientation) % 360 # map to [-179.999,180]
+        segment.set_orientation(orientation) # also removes all deskewed AlternativeImages
+        # Tesseract layout analysis already rotates the image, even for each
+        # sub-segment (depending on RIL), but the accuracy is not as good
+        # as setting the image to the sub-segments and running without iterator.
+        # (These images can be queried via GetBinaryImage/GetImage, cf. segment_region)
+        # Unfortunately, it does _not_ use expand=True, but chops off corners.
+        # So we must do it here from the original image ourselves.
+        # We can delegate to OCR-D core for this:
+        if angle:
+            if isinstance(segment, PageType):
+                image, xywh, _ = self.workspace.image_from_page(
+                    segment, page_id,
+                    fill='background', transparency=True)
+            else:
+                image, xywh = self.workspace.image_from_segment(
+                    segment, image, xywh,
+                    fill='background', transparency=True)
+        features = xywh['features'] # features already applied to image
         # update METS (add the image file):
-        file_path = self.workspace.save_image_file(image,
-                                    file_id + '.IMG-DESKEW',
-                                    page_id=page_id,
-                                    file_grp=self.output_file_grp)
+        file_path = self.workspace.save_image_file(
+            image, file_id + '.IMG-DESKEW',
+            page_id=page_id,
+            file_grp=self.output_file_grp)
         # update PAGE (reference the image file):
         segment.add_AlternativeImage(AlternativeImageType(
             filename=file_path, comments=features))
