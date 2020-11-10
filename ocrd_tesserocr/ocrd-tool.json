@@ -102,7 +102,7 @@
         "padding": {
           "type": "number",
           "format": "integer",
-          "default": 4,
+          "default": 0,
           "description": "Extend detected region/cell/line/word rectangles by this many (true) pixels, or extend existing region/line/word images (i.e. the annotated AlternativeImage if it exists or the higher-level image cropped to the bounding box and masked by the polygon otherwise) by this many (background/white) pixels on each side before recognition."
         },
         "segmentation_level": {
