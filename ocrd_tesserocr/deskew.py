@@ -259,16 +259,20 @@ class TesserocrDeskew(Processor):
         # (These images can be queried via GetBinaryImage/GetImage, cf. segment_region)
         # Unfortunately, it does _not_ use expand=True, but chops off corners.
         # So we must do it here from the original image ourselves.
-        # We can delegate to OCR-D core for this:
-        if angle:
-            if isinstance(segment, PageType):
-                image, xywh, _ = self.workspace.image_from_page(
-                    segment, page_id,
-                    fill='background', transparency=True)
-            else:
-                image, xywh = self.workspace.image_from_segment(
-                    segment, image, xywh,
-                    fill='background', transparency=True)
+        # We can delegate to OCR-D core for reflection, deskewing and re-cropping:
+        if isinstance(segment, PageType):
+            image, xywh, _ = self.workspace.image_from_page(
+                segment, page_id,
+                fill='background', transparency=True)
+        else:
+            image, xywh = self.workspace.image_from_segment(
+                segment, image, xywh,
+                fill='background', transparency=True)
+        if not angle:
+            # zero rotation does not change coordinates,
+            # but assures consuming processors that the
+            # workflow had deskewing
+            xywh['features'] += ',deskewed'
         features = xywh['features'] # features already applied to image
         # update METS (add the image file):
         file_path = self.workspace.save_image_file(
