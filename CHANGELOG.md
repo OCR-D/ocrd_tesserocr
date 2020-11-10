@@ -5,12 +5,13 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-## [0.10.0] - 2020-10-24
+## [0.10.0] - 2020-11-10
 
 Fixed:
 
  * when padding images, add the offset to coords of new segments
  * when segmenting regions, skip empty candidates more robustly
+ * crop: fix pageId of new derived image
  
 Changed:
 
@@ -21,6 +22,9 @@ Changed:
  * segment*: delegate to recognize
  * recognize: also annotate orientation and skew when segmenting regions
  * fontshape: new processor for TextStyle detection via pre-LSTM models
+ * crop: also use existing text regions, if any
+ * deskew: delegate to core for reflection and rotation
+ * deskew: always get new image and set feature `deskewed` (even for 0°)
 
 ## [0.9.5] - 2020-10-02
 
