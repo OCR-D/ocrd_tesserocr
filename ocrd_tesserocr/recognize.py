@@ -1129,7 +1129,7 @@ def polygon_for_parent(polygon, parent):
     parentp = make_valid(parentp)
     # check if clipping is necessary
     if childp.within(parentp):
-        return polygon
+        return childp.exterior.coords[:-1]
     # clip to parent
     interp = childp.intersection(parentp)
     if interp.is_empty or interp.area == 0.0:
