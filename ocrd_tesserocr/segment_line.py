@@ -21,6 +21,7 @@ class TesserocrSegmentLine(Processor):
             recognize_kwargs.pop('show_help', None)
             recognize_kwargs.pop('show_version', None)
             recognize_kwargs['parameter'] = self.parameter
+            recognize_kwargs['parameter']['overwrite_segments'] = self.parameter['overwrite_lines']
             del recognize_kwargs['parameter']['overwrite_lines']
             recognize_kwargs['parameter']['segmentation_level'] = "line"
             recognize_kwargs['parameter']['textequiv_level'] = "none"
@@ -32,7 +33,8 @@ class TesserocrSegmentLine(Processor):
         
         Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the (text) region level,
-        and remove any existing TextLine elements.
+        and remove any existing TextLine elements (unless ``overwrite_lines``
+        is False).
         
         Set up Tesseract to detect lines, and add each one to the region
         at the detected coordinates.

@@ -21,6 +21,7 @@ class TesserocrSegmentRegion(Processor):
             recognize_kwargs.pop('show_help', None)
             recognize_kwargs.pop('show_version', None)
             recognize_kwargs['parameter'] = self.parameter
+            recognize_kwargs['parameter']['overwrite_segments'] = self.parameter['overwrite_regions']
             del recognize_kwargs['parameter']['overwrite_regions']
             recognize_kwargs['parameter']['segmentation_level'] = "region"
             recognize_kwargs['parameter']['textequiv_level'] = "none"
@@ -33,7 +34,8 @@ class TesserocrSegmentRegion(Processor):
         """Performs region segmentation with Tesseract on the workspace.
         
         Open and deserialize PAGE input files and their respective images,
-        and remove any existing Region and ReadingOrder elements.
+        and remove any existing Region and ReadingOrder elements
+        (unless ``overwrite_regions`` is False).
         
         Set up Tesseract to detect blocks, and add each one to the page
         as a region according to BlockType at the detected coordinates.

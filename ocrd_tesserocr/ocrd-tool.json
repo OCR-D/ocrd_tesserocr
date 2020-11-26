@@ -117,6 +117,16 @@
           "default": "word",
           "description": "Lowest PAGE XML hierarchy level to re-use or detect segments for and add the TextEquiv results to (before projecting upwards); if ``none``, adds segmentation down to the glyph level, but does not attempt recognition at all; if ``cell``, stops short before text lines, adding text of text regions inside tables (cells) or on page level only."
         },
+        "overwrite_segments": {
+          "type": "boolean",
+          "default": false,
+          "description": "If ``segmentation_level`` is not none, but an element already contains segments, remove them and segment again. Otherwise use the existing segments of that element."
+        },
+        "overwrite_text": {
+          "type": "boolean",
+          "default": true,
+          "description": "If ``textequiv_level`` is not none, but a segment already contains TextEquivs, remove them and replace with recognised text. Otherwise add new text as alternative. (Only the first entry is projected upwards.)"
+        },
         "block_polygons": {
           "type": "boolean",
           "default": false,
@@ -223,9 +233,8 @@
         },
         "overwrite_regions": {
           "type": "boolean",
-          "enum": [true],
           "default": true,
-          "description": "Remove existing layout and text annotation below the Page level (cannot be disabled currently; no incremental annotation yet)."
+          "description": "Remove existing layout and text annotation below the Page level (otherwise skip page; no incremental annotation yet)."
         },
         "padding": {
           "type": "number",
@@ -269,11 +278,10 @@
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
           "default": 0
         },
-        "overwrite_regions": {
+        "overwrite_cells": {
           "type": "boolean",
-          "enum": [true],
           "default": true,
-          "description": "Remove existing layout and text annotation below the TableRegion level (cannot be disabled currently; no incremental annotation yet)."
+          "description": "Remove existing layout and text annotation below the TableRegion level (otherwise skip table; no incremental annotation yet)."
         }
       }
      },
@@ -298,9 +306,8 @@
         },
         "overwrite_lines": {
           "type": "boolean",
-          "enum": [true],
           "default": true,
-          "description": "Remove existing layout and text annotation below the TextRegion level (cannot be disabled currently; no incremental annotation yet)."
+          "description": "Remove existing layout and text annotation below the TextRegion level (otherwise skip region; no incremental annotation yet)."
         }
       }
     },
@@ -325,9 +332,8 @@
         },
         "overwrite_words": {
           "type": "boolean",
-          "enum": [true],
           "default": true,
-          "description": "Remove existing layout and text annotation below the TextLine level (cannot be disabled currently; no incremental annotation yet)."
+          "description": "Remove existing layout and text annotation below the TextLine level (otherwise skip line; no incremental annotation yet)."
         }
       }
     },

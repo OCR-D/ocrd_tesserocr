@@ -21,6 +21,7 @@ class TesserocrSegmentTable(Processor):
             recognize_kwargs.pop('show_help', None)
             recognize_kwargs.pop('show_version', None)
             recognize_kwargs['parameter'] = self.parameter
+            recognize_kwargs['parameter']['overwrite_segments'] = self.parameter['overwrite_cells']
             del recognize_kwargs['parameter']['overwrite_regions']
             recognize_kwargs['parameter']['segmentation_level'] = "cell"
             recognize_kwargs['parameter']['textequiv_level'] = "none"
@@ -32,7 +33,8 @@ class TesserocrSegmentTable(Processor):
         
         Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the region level
-        for table regions, and remove any existing TextRegion elements.
+        for table regions, and remove any existing TextRegion elements
+        (unless ``overwrite_cells`` is False).
         
         Set up Tesseract to detect text blocks (as table cells).
         (This is not Tesseract's internal table structure recognition,
