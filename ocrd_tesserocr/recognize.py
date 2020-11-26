@@ -712,6 +712,9 @@ class TesserocrRecognize(Processor):
             # set table image
             table_image, table_coords = self.workspace.image_from_segment(
                 table, page_image, page_coords)
+            if not table_image.width or not table_image.height:
+                self.logger.warning("Skipping table region '%s' with zero size", table.id)
+                continue
             if self.parameter['padding']:
                 tessapi.SetImage(pad_image(table_image, self.parameter['padding']))
                 table_coords['transform'] = shift_coordinates(
@@ -732,6 +735,9 @@ class TesserocrRecognize(Processor):
         for region in regions:
             region_image, region_coords = self.workspace.image_from_segment(
                 region, page_image, page_coords)
+            if not region_image.width or not region_image.height:
+                self.logger.warning("Skipping text region '%s' with zero size", region.id)
+                continue
             if (self.parameter['textequiv_level'] != 'region' and
                 self.parameter['segmentation_level'] != 'line'):
                 pass # image not used here
@@ -779,6 +785,9 @@ class TesserocrRecognize(Processor):
         for line in textlines:
             line_image, line_coords = self.workspace.image_from_segment(
                 line, region_image, region_coords)
+            if not line_image.width or not line_image.height:
+                self.logger.warning("Skipping text line '%s' with zero size", line.id)
+                continue
             if (self.parameter['textequiv_level'] != 'line' and
                 self.parameter['segmentation_level'] != 'word'):
                 pass # image not used here
@@ -831,6 +840,9 @@ class TesserocrRecognize(Processor):
         for word in words:
             word_image, word_coords = self.workspace.image_from_segment(
                 word, line_image, line_coords)
+            if not word_image.width or not word_image.height:
+                self.logger.warning("Skipping word '%s' with zero size", word.id)
+                continue
             if (self.parameter['textequiv_level'] != 'word' and
                 self.parameter['segmentation_level'] != 'glyph'):
                 pass # image not used here
@@ -878,6 +890,9 @@ class TesserocrRecognize(Processor):
         for glyph in glyphs:
             glyph_image, _ = self.workspace.image_from_segment(
                 glyph, word_image, word_xywh)
+            if not glyph_image.width or not glyph_image.height:
+                self.logger.warning("Skipping glyph '%s' with zero size", glyph.id)
+                continue
             if self.parameter['padding']:
                 tessapi.SetImage(pad_image(glyph_image, self.parameter['padding']))
             else:
