@@ -127,6 +127,9 @@ class TesserocrDeskew(Processor):
     
     def _process_segment(self, tessapi, segment, image, xywh, where, page_id, file_id):
         LOG = getLogger('processor.TesserocrDeskew')
+        if not image.width or not image.height:
+            LOG.warning("Skipping %s with zero size", where)
+            return
         angle0 = xywh['angle'] # deskewing (w.r.t. top image) already applied to image
         angle = 0. # additional angle to be applied at current level
         tessapi.SetImage(image)
