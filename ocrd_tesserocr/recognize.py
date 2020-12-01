@@ -466,7 +466,7 @@ class TesserocrRecognize(Processor):
                     region.add_TextEquiv(TextEquivType(
                         Unicode=it.GetUTF8Text(RIL.BLOCK).rstrip("\n\f"),
                         # iterator scores are arithmetic averages, too
-                        conf=it.MeanTextConf()/100.0))
+                        conf=it.Confidence(RIL.BLOCK)/100.0))
                 else:
                     self._process_lines_in_region(it, region, page_coords)
             elif block_type in [PT.FLOWING_IMAGE,
@@ -499,7 +499,7 @@ class TesserocrRecognize(Processor):
                     # region.add_TextEquiv(TextEquivType(
                     #     Unicode=it.GetUTF8Text(RIL.BLOCK).rstrip("\n\f"),
                     #     # iterator scores are arithmetic averages, too
-                    #     conf=it.MeanTextConf()/100.0))
+                    #     conf=it.Confidence(RIL.BLOCK)/100.0))
                 else:
                     self._process_cells_in_table(it, region, rogroup, page_coords)
             else:
@@ -548,7 +548,7 @@ class TesserocrRecognize(Processor):
                 cell.add_TextEquiv(TextEquivType(
                     Unicode=it.GetUTF8Text(ril).rstrip("\n\f"),
                     # iterator scores are arithmetic averages, too
-                    conf=it.MeanTextConf()/100.0))
+                    conf=it.Confidence(ril)/100.0))
             else:
                 self._process_lines_in_region(it, cell, page_coords, parent_ril=ril)
         
@@ -564,7 +564,7 @@ class TesserocrRecognize(Processor):
                 line.add_TextEquiv(TextEquivType(
                     Unicode=it.GetUTF8Text(RIL.TEXTLINE).rstrip("\n\f"),
                     # iterator scores are arithmetic averages, too
-                    conf=it.MeanTextConf()/100.0))
+                    conf=it.Confidence(RIL.TEXTLINE)/100.0))
             else:
                 self._process_words_in_line(it, line, page_coords)
             return
@@ -589,7 +589,7 @@ class TesserocrRecognize(Processor):
                 line.add_TextEquiv(TextEquivType(
                     Unicode=it.GetUTF8Text(RIL.TEXTLINE).rstrip("\n\f"),
                     # iterator scores are arithmetic averages, too
-                    conf=it.MeanTextConf()/100.0))
+                    conf=it.Confidence(RIL.TEXTLINE)/100.0))
             else:
                 self._process_words_in_line(it, line, page_coords)
     

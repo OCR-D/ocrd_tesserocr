@@ -13,7 +13,8 @@ Fixed:
  * when segmenting regions, skip empty output coords more robustly
  * deskew/segment/recognize: skip empty input images more robustly
  * crop: fix pageId of new derived image
- * recognize: fix missing RIL for terminal `GetUTF8Text`
+ * recognize: fix missing RIL for terminal `GetUTF8Text()`
+ * recognize: fix `Confidence()` vs `MeanTextConf()`
  
 Changed:
 
