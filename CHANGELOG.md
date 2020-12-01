@@ -5,20 +5,21 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-## [0.10.0] - 2020-11-10
+## [0.10.0] - 2020-12-01
 
 Fixed:
 
  * when padding images, add the offset to coords of new segments
- * when segmenting regions, skip empty candidates more robustly
+ * when segmenting regions, skip empty output coords more robustly
+ * deskew/segment/recognize: skip empty input images more robustly
  * crop: fix pageId of new derived image
+ * recognize: fix missing RIL for terminal `GetUTF8Text`
  
 Changed:
 
  * recognize: add all-in-one segmentation with flexible entry point
  * recognize: re-parameterize to `segmentation_level`+`textequiv_level`
- * recognize: :fire: abandon `overwrite_words`
- * segment*: forbid `overwrite_*=false` (not useful ATM)
+ * recognize: :fire: rename `overwrite_words` to `overwrite_segments`
  * segment*: delegate to recognize
  * recognize: also annotate orientation and skew when segmenting regions
  * fontshape: new processor for TextStyle detection via pre-LSTM models

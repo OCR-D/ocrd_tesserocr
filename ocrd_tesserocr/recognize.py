@@ -464,7 +464,7 @@ class TesserocrRecognize(Processor):
                 og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
                 if self.parameter['textequiv_level'] == 'region':
                     region.add_TextEquiv(TextEquivType(
-                        Unicode=it.GetUTF8Text().rstrip("\n\f"),
+                        Unicode=it.GetUTF8Text(RIL.BLOCK).rstrip("\n\f"),
                         # iterator scores are arithmetic averages, too
                         conf=it.MeanTextConf()/100.0))
                 else:
@@ -497,7 +497,7 @@ class TesserocrRecognize(Processor):
                     pass # impossible (see exception above)
                     # todo: TableRegionType has no TextEquiv in PAGE
                     # region.add_TextEquiv(TextEquivType(
-                    #     Unicode=it.GetUTF8Text().rstrip("\n\f"),
+                    #     Unicode=it.GetUTF8Text(RIL.BLOCK).rstrip("\n\f"),
                     #     # iterator scores are arithmetic averages, too
                     #     conf=it.MeanTextConf()/100.0))
                 else:
@@ -546,7 +546,7 @@ class TesserocrRecognize(Processor):
                 rogroup.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
             if self.parameter['textequiv_level'] == 'cell':
                 cell.add_TextEquiv(TextEquivType(
-                    Unicode=it.GetUTF8Text().rstrip("\n\f"),
+                    Unicode=it.GetUTF8Text(ril).rstrip("\n\f"),
                     # iterator scores are arithmetic averages, too
                     conf=it.MeanTextConf()/100.0))
             else:
@@ -562,7 +562,7 @@ class TesserocrRecognize(Processor):
             if self.parameter['textequiv_level'] == 'line':
                 # todo: consider BlankBeforeWord, SetLineSeparator
                 line.add_TextEquiv(TextEquivType(
-                    Unicode=it.GetUTF8Text().rstrip("\n\f"),
+                    Unicode=it.GetUTF8Text(RIL.TEXTLINE).rstrip("\n\f"),
                     # iterator scores are arithmetic averages, too
                     conf=it.MeanTextConf()/100.0))
             else:
@@ -587,7 +587,7 @@ class TesserocrRecognize(Processor):
             if self.parameter['textequiv_level'] == 'line':
                 # todo: consider BlankBeforeWord, SetLineSeparator
                 line.add_TextEquiv(TextEquivType(
-                    Unicode=it.GetUTF8Text().rstrip("\n\f"),
+                    Unicode=it.GetUTF8Text(RIL.TEXTLINE).rstrip("\n\f"),
                     # iterator scores are arithmetic averages, too
                     conf=it.MeanTextConf()/100.0))
             else:
