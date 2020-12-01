@@ -5,6 +5,29 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.10.0] - 2020-12-01
+
+Fixed:
+
+ * when padding images, add the offset to coords of new segments
+ * when segmenting regions, skip empty output coords more robustly
+ * deskew/segment/recognize: skip empty input images more robustly
+ * crop: fix pageId of new derived image
+ * recognize: fix missing RIL for terminal `GetUTF8Text()`
+ * recognize: fix `Confidence()` vs `MeanTextConf()`
+ 
+Changed:
+
+ * recognize: add all-in-one segmentation with flexible entry point
+ * recognize: re-parameterize to `segmentation_level`+`textequiv_level`
+ * recognize: :fire: rename `overwrite_words` to `overwrite_segments`
+ * segment*: delegate to recognize
+ * recognize: also annotate orientation and skew when segmenting regions
+ * fontshape: new processor for TextStyle detection via pre-LSTM models
+ * crop: also use existing text regions, if any
+ * deskew: delegate to core for reflection and rotation
+ * deskew: always get new image and set feature `deskewed` (even for 0°)
+
 ## [0.9.5] - 2020-10-02
 
 Fixed:
@@ -231,6 +254,8 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.10.0]: ../../compare/v0.9.5...v0.10.0
+[0.9.5]: ../../compare/v0.9.4...v0.9.5
 [0.9.4]: ../../compare/v0.9.3...v0.9.4
 [0.9.3]: ../../compare/v0.9.2...v0.9.3
 [0.9.2]: ../../compare/v0.9.1...v0.9.2

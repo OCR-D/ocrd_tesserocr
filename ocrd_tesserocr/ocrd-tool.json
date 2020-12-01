@@ -1,5 +1,5 @@
 {
-  "version": "0.9.5",
+  "version": "0.10.0",
   "git_url": "https://github.com/OCR-D/ocrd_tesserocr",
   "dockerhub": "ocrd/tesserocr",
   "tools": {
@@ -20,7 +20,7 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "operation_level": {
           "type": "string",
@@ -36,71 +36,182 @@
         }
       }
     },
-    "ocrd-tesserocr-recognize": {
-      "executable": "ocrd-tesserocr-recognize",
+    "ocrd-tesserocr-fontshape": {
+      "executable": "ocrd-tesserocr-fontshape",
       "categories": ["Text recognition and optimization"],
-      "description": "Recognize text in lines with Tesseract (using annotated derived images, or masking and cropping images from coordinate polygons)",
+      "description": "Recognize font shapes (family/monospace/bold/italic) and size in segmented words with Tesseract (using annotated derived images, or masking and cropping images from coordinate polygons), annotating TextStyle",
       "input_file_grp": [
-        "OCR-D-SEG-BLOCK",
-        "OCR-D-SEG-LINE",
         "OCR-D-SEG-WORD",
-        "OCR-D-SEG-GLYPH"
+        "OCR-D-OCR"
       ],
       "output_file_grp": [
-        "OCR-D-OCR-TESS"
+        "OCR-D-OCR-STYLE"
       ],
-      "steps": ["recognition/text-recognition"],
+      "steps": ["recognition/font-identification"],
       "parameters": {
         "dpi": {
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
-        },
-        "textequiv_level": {
-          "type": "string",
-          "enum": ["region", "line", "word", "glyph"],
-          "default": "word",
-          "description": "Lowest PAGE XML hierarchy level to add the TextEquiv results to; when below `region`, implicitly adds segmentation below the line level, but requires existing line segmentation"
-        },
-        "overwrite_words": {
-          "type": "boolean",
-          "default": false,
-          "description": "Remove existing layout and text annotation below the TextLine level (regardless of textequiv_level)."
+          "default": 0
         },
         "padding": {
           "type": "number",
           "format": "integer",
           "default": 0,
-          "description": "Number of background-filled pixels to add around the line image (i.e. the annotated AlternativeImage if it exists or the higher-level image cropped to the bounding box and masked by the polygon otherwise) on each side before recognition."
+          "description": "Number of background-filled pixels to add around the word image (i.e. the annotated AlternativeImage if it exists or the higher-level image cropped to the bounding box and masked by the polygon otherwise) on each side before recognition."
+        },
+        "model": {
+          "type": "string",
+          "default": "osd",
+          "description": "tessdata model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or osd); must be an old (pre-LSTM) model"
+        }
+      }
+    },
+    "ocrd-tesserocr-recognize": {
+      "executable": "ocrd-tesserocr-recognize",
+      "categories": ["Text recognition and optimization"],
+      "description": "Segment and/or recognize text with Tesseract (using annotated derived images, or masking and cropping images from coordinate polygons) on any level of the PAGE hierarchy.",
+      "input_file_grp": [
+        "OCR-D-SEG-PAGE",
+        "OCR-D-SEG-REGION",
+        "OCR-D-SEG-TABLE",
+        "OCR-D-SEG-LINE",
+        "OCR-D-SEG-WORD"
+      ],
+      "output_file_grp": [
+        "OCR-D-SEG-REGION",
+        "OCR-D-SEG-TABLE",
+        "OCR-D-SEG-LINE",
+        "OCR-D-SEG-WORD",
+        "OCR-D-SEG-GLYPH",
+        "OCR-D-OCR-TESS"
+      ],
+      "steps": [
+        "layout/segmentation/region",
+        "layout/segmentation/line",
+        "recognition/text-recognition"
+      ],
+      "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "default": 0
+        },
+        "padding": {
+          "type": "number",
+          "format": "integer",
+          "default": 0,
+          "description": "Extend detected region/cell/line/word rectangles by this many (true) pixels, or extend existing region/line/word images (i.e. the annotated AlternativeImage if it exists or the higher-level image cropped to the bounding box and masked by the polygon otherwise) by this many (background/white) pixels on each side before recognition."
+        },
+        "segmentation_level": {
+          "type": "string",
+          "enum": ["region", "cell", "line", "word", "glyph", "none"],
+          "default": "word",
+          "description": "Highest PAGE XML hierarchy level to remove existing annotation from and detect segments for (before iterating downwards); if ``none``, does not attempt any new segmentation; if ``cell``, starts at table regions, detecting text regions (cells). Ineffective when lower than ``textequiv_level``."
+        },
+        "textequiv_level": {
+          "type": "string",
+          "enum": ["region", "cell", "line", "word", "glyph", "none"],
+          "default": "word",
+          "description": "Lowest PAGE XML hierarchy level to re-use or detect segments for and add the TextEquiv results to (before projecting upwards); if ``none``, adds segmentation down to the glyph level, but does not attempt recognition at all; if ``cell``, stops short before text lines, adding text of text regions inside tables (cells) or on page level only."
+        },
+        "overwrite_segments": {
+          "type": "boolean",
+          "default": false,
+          "description": "If ``segmentation_level`` is not none, but an element already contains segments, remove them and segment again. Otherwise use the existing segments of that element."
+        },
+        "overwrite_text": {
+          "type": "boolean",
+          "default": true,
+          "description": "If ``textequiv_level`` is not none, but a segment already contains TextEquivs, remove them and replace with recognised text. Otherwise add new text as alternative. (Only the first entry is projected upwards.)"
+        },
+        "block_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting regions, annotate polygon coordinates instead of bounding box rectangles."
+        },
+        "find_tables": {
+          "type": "boolean",
+          "default": true,
+          "description": "When detecting regions, recognise tables as table regions (Tesseract's ``textord_tabfind_find_tables=1``)."
+        },
+        "sparse_text": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting regions, use 'sparse text' page segmentation mode (finding as much text as possible in no particular order): only text regions, single lines without vertical or horizontal space."
         },
         "raw_lines": {
           "type": "boolean",
           "default": false,
-          "description": "Do not attempt additional segmentation (baseline+xheight+ascenders/descenders prediction) when using line images (i.e. when textequiv_level<region). Can increase accuracy for certain workflows. Disable when line segments/images may contain components of more than 1 line, or larger gaps/white-spaces."
+          "description": "When detecting lines, do not attempt additional segmentation (baseline+xheight+ascenders/descenders prediction) on line images. Can increase accuracy for certain workflows. Disable when line segments/images may contain components of more than 1 line, or larger gaps/white-spaces."
         },
         "char_whitelist": {
           "type": "string",
           "default": "",
-          "description": "Enumeration of character hypotheses (from the model) to allow exclusively; overruled by blacklist if set."
+          "description": "When recognizing text, enumeration of character hypotheses (from the model) to allow exclusively; overruled by blacklist if set."
         },
         "char_blacklist": {
           "type": "string",
           "default": "",
-          "description": "Enumeration of character hypotheses (from the model) to suppress; overruled by unblacklist if set."
+          "description": "When recognizing text, enumeration of character hypotheses (from the model) to suppress; overruled by unblacklist if set."
         },
         "char_unblacklist": {
           "type": "string",
           "default": "",
-          "description": "Enumeration of character hypotheses (from the model) to allow inclusively."
+          "description": "When recognizing text, enumeration of character hypotheses (from the model) to allow inclusively."
         },
         "model": {
           "type": "string",
-          "description": "tessdata model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)"
+          "description": "The tessdata text recognition model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)."
         }
       }
     },
-     "ocrd-tesserocr-segment-region": {
+     "ocrd-tesserocr-segment": {
+      "executable": "ocrd-tesserocr-segment",
+      "categories": ["Layout analysis"],
+      "description": "Segment page into regions and lines with Tesseract",
+      "input_file_grp": [
+        "OCR-D-IMG",
+        "OCR-D-SEG-PAGE",
+        "OCR-D-GT-SEG-PAGE"
+      ],
+      "output_file_grp": [
+        "OCR-D-SEG-LINE"
+      ],
+      "steps": ["layout/segmentation/region", "layout/segmentation/line"],
+      "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "default": 0
+        },
+        "padding": {
+          "type": "number",
+          "format": "integer",
+          "description": "extend detected region rectangles by this many (true) pixels",
+          "default": 4
+        },
+        "block_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "annotate polygon coordinates instead of bounding box rectangles"
+        },
+        "find_tables": {
+          "type": "boolean",
+          "default": true,
+          "description": "recognise tables as table regions (textord_tabfind_find_tables)"
+        },
+        "sparse_text": {
+          "type": "boolean",
+          "default": false,
+          "description": "use 'sparse text' page segmentation mode (find as much text as possible in no particular order): only text regions, single lines without vertical or horizontal space"
+        }
+      }
+   },
+   "ocrd-tesserocr-segment-region": {
       "executable": "ocrd-tesserocr-segment-region",
       "categories": ["Layout analysis"],
       "description": "Segment page into regions with Tesseract",
@@ -118,12 +229,12 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "overwrite_regions": {
           "type": "boolean",
           "default": true,
-          "description": "remove existing layout and text annotation below the Page level"
+          "description": "Remove existing layout and text annotation below the Page level (otherwise skip page; no incremental annotation yet)."
         },
         "padding": {
           "type": "number",
@@ -165,12 +276,12 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
-        "overwrite_regions": {
+        "overwrite_cells": {
           "type": "boolean",
           "default": true,
-          "description": "remove existing layout and text annotation below the region level"
+          "description": "Remove existing layout and text annotation below the TableRegion level (otherwise skip table; no incremental annotation yet)."
         }
       }
      },
@@ -191,12 +302,12 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "overwrite_lines": {
           "type": "boolean",
           "default": true,
-          "description": "remove existing layout and text annotation below the TextRegion level"
+          "description": "Remove existing layout and text annotation below the TextRegion level (otherwise skip region; no incremental annotation yet)."
         }
       }
     },
@@ -217,12 +328,12 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "overwrite_words": {
           "type": "boolean",
           "default": true,
-          "description": "remove existing layout and text annotation below the TextLine level"
+          "description": "Remove existing layout and text annotation below the TextLine level (otherwise skip line; no incremental annotation yet)."
         }
       }
     },
@@ -242,7 +353,7 @@
           "type": "number",
           "format": "float",
           "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
-          "default": -1
+          "default": 0
         },
         "padding": {
           "type": "number",
