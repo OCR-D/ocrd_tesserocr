@@ -424,7 +424,7 @@ class TesserocrRecognize(Processor):
                     PT.EQUATION,
                     PT.TABLE] and (
                         xywh['w'] < 20 / 300.0*(dpi or 300) or
-                        xywh['h'] < 30 / 300.0*(dpi or 300)):
+                        xywh['h'] < 10 / 300.0*(dpi or 300)):
                 self.logger.info('Ignoring too small region: %s', points)
                 continue
             region_image_bin = it.GetBinaryImage(RIL.BLOCK)
