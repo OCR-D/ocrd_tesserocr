@@ -11,7 +11,7 @@ Fixed:
 
 Changed:
 
- * segment/recognize: add option `shrink_polygons`, default to `true`
+ * segment/recognize: add option `shrink_polygons`, default to `false`
 
 ## [0.10.0] - 2020-12-01
 

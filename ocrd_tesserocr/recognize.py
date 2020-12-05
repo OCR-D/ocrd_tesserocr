@@ -353,7 +353,7 @@ class TesserocrRecognize(Processor):
                 
                 if outlevel != 'none':
                     page_update_higher_textequiv_levels(outlevel, pcgts)
-                if self.parameter['shrink_polygons']:
+                if inlevel != 'none' and self.parameter['shrink_polygons']:
                     page_shrink_higher_coordinate_levels(inlevel, outlevel, pcgts)
                 
                 file_id = make_file_id(input_file, self.output_file_grp)
@@ -1011,7 +1011,7 @@ def page_get_reading_order(ro, rogroup):
 def page_update_higher_textequiv_levels(level, pcgts):
     """Update the TextEquivs of all PAGE-XML hierarchy levels above ``level`` for consistency.
     
-    Starting with the hierarchy level chosen for processing,
+    Starting with the lowest hierarchy level chosen for processing,
     join all first TextEquiv.Unicode (by the rules governing the respective level)
     into TextEquiv.Unicode of the next higher level, replacing them.
     
@@ -1119,6 +1119,15 @@ def page_update_higher_textequiv_levels(level, pcgts):
                 [TextEquivType(Unicode=region_unicode, conf=region_conf)])
 
 def page_shrink_higher_coordinate_levels(maxlevel, minlevel, pcgts):
+    """Project the coordinate hull of all PAGE-XML hierarchy levels above ``minlevel`` up to ``maxlevel``.
+    
+    Starting with the lowest hierarchy level chosen for processing,
+    join all segments into a convex hull for the next higher level,
+    replacing the parent coordinates, respectively.
+    
+    Follow regions recursively, but make sure to traverse them in a depth-first strategy.
+    """
+    LOG = getLogger('processor.TesserocrRecognize')
     page = pcgts.get_Page()
     regions = page.get_AllRegions(classes=['Text'])
     if minlevel != 'region':
@@ -1132,12 +1141,18 @@ def page_shrink_higher_coordinate_levels(maxlevel, minlevel, pcgts):
                             glyphs = word.get_Glyph()
                             if maxlevel in ['region', 'line', 'word', 'glyph'] and glyphs:
                                 joint_polygon = join_segments(glyphs)
+                                LOG.debug("setting hull for word '%s' from %d vertices",
+                                          word.id, len(joint_polygon))
                                 word.get_Coords().set_points(points_from_polygon(joint_polygon))
                     if maxlevel in ['region', 'line', 'word'] and words:
                         joint_polygon = join_segments(words)
+                        LOG.debug("setting hull for line '%s' from %d vertices",
+                                  line.id, len(joint_polygon))
                         line.get_Coords().set_points(points_from_polygon(joint_polygon))
             if maxlevel in ['region', 'line'] and lines:
                 joint_polygon = join_segments(lines)
+                LOG.debug("setting hull for region '%s' from %d vertices",
+                          region.id, len(joint_polygon))
                 region.get_Coords().set_points(points_from_polygon(joint_polygon))
 
 def join_segments(segments, extend=2):
