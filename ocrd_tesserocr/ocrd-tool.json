@@ -127,10 +127,15 @@
           "default": true,
           "description": "If ``textequiv_level`` is not none, but a segment already contains TextEquivs, remove them and replace with recognised text. Otherwise add new text as alternative. (Only the first entry is projected upwards.)"
         },
+        "shrink_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting any segments, annotate polygon coordinates instead of bounding box rectangles by projecting the convex hull of their constituents. (From textequiv_level up to segmentation_level.)"
+        },
         "block_polygons": {
           "type": "boolean",
           "default": false,
-          "description": "When detecting regions, annotate polygon coordinates instead of bounding box rectangles."
+          "description": "When detecting regions, annotate polygon coordinates instead of bounding box rectangles by querying Tesseract accordingly."
         },
         "find_tables": {
           "type": "boolean",

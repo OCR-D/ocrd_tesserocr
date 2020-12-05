@@ -353,6 +353,8 @@ class TesserocrRecognize(Processor):
                 
                 if outlevel != 'none':
                     page_update_higher_textequiv_levels(outlevel, pcgts)
+                if self.parameter['shrink_polygons']:
+                    page_shrink_higher_coordinate_levels(inlevel, outlevel, pcgts)
                 
                 file_id = make_file_id(input_file, self.output_file_grp)
                 pcgts.set_pcGtsId(file_id)
@@ -1115,6 +1117,38 @@ def page_update_higher_textequiv_levels(level, pcgts):
                     region_conf /= len(lines)
             region.set_TextEquiv( # replace old, if any
                 [TextEquivType(Unicode=region_unicode, conf=region_conf)])
+
+def page_shrink_higher_coordinate_levels(maxlevel, minlevel, pcgts):
+    page = pcgts.get_Page()
+    regions = page.get_AllRegions(classes=['Text'])
+    if minlevel != 'region':
+        for region in regions:
+            lines = region.get_TextLine()
+            if minlevel != 'line':
+                for line in lines:
+                    words = line.get_Word()
+                    if minlevel != 'word':
+                        for word in words:
+                            glyphs = word.get_Glyph()
+                            if maxlevel in ['region', 'line', 'word', 'glyph'] and glyphs:
+                                joint_polygon = join_segments(glyphs)
+                                word.get_Coords().set_points(points_from_polygon(joint_polygon))
+                    if maxlevel in ['region', 'line', 'word'] and words:
+                        joint_polygon = join_segments(words)
+                        line.get_Coords().set_points(points_from_polygon(joint_polygon))
+            if maxlevel in ['region', 'line'] and lines:
+                joint_polygon = join_segments(lines)
+                region.get_Coords().set_points(points_from_polygon(joint_polygon))
+
+def join_segments(segments, extend=2):
+    jointp = unary_union([make_valid(Polygon(polygon_from_points(segment.get_Coords().points))).buffer(extend)
+                          for segment in segments]).convex_hull
+    if jointp.minimum_clearance < 1.0:
+        # follow-up calculations will necessarily be integer;
+        # so anticipate rounding here and then ensure validity
+        jointp = asPolygon(np.round(jointp.exterior.coords))
+        jointp = make_valid(jointp)
+    return jointp.exterior.coords[:-1]
 
 def pad_image(image, padding):
     # TODO: input padding can create extra edges if not binarized; at least try to smooth

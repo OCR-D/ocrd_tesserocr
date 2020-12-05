@@ -5,6 +5,14 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Fixed:
+
+ * segment/recognize: reduce minimal region height to sane value
+
+Changed:
+
+ * segment/recognize: add option `shrink_polygons`, default to `true`
+
 ## [0.10.0] - 2020-12-01
 
 Fixed:
