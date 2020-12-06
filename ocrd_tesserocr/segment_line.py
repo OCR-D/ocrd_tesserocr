@@ -39,6 +39,12 @@ class TesserocrSegmentLine(Processor):
         Set up Tesseract to detect lines, and add each one to the region
         at the detected coordinates.
         
+        If ``shrink_polygons``, then during segmentation (on any level), query Tesseract
+        for all symbols/glyphs of each segment and calculate the convex hull for them.
+        Annotate the resulting polygon instead of the coarse bounding box.
+        (This is more precise and helps avoid overlaps between neighbours, especially
+        when not segmenting all levels at once.)
+        
         Produce a new output file by serialising the resulting hierarchy.
         """
         return self.recognizer.process()

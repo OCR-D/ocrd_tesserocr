@@ -38,6 +38,12 @@ class TesserocrSegmentWord(Processor):
         Set up Tesseract to detect words, and add each one to the line
         at the detected coordinates.
         
+        If ``shrink_polygons``, then during segmentation (on any level), query Tesseract
+        for all symbols/glyphs of each segment and calculate the convex hull for them.
+        Annotate the resulting polygon instead of the coarse bounding box.
+        (This is more precise and helps avoid overlaps between neighbours, especially
+        when not segmenting all levels at once.)
+        
         Produce a new output file by serialising the resulting hierarchy.
         """
         return self.recognizer.process()

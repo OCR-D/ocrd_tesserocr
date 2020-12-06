@@ -170,6 +170,12 @@ class TesserocrRecognize(Processor):
         (This is more precise, but due to some path representation errors does
         not always yield accurate/valid polygons.)
         
+        If ``shrink_polygons``, then during segmentation (on any level), query Tesseract
+        for all symbols/glyphs of each segment and calculate the convex hull for them.
+        Annotate the resulting polygon instead of the coarse bounding box.
+        (This is more precise and helps avoid overlaps between neighbours, especially
+        when not segmenting all levels at once.)
+        
         If ``sparse_text``, then during region segmentation, attempt to find
         single-line text blocks in no particular order (Tesseract's page segmentation
         mode ``SPARSE_TEXT``).
@@ -351,10 +357,13 @@ class TesserocrRecognize(Processor):
                     self.logger.warning("Page '%s' contains no text regions (but segmentation is off)",
                                             page_id)
                 
+                # post-processing
+                # bottom-up text concatenation
                 if outlevel != 'none':
                     page_update_higher_textequiv_levels(outlevel, pcgts)
-                if inlevel != 'none' and self.parameter['shrink_polygons']:
-                    page_shrink_higher_coordinate_levels(inlevel, outlevel, pcgts)
+                # bottom-up polygonal outline projection
+                # if inlevel != 'none' and self.parameter['shrink_polygons']:
+                #     page_shrink_higher_coordinate_levels(inlevel, outlevel, pcgts)
                 
                 file_id = make_file_id(input_file, self.output_file_grp)
                 pcgts.set_pcGtsId(file_id)
@@ -389,12 +398,12 @@ class TesserocrRecognize(Processor):
         # (which would also give raw coordinates),
         # except we are also interested in the iterator's BlockType() here,
         # and its BlockPolygon()
-        for it in iterate_level(result_it, RIL.BLOCK):
+        for i, it in enumerate(iterate_level(result_it, RIL.BLOCK)):
             # (padding will be passed to both BoundingBox and GetImage)
             # (actually, Tesseract honours padding only on the left and bottom,
             #  whereas right and top are increased less!)
             # TODO: output padding can create overlap between neighbours; at least find polygonal difference
-            x0y0x1y1 = it.BoundingBox(RIL.BLOCK, padding=self.parameter['padding'])
+            bbox = it.BoundingBox(RIL.BLOCK, padding=self.parameter['padding'])
             # sometimes these polygons are not planar, which causes
             # PIL.ImageDraw.Draw.polygon (and likely others as well)
             # to misbehave; however, PAGE coordinate semantics prohibit
@@ -402,8 +411,17 @@ class TesserocrRecognize(Processor):
             # (probably a bug in Tesseract itself, cf. tesseract#2826):
             if self.parameter['block_polygons']:
                 polygon = it.BlockPolygon()
+            elif self.parameter['shrink_polygons']:
+                polygon = join_polygons([polygon_from_x0y0x1y1(
+                    symbol.BoundingBox(RIL.SYMBOL, padding=self.parameter['padding']))
+                                         for symbol in iterate_level(it, RIL.SYMBOL, parent=RIL.BLOCK)])
+                # simulate a RestartBlock(), not defined by Tesseract:
+                it.Begin()
+                for j, it in enumerate(iterate_level(it, RIL.BLOCK)):
+                    if i == j:
+                        break
             else:
-                polygon = polygon_from_x0y0x1y1(x0y0x1y1)
+                polygon = polygon_from_x0y0x1y1(bbox)
             xywh = xywh_from_polygon(polygon)
             polygon = coordinates_for_segment(polygon, None, page_coords)
             polygon2 = polygon_for_parent(polygon, page)
@@ -529,7 +547,20 @@ class TesserocrRecognize(Processor):
             ril = RIL.PARA # for "cells" in PT.TABLE block
         for index, it in enumerate(iterate_level(result_it, ril)):
             bbox = it.BoundingBox(ril, padding=self.parameter['padding'])
-            polygon = polygon_from_x0y0x1y1(bbox)
+            if self.parameter['shrink_polygons']:
+                polygon = join_polygons([polygon_from_x0y0x1y1(
+                    symbol.BoundingBox(RIL.SYMBOL, padding=self.parameter['padding']))
+                                         for symbol in iterate_level(it, RIL.SYMBOL, parent=ril)])
+                if ril == RIL.BLOCK:
+                    # simulate a RestartBlock(), not defined by Tesseract:
+                    it.Begin()
+                    for j, it in enumerate(iterate_level(it, RIL.BLOCK)):
+                        if index == j:
+                            break
+                else:
+                    it.RestartParagraph()
+            else:
+                polygon = polygon_from_x0y0x1y1(bbox)
             polygon = coordinates_for_segment(polygon, None, page_coords)
             polygon2 = polygon_for_parent(polygon, region)
             if polygon2 is not None:
@@ -572,7 +603,13 @@ class TesserocrRecognize(Processor):
             return
         for index, it in enumerate(iterate_level(result_it, RIL.TEXTLINE, parent=parent_ril)):
             bbox = it.BoundingBox(RIL.TEXTLINE, padding=self.parameter['padding'])
-            polygon = polygon_from_x0y0x1y1(bbox)
+            if self.parameter['shrink_polygons']:
+                polygon = join_polygons([polygon_from_x0y0x1y1(
+                    symbol.BoundingBox(RIL.SYMBOL, padding=self.parameter['padding']))
+                                         for symbol in iterate_level(it, RIL.SYMBOL, parent=RIL.TEXTLINE)])
+                it.RestartRow()
+            else:
+                polygon = polygon_from_x0y0x1y1(bbox)
             polygon = coordinates_for_segment(polygon, None, page_coords)
             polygon2 = polygon_for_parent(polygon, region)
             if polygon2 is not None:
@@ -598,7 +635,17 @@ class TesserocrRecognize(Processor):
     def _process_words_in_line(self, result_it, line, coords):
         for index, it in enumerate(iterate_level(result_it, RIL.WORD)):
             bbox = it.BoundingBox(RIL.WORD, padding=self.parameter['padding'])
-            polygon = polygon_from_x0y0x1y1(bbox)
+            if self.parameter['shrink_polygons']:
+                polygon = join_polygons([polygon_from_x0y0x1y1(
+                    symbol.BoundingBox(RIL.SYMBOL, padding=self.parameter['padding']))
+                                         for symbol in iterate_level(it, RIL.SYMBOL, parent=RIL.WORD)])
+                # simulate a BeginWord(index), not exposed by tesserocr:
+                it.RestartRow()
+                for j, it in enumerate(iterate_level(it, RIL.WORD)):
+                    if index == j:
+                        break
+            else:
+                polygon = polygon_from_x0y0x1y1(bbox)
             polygon = coordinates_for_segment(polygon, None, coords)
             polygon2 = polygon_for_parent(polygon, line)
             if polygon2 is not None:
@@ -1155,9 +1202,14 @@ def page_shrink_higher_coordinate_levels(maxlevel, minlevel, pcgts):
                           region.id, len(joint_polygon))
                 region.get_Coords().set_points(points_from_polygon(joint_polygon))
 
-def join_segments(segments, extend=2):
-    jointp = unary_union([make_valid(Polygon(polygon_from_points(segment.get_Coords().points))).buffer(extend)
-                          for segment in segments]).convex_hull
+def join_segments(segments):
+    return join_polygons([polygon_from_points(segment.get_Coords().points)
+                          for segment in segments])
+
+def join_polygons(polygons, extend=2):
+    # FIXME: construct concave hull / alpha shape
+    jointp = unary_union([make_valid(Polygon(polygon)).buffer(extend)
+                          for polygon in polygons]).convex_hull
     if jointp.minimum_clearance < 1.0:
         # follow-up calculations will necessarily be integer;
         # so anticipate rounding here and then ensure validity

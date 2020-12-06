@@ -45,6 +45,12 @@ class TesserocrSegment(Processor):
         (This is more precise, but due to some path representation errors does
         not always yield accurate/valid polygons.)
         
+        If ``shrink_polygons``, then query Tesseract for all symbols/glyphs
+        of each segment and calculate the convex hull for them.
+        Annotate the resulting polygon instead of the coarse bounding box.
+        (This is more precise and helps avoid overlaps between neighbours, especially
+        when not segmenting all levels at once.)
+        
         If ``sparse_text``, then attempt to find single-line text blocks only,
         in no particular order.
         

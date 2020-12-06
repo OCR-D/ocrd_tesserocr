@@ -133,7 +133,7 @@ It also means that Tesseract should be allowed to segment across multiple hierar
 - prefer `ocrd-tesserocr-recognize` with `segmentation_level=line` over `ocrd-tesserocr-segment-line` followed by `ocrd-tesserocr-recognize`, if you want to do everything but region segmentation with Tesseract,
 - prefer `ocrd-tesserocr-segment` over `ocrd-tesserocr-segment-region` followed by (`ocrd-tesserocr-segment-table` and) `ocrd-tesserocr-segment-line`, if you want to do everything but recognition with Tesseract.
 
-If you do allow segmentation across multiple levels, e.g. by using `ocrd-tesserocr-segment` or `ocrd-tesserocr-recognize` with `segmentation_level` higher than `textequiv_level`, then you can also post-process to shrink parents to **polygons** by their constituent outlines, merely by setting the parameter `shrink_polygons=True`.
+However, you can also run `ocrd-tesserocr-segment*` and `ocrd-tesserocr-recognize` with `shrink_polygons=True` to get **polygons** by post-processing each segment, shrinking to the convex hull of all its symbol outlines.
 
 ## Testing
 
