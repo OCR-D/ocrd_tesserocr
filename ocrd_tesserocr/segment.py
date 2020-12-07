@@ -21,6 +21,7 @@ class TesserocrSegment(Processor):
             recognize_kwargs.pop('show_help', None)
             recognize_kwargs.pop('show_version', None)
             recognize_kwargs['parameter'] = self.parameter
+            recognize_kwargs['parameter']['overwrite_segments'] = True
             recognize_kwargs['parameter']['segmentation_level'] = "region"
             recognize_kwargs['parameter']['textequiv_level'] = "none"
             self.recognizer = TesserocrRecognize(self.workspace, **recognize_kwargs)

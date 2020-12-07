@@ -24,11 +24,11 @@ class TesserocrSegmentRegion(Processor):
             recognize_kwargs['parameter']['overwrite_segments'] = self.parameter['overwrite_regions']
             del recognize_kwargs['parameter']['overwrite_regions']
             recognize_kwargs['parameter']['segmentation_level'] = "region"
-            recognize_kwargs['parameter']['textequiv_level'] = "none"
+            recognize_kwargs['parameter']['textequiv_level'] = "region"
             recognize_kwargs['parameter']['block_polygons'] = self.parameter['crop_polygons']
             del recognize_kwargs['parameter']['crop_polygons']
             self.recognizer = TesserocrRecognize(self.workspace, **recognize_kwargs)
-            self.recognizer.logger = getLogger('processor.TesserocrSegmentWord')
+            self.recognizer.logger = getLogger('processor.TesserocrSegmentRegion')
 
     def process(self):
         """Performs region segmentation with Tesseract on the workspace.

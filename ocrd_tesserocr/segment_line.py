@@ -24,7 +24,7 @@ class TesserocrSegmentLine(Processor):
             recognize_kwargs['parameter']['overwrite_segments'] = self.parameter['overwrite_lines']
             del recognize_kwargs['parameter']['overwrite_lines']
             recognize_kwargs['parameter']['segmentation_level'] = "line"
-            recognize_kwargs['parameter']['textequiv_level'] = "none"
+            recognize_kwargs['parameter']['textequiv_level'] = "line"
             self.recognizer = TesserocrRecognize(self.workspace, **recognize_kwargs)
             self.recognizer.logger = getLogger('processor.TesserocrSegmentLine')
 

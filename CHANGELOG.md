@@ -7,11 +7,13 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 Fixed:
 
- * segment/recognize: reduce minimal region height to sane value
+ * segment*/recognize: reduce minimal region height to sane value
+ * segment*/recognize: also disable text recognition if `model` is empty
+ * segment-{region,line,word}: apply only single-level segmentation again
 
 Changed:
 
- * segment/recognize: add option `shrink_polygons`, default to `false`
+ * segment*/recognize: add option `shrink_polygons`, default to `false`
 
 ## [0.10.0] - 2020-12-01
 
