@@ -420,7 +420,7 @@ class TesserocrRecognize(Processor):
             # (probably a bug in Tesseract itself, cf. tesseract#2826):
             if self.parameter['block_polygons']:
                 polygon = it.BlockPolygon()
-            elif self.parameter['shrink_polygons']:
+            elif self.parameter['shrink_polygons'] and not it.Empty(RIL.SYMBOL):
                 polygon = join_polygons([polygon_from_x0y0x1y1(
                     symbol.BoundingBox(RIL.SYMBOL, padding=self.parameter['padding']))
                                          for symbol in iterate_level(it, RIL.SYMBOL, parent=RIL.BLOCK)])
@@ -556,7 +556,7 @@ class TesserocrRecognize(Processor):
             ril = RIL.PARA # for "cells" in PT.TABLE block
         for index, it in enumerate(iterate_level(result_it, ril)):
             bbox = it.BoundingBox(ril, padding=self.parameter['padding'])
-            if self.parameter['shrink_polygons']:
+            if self.parameter['shrink_polygons'] and not it.Empty(RIL.SYMBOL):
                 polygon = join_polygons([polygon_from_x0y0x1y1(
                     symbol.BoundingBox(RIL.SYMBOL, padding=self.parameter['padding']))
                                          for symbol in iterate_level(it, RIL.SYMBOL, parent=ril)])
@@ -612,7 +612,7 @@ class TesserocrRecognize(Processor):
             return
         for index, it in enumerate(iterate_level(result_it, RIL.TEXTLINE, parent=parent_ril)):
             bbox = it.BoundingBox(RIL.TEXTLINE, padding=self.parameter['padding'])
-            if self.parameter['shrink_polygons']:
+            if self.parameter['shrink_polygons'] and not it.Empty(RIL.SYMBOL):
                 polygon = join_polygons([polygon_from_x0y0x1y1(
                     symbol.BoundingBox(RIL.SYMBOL, padding=self.parameter['padding']))
                                          for symbol in iterate_level(it, RIL.SYMBOL, parent=RIL.TEXTLINE)])
@@ -644,7 +644,7 @@ class TesserocrRecognize(Processor):
     def _process_words_in_line(self, result_it, line, coords):
         for index, it in enumerate(iterate_level(result_it, RIL.WORD)):
             bbox = it.BoundingBox(RIL.WORD, padding=self.parameter['padding'])
-            if self.parameter['shrink_polygons']:
+            if self.parameter['shrink_polygons'] and not it.Empty(RIL.SYMBOL):
                 polygon = join_polygons([polygon_from_x0y0x1y1(
                     symbol.BoundingBox(RIL.SYMBOL, padding=self.parameter['padding']))
                                          for symbol in iterate_level(it, RIL.SYMBOL, parent=RIL.WORD)])
