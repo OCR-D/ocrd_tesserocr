@@ -492,7 +492,7 @@ class TesserocrRecognize(Processor):
                     region.set_type(TextTypeSimpleType.CAPTION)
                 page.add_TextRegion(region)
                 og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
-                if self.parameter['textequiv_level'] != 'region':
+                if self.parameter['textequiv_level'] not in ['region', 'cell']:
                     self._process_lines_in_region(it, region, page_coords)
                 elif self.parameter.get('model', ''):
                     region.add_TextEquiv(TextEquivType(
