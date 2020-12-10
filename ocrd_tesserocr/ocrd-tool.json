@@ -167,6 +167,11 @@
           "default": "",
           "description": "When recognizing text, enumeration of character hypotheses (from the model) to allow inclusively."
         },
+        "tesseract_parameters": {
+          "type": "object",
+          "default": {},
+          "description": "Dictionary of additional Tesseract runtime variables (cf. tesseract --print-parameters), string values."
+        },
         "model": {
           "type": "string",
           "description": "The tessdata text recognition model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)."

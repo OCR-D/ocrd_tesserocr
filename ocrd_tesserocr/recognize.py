@@ -190,6 +190,9 @@ class TesserocrRecognize(Processor):
         single-line text blocks in no particular order (Tesseract's page segmentation
         mode ``SPARSE_TEXT``).
         
+        If ``tesseract_parameters`` is given, setup each of its key-value pairs as
+        run-time parameters in Tesseract.
+        
         Finally, produce new output files by serialising the resulting hierarchy.
         """
         self.logger.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
@@ -267,6 +270,9 @@ class TesserocrRecognize(Processor):
             # lstm_use_matrix 1
             # user_words_file
             # user_patterns_file
+            tesseract_params = self.parameter['tesseract_parameters']
+            for variable in tesseract_params:
+                tessapi.SetVariable(variable, tesseract_params[variable])
             for (n, input_file) in enumerate(self.input_files):
                 page_id = input_file.pageId or input_file.ID
                 self.logger.info("INPUT FILE %i / %s", n, page_id)
