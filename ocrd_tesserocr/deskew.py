@@ -156,7 +156,7 @@ class TesserocrDeskew(Processor):
                 LOG.info('ignoring OSD script result "%s" due to low confidence %.0f in %s',
                          osr['script_name'], osr['script_conf'], where)
             else:
-                LOG.info('applying OSD script  result "%s" with high confidence %.0f in %s',
+                LOG.info('applying OSD script result "%s" with high confidence %.0f in %s',
                          osr['script_name'], osr['script_conf'], where)
                 if isinstance(segment, (TextRegionType, PageType)):
                     segment.set_primaryScript({
