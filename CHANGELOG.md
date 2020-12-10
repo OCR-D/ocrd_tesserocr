@@ -10,10 +10,12 @@ Fixed:
  * segment*/recognize: reduce minimal region height to sane value
  * segment*/recognize: also disable text recognition if `model` is empty
  * segment-{region,line,word}: apply only single-level segmentation again
+ * segment*/recognize: skip empty non-text blocks and all-reject words
 
 Changed:
 
  * segment*/recognize: add option `shrink_polygons`, default to `false`
+ * segment*/recognize: add Tesseract version to meta-data
 
 ## [0.10.0] - 2020-12-01
 

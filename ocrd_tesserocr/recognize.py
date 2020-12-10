@@ -1310,13 +1310,41 @@ def make_valid(polygon):
     return polygon
 
 def iterate_level(it, ril, parent=None):
+    LOG = getLogger('processor.TesserocrRecognize')
     # improves over tesserocr.iterate_level by
     # honouring multi-level semantics so iterators
     # can be combined across levels
     if parent is None:
         parent = ril - 1
+    pos = 0
     while it and not it.Empty(ril):
         yield it
-        if ril > 0 and it.IsAtFinalElement(parent, ril):
+        # With upstream Tesseract, these assertions may fail:
+        # if ril > 0 and it.IsAtFinalElement(parent, ril):
+        #     for level in range(parent, ril):
+        #         assert it.IsAtFinalElement(parent, level), \
+        #             "level %d iterator at %d is final w.r.t. %d but level %d is not" % (
+        #                 ril, pos, parent, level)
+        # Hence the following workaround avails itself:
+        if ril > 0 and all(it.IsAtFinalElement(parent, level)
+                           for level in range(parent, ril + 1)):
             break
-        it.Next(ril)
+        if not it.Next(ril):
+            break
+        while it.Empty(ril) and not it.Empty(0):
+            # This happens when
+            # - on RIL.PARA, RIL.TEXTLINE and RIL.WORD,
+            #   empty non-text (pseudo-) blocks intervene
+            # - on RIL.SYMBOL, a word has no cblobs at all
+            #   (because they have all been rejected)
+            # We must _not_ yield these (as they have strange
+            # properties and bboxes). But most importantly,
+            # they will have met IsAtFinalElement prematurely
+            # (hence the similar loop above).
+            # Since this may happen multiple consecutive times,
+            # enclose this in a while loop.
+            LOG.warning("level %d iterator at %d needs to skip empty segment",
+                        ril, pos)
+            if not it.Next(ril):
+                break
+        pos += 1
