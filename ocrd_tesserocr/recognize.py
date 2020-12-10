@@ -11,6 +11,7 @@ from tesserocr import (
     Orientation,
     WritingDirection,
     TextlineOrder,
+    tesseract_version,
     PyTessBaseAPI, get_languages as get_languages_)
 
 from ocrd_utils import (
@@ -72,7 +73,7 @@ class TesserocrRecognize(Processor):
 
     def __init__(self, *args, **kwargs):
         kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
-        kwargs['version'] = OCRD_TOOL['version']
+        kwargs['version'] = OCRD_TOOL['version'] + ' (' + tesseract_version().split('\n')[0] + ')'
         super(TesserocrRecognize, self).__init__(*args, **kwargs)
         
         if hasattr(self, 'workspace'):
