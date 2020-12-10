@@ -45,7 +45,7 @@
         "OCR-D-OCR"
       ],
       "output_file_grp": [
-        "OCR-D-OCR-STYLE"
+        "OCR-D-OCR-FONTSTYLE"
       ],
       "steps": ["recognition/font-identification"],
       "parameters": {
