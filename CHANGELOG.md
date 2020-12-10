@@ -147,7 +147,7 @@ Added:
 
   * segment-table: new processor that adds table cells as text regions, #104
   * `raw_lines` option, #104
-  * interprete `overwrite_regions` more consistently, #104
+  * interpret `overwrite_regions` more consistently, #104
   * annotate `@orientation` (independent of dedicated deskewing processor) for vertical and `@type` for all other text blocks, #104
   * no separators and noise regions in reading order, #104
 
