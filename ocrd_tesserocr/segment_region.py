@@ -24,11 +24,11 @@ class TesserocrSegmentRegion(Processor):
             recognize_kwargs['parameter']['overwrite_segments'] = self.parameter['overwrite_regions']
             del recognize_kwargs['parameter']['overwrite_regions']
             recognize_kwargs['parameter']['segmentation_level'] = "region"
-            recognize_kwargs['parameter']['textequiv_level'] = "none"
+            recognize_kwargs['parameter']['textequiv_level'] = "region"
             recognize_kwargs['parameter']['block_polygons'] = self.parameter['crop_polygons']
             del recognize_kwargs['parameter']['crop_polygons']
             self.recognizer = TesserocrRecognize(self.workspace, **recognize_kwargs)
-            self.recognizer.logger = getLogger('processor.TesserocrSegmentWord')
+            self.recognizer.logger = getLogger('processor.TesserocrSegmentRegion')
 
     def process(self):
         """Performs region segmentation with Tesseract on the workspace.
@@ -46,6 +46,12 @@ class TesserocrSegmentRegion(Processor):
         bounding boxes from Tesseract for each region. (This is more precise,
         but due to some path representation errors does not always yield
         accurate/valid polygons.)
+        
+        If ``shrink_polygons``, then query Tesseract for all symbols/glyphs
+        of each segment and calculate the convex hull for them.
+        Annotate the resulting polygon instead of the coarse bounding box.
+        (This is more precise and helps avoid overlaps between neighbours, especially
+        when not segmenting all levels at once.)
         
         Produce a new output file by serialising the resulting hierarchy.
         """

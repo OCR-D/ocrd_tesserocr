@@ -24,7 +24,7 @@ class TesserocrSegmentWord(Processor):
             recognize_kwargs['parameter']['overwrite_segments'] = self.parameter['overwrite_words']
             del recognize_kwargs['parameter']['overwrite_words']
             recognize_kwargs['parameter']['segmentation_level'] = "word"
-            recognize_kwargs['parameter']['textequiv_level'] = "none"
+            recognize_kwargs['parameter']['textequiv_level'] = "word"
             self.recognizer = TesserocrRecognize(self.workspace, **recognize_kwargs)
             self.recognizer.logger = getLogger('processor.TesserocrSegmentWord')
 
@@ -37,6 +37,12 @@ class TesserocrSegmentWord(Processor):
         
         Set up Tesseract to detect words, and add each one to the line
         at the detected coordinates.
+        
+        If ``shrink_polygons``, then during segmentation (on any level), query Tesseract
+        for all symbols/glyphs of each segment and calculate the convex hull for them.
+        Annotate the resulting polygon instead of the coarse bounding box.
+        (This is more precise and helps avoid overlaps between neighbours, especially
+        when not segmenting all levels at once.)
         
         Produce a new output file by serialising the resulting hierarchy.
         """

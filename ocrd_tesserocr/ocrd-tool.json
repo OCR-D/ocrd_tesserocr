@@ -127,10 +127,15 @@
           "default": true,
           "description": "If ``textequiv_level`` is not none, but a segment already contains TextEquivs, remove them and replace with recognised text. Otherwise add new text as alternative. (Only the first entry is projected upwards.)"
         },
+        "shrink_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting any segments, annotate polygon coordinates instead of bounding box rectangles by projecting the convex hull of all symbols."
+        },
         "block_polygons": {
           "type": "boolean",
           "default": false,
-          "description": "When detecting regions, annotate polygon coordinates instead of bounding box rectangles."
+          "description": "When detecting regions, annotate polygon coordinates instead of bounding box rectangles by querying Tesseract accordingly."
         },
         "find_tables": {
           "type": "boolean",
@@ -161,6 +166,11 @@
           "type": "string",
           "default": "",
           "description": "When recognizing text, enumeration of character hypotheses (from the model) to allow inclusively."
+        },
+        "tesseract_parameters": {
+          "type": "object",
+          "default": {},
+          "description": "Dictionary of additional Tesseract runtime variables (cf. tesseract --print-parameters), string values."
         },
         "model": {
           "type": "string",
@@ -193,6 +203,11 @@
           "format": "integer",
           "description": "extend detected region rectangles by this many (true) pixels",
           "default": 4
+        },
+        "shrink_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "annotate polygon coordinates instead of bounding box rectangles by projecting the convex hull of all symbols"
         },
         "block_polygons": {
           "type": "boolean",
@@ -242,6 +257,11 @@
           "description": "extend detected region rectangles by this many (true) pixels",
           "default": 0
         },
+        "shrink_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "annotate polygon coordinates instead of bounding box rectangles by projecting the convex hull of all symbols"
+        },
         "crop_polygons": {
           "type": "boolean",
           "default": false,
@@ -282,6 +302,17 @@
           "type": "boolean",
           "default": true,
           "description": "Remove existing layout and text annotation below the TableRegion level (otherwise skip table; no incremental annotation yet)."
+        },
+        "padding": {
+          "type": "number",
+          "format": "integer",
+          "description": "extend detected cell rectangles by this many (true) pixels",
+          "default": 0
+        },
+        "shrink_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "annotate polygon coordinates instead of bounding box rectangles by projecting the convex hull of all symbols"
         }
       }
      },
@@ -308,6 +339,17 @@
           "type": "boolean",
           "default": true,
           "description": "Remove existing layout and text annotation below the TextRegion level (otherwise skip region; no incremental annotation yet)."
+        },
+        "padding": {
+          "type": "number",
+          "format": "integer",
+          "description": "extend detected line rectangles by this many (true) pixels",
+          "default": 0
+        },
+        "shrink_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "annotate polygon coordinates instead of bounding box rectangles by projecting the convex hull of all symbols"
         }
       }
     },
@@ -334,6 +376,17 @@
           "type": "boolean",
           "default": true,
           "description": "Remove existing layout and text annotation below the TextLine level (otherwise skip line; no incremental annotation yet)."
+        },
+        "padding": {
+          "type": "number",
+          "format": "integer",
+          "description": "extend detected cell rectangles by this many (true) pixels",
+          "default": 0
+        },
+        "shrink_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "annotate polygon coordinates instead of bounding box rectangles by projecting the convex hull of all symbols"
         }
       }
     },

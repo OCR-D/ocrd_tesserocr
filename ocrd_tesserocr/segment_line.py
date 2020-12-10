@@ -24,7 +24,7 @@ class TesserocrSegmentLine(Processor):
             recognize_kwargs['parameter']['overwrite_segments'] = self.parameter['overwrite_lines']
             del recognize_kwargs['parameter']['overwrite_lines']
             recognize_kwargs['parameter']['segmentation_level'] = "line"
-            recognize_kwargs['parameter']['textequiv_level'] = "none"
+            recognize_kwargs['parameter']['textequiv_level'] = "line"
             self.recognizer = TesserocrRecognize(self.workspace, **recognize_kwargs)
             self.recognizer.logger = getLogger('processor.TesserocrSegmentLine')
 
@@ -38,6 +38,12 @@ class TesserocrSegmentLine(Processor):
         
         Set up Tesseract to detect lines, and add each one to the region
         at the detected coordinates.
+        
+        If ``shrink_polygons``, then during segmentation (on any level), query Tesseract
+        for all symbols/glyphs of each segment and calculate the convex hull for them.
+        Annotate the resulting polygon instead of the coarse bounding box.
+        (This is more precise and helps avoid overlaps between neighbours, especially
+        when not segmenting all levels at once.)
         
         Produce a new output file by serialising the resulting hierarchy.
         """
