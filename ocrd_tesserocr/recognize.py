@@ -63,6 +63,11 @@ TOOL = 'ocrd-tesserocr-recognize'
 CHOICE_THRESHOLD_NUM = 6 # maximum number of choices to query and annotate
 CHOICE_THRESHOLD_CONF = 0.2 # maximum score drop from best choice to query and annotate
 
+# XXX how to handle multiple search paths for models with a single # TESSDATA_PREFIX?
+from ocrd_utils import XDG_CACHE_HOME
+TESSDATA_PREFIX = os.path.join(XDG_CACHE_HOME, 'ocrd-tesserocr-recognize')
+
+
 def get_languages(*args, **kwargs):
     """
     Wraps tesserocr.get_languages() with a fixed path parameter.
