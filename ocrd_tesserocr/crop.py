@@ -24,7 +24,7 @@ from ocrd_models.ocrd_page import (
 from ocrd_models.ocrd_page_generateds import BorderType
 from ocrd import Processor
 
-from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .config import MODEL_LOCATION_CROP, OCRD_TOOL
 from .recognize import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-crop'
@@ -57,7 +57,7 @@ class TesserocrCrop(Processor):
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
-        with tesserocr.PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
+        with tesserocr.PyTessBaseAPI(path=MODEL_LOCATION_CROP) as tessapi:
             # disable table detection here (tables count as text blocks),
             # because we do not want to risk confusing the spine with
             # a column separator and thus creeping into a neighbouring

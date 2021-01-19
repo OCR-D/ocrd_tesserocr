@@ -18,7 +18,7 @@ from ocrd_models.ocrd_page import (
 from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 
-from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .config import MODEL_LOCATION, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-fontshape'
 
@@ -26,7 +26,7 @@ def get_languages(*args, **kwargs):
     """
     Wraps tesserocr.get_languages() with a fixed path parameter.
     """
-    return get_languages_(*args, path=TESSDATA_PREFIX, **kwargs)
+    return get_languages_(*args, path=MODEL_LOCATION, **kwargs)
 
 class TesserocrFontShape(Processor):
 
@@ -60,7 +60,7 @@ class TesserocrFontShape(Processor):
         if model not in get_languages()[1]:
             raise Exception("model " + model + " (needed for font style detection) is not installed")
         
-        with PyTessBaseAPI(path=TESSDATA_PREFIX,
+        with PyTessBaseAPI(path=MODEL_LOCATION,
                            #oem=OEM.TESSERACT_LSTM_COMBINED, # legacy required for OSD or WordFontAttributes!
                            oem=OEM.TESSERACT_ONLY, # legacy required for OSD or WordFontAttributes!
                            lang=model) as tessapi:

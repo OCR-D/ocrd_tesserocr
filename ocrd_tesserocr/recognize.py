@@ -56,7 +56,7 @@ from ocrd_models.ocrd_page_generateds import (
 from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 
-from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .config import MODEL_LOCATION, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-recognize'
 
@@ -72,7 +72,7 @@ def get_languages(*args, **kwargs):
     """
     Wraps tesserocr.get_languages() with a fixed path parameter.
     """
-    return get_languages_(*args, path=TESSDATA_PREFIX, **kwargs)
+    return get_languages_(*args, path=MODEL_LOCATION, **kwargs)
 
 class TesserocrRecognize(Processor):
 
@@ -217,7 +217,7 @@ class TesserocrRecognize(Processor):
                 self.logger.info("Using model '%s' in %s for recognition at the %s level",
                                  model, get_languages()[0], outlevel)
         
-        with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
+        with PyTessBaseAPI(path=MODEL_LOCATION, lang=model) as tessapi:
             if outlevel == 'glyph':
                 # populate GetChoiceIterator() with LSTM models, too:
                 tessapi.SetVariable("lstm_choice_mode", "2") # aggregate symbols

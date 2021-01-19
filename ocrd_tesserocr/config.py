@@ -1,9 +1,14 @@
 import os
 import json
+from os.path import join
 from pkg_resources import resource_string
 
 import tesserocr
 
-TESSDATA_PREFIX = os.environ['TESSDATA_PREFIX'] if 'TESSDATA_PREFIX' in os.environ else tesserocr.get_languages()[0]
+from ocrd.resource_manager import OcrdResourceManager
+
+location = OcrdResourceManager().default_resource_dir
+MODEL_LOCATION = join(location, 'ocrd-tesserocr-recognize')
+MODEL_LOCATION_CROP = join(location, 'ocrd-tesserocr-crop')
 
 OCRD_TOOL = json.loads(resource_string(__name__, 'ocrd-tool.json').decode('utf8'))
