@@ -207,6 +207,9 @@ class TesserocrRecognize(Processor):
         if 'model' in self.parameter:
             model = self.parameter['model']
             for sub_model in model.split('+'):
+                # XXX this will ensure that the models are downloaded if not already in MODEL_LOCATION
+                # TODO handle existing/missing .traineddata extension
+                self.resolve_resource(sub_model)
                 if sub_model not in get_languages()[1]:
                     raise Exception("configured model " + sub_model + " is not installed")
                 self.logger.info("Using model '%s' in %s for recognition at the %s level",
