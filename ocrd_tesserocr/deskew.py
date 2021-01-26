@@ -27,7 +27,7 @@ from ocrd_models.ocrd_page import (
 )
 from ocrd import Processor
 
-from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .config import MODEL_LOCATION, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-deskew'
 
@@ -62,7 +62,7 @@ class TesserocrDeskew(Processor):
         oplevel = self.parameter['operation_level']
         
         with PyTessBaseAPI(
-                path=TESSDATA_PREFIX,
+                path=MODEL_LOCATION,
                 lang="osd", # osd required for legacy init!
                 oem=OEM.TESSERACT_LSTM_COMBINED, # legacy required for OSD!
                 psm=PSM.AUTO_OSD
