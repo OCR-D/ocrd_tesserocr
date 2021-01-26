@@ -209,8 +209,6 @@ class TesserocrRecognize(Processor):
                 if sub_model.endswith('.traineddata'):
                     self.logger.warning("Model '%s' has a  .traineddata extension, removing. Please use model names without .traineddata extension" % sub_model)
                     sub_model = sub_model.replace('.traineddata', '')
-                # XXX this will ensure that the models are downloaded if not already in TESSDATA_PREFIX
-                self.resolve_resource('%s.traineddata' % sub_model)
                 if sub_model not in get_languages()[1]:
                     raise Exception("configured model " + sub_model + " is not installed")
                 self.logger.info("Using model '%s' in %s for recognition at the %s level",
