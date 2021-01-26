@@ -99,10 +99,11 @@ test-cli: test/assets
 	$(PIP) install -e .
 	rm -rfv test/workspace
 	cp -rv test/assets/kant_aufklaerung_1784 test/workspace
+	ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
 	cd test/workspace/data && \
-		ocrd-tesserocr-segment-region -l DEBUG -I OCR-D-IMG -O OCR-D-SEG-REGION ; \
-		ocrd-tesserocr-segment-line   -l DEBUG -I OCR-D-SEG-REGION -O OCR-D-SEG-LINE ; \
-		ocrd-tesserocr-recognize      -l DEBUG -I OCR-D-SEG-LINE -O OCR-D-TESS-OCR
+		ocrd-tesserocr-segment-region -l DEBUG -I OCR-D-IMG -O OCR-D-SEG-REGION && \
+		ocrd-tesserocr-segment-line   -l DEBUG -I OCR-D-SEG-REGION -O OCR-D-SEG-LINE && \
+		ocrd-tesserocr-recognize      -l DEBUG -I OCR-D-SEG-LINE -O OCR-D-TESS-OCR -P model deu
 
 .PHONY: test test-cli install deps deps-ubuntu deps-test help
 
