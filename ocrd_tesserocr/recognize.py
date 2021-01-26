@@ -56,7 +56,7 @@ from ocrd_models.ocrd_page_generateds import (
 from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 
-from .config import MODEL_LOCATION, OCRD_TOOL
+from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-recognize'
 
@@ -67,7 +67,7 @@ def get_languages(*args, **kwargs):
     """
     Wraps tesserocr.get_languages() with a fixed path parameter.
     """
-    return get_languages_(*args, path=MODEL_LOCATION, **kwargs)
+    return get_languages_(*args, path=TESSDATA_PREFIX, **kwargs)
 
 class TesserocrRecognize(Processor):
 
@@ -209,7 +209,7 @@ class TesserocrRecognize(Processor):
                 if sub_model.endswith('.traineddata'):
                     self.logger.warning("Model '%s' has a  .traineddata extension, removing. Please use model names without .traineddata extension" % sub_model)
                     sub_model = sub_model.replace('.traineddata', '')
-                # XXX this will ensure that the models are downloaded if not already in MODEL_LOCATION
+                # XXX this will ensure that the models are downloaded if not already in TESSDATA_PREFIX
                 self.resolve_resource('%s.traineddata' % sub_model)
                 if sub_model not in get_languages()[1]:
                     raise Exception("configured model " + sub_model + " is not installed")
@@ -218,7 +218,7 @@ class TesserocrRecognize(Processor):
         else:
             model = get_languages()[1][-1] # last installed model
         
-        with PyTessBaseAPI(path=MODEL_LOCATION, lang=model) as tessapi:
+        with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
             if outlevel == 'glyph':
                 # populate GetChoiceIterator() with LSTM models, too:
                 tessapi.SetVariable("lstm_choice_mode", "2") # aggregate symbols
