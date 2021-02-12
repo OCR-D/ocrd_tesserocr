@@ -7,7 +7,7 @@ from shapely.geometry import Polygon, asPolygon
 from shapely.ops import unary_union
 
 from tesserocr import (
-    RIL, PSM, PT,
+    RIL, PSM, PT, OEM,
     Orientation,
     WritingDirection,
     TextlineOrder,
@@ -212,7 +212,9 @@ class TesserocrRecognize(Processor):
                 self.logger.info("Using model '%s' in %s for recognition at the %s level",
                                  model, get_languages()[0], outlevel)
         
-        with PyTessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
+        with PyTessBaseAPI(path=TESSDATA_PREFIX,
+                           lang=model,
+                           oem=getattr(OEM, self.parameter['oem'])) as tessapi:
             if outlevel == 'glyph':
                 # populate GetChoiceIterator() with LSTM models, too:
                 tessapi.SetVariable("lstm_choice_mode", "2") # aggregate symbols

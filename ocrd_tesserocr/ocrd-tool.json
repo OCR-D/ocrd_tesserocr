@@ -172,6 +172,12 @@
           "default": {},
           "description": "Dictionary of additional Tesseract runtime variables (cf. tesseract --print-parameters), string values."
         },
+        "oem": {
+          "type": "string",
+          "enum": ["TESSERACT_ONLY", "LSTM_ONLY", "TESSERACT_LSTM_COMBINED", "DEFAULT"],
+          "default": "DEFAULT",
+          "description": "Tesseract OCR engine mode to use:\n* Run Tesseract only - fastest,\n* Run just the LSTM line recognizer. (>=v4.00),\n*Run the LSTM recognizer, but allow fallback to Tesseract when things get difficult. (>=v4.00),\n*Run both and combine results - best accuracy."
+        },
         "model": {
           "type": "string",
           "description": "The tessdata text recognition model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)."
