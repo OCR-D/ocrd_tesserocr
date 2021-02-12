@@ -382,7 +382,7 @@ class TesserocrRecognize(Processor):
                 # post-processing
                 # bottom-up text concatenation
                 if outlevel != 'none' and self.parameter.get('model', ''):
-                    page_update_higher_textequiv_levels(outlevel, pcgts)
+                    page_update_higher_textequiv_levels(outlevel, pcgts, self.parameter['overwrite_text'])
                 # bottom-up polygonal outline projection
                 # if inlevel != 'none' and self.parameter['shrink_polygons']:
                 #     page_shrink_higher_coordinate_levels(inlevel, outlevel, pcgts)
@@ -1100,12 +1100,13 @@ def page_get_reading_order(ro, rogroup):
         if not isinstance(elem, (RegionRefType, RegionRefIndexedType)):
             page_get_reading_order(ro, elem)
         
-def page_update_higher_textequiv_levels(level, pcgts):
+def page_update_higher_textequiv_levels(level, pcgts, overwrite=True):
     """Update the TextEquivs of all PAGE-XML hierarchy levels above ``level`` for consistency.
     
     Starting with the lowest hierarchy level chosen for processing,
     join all first TextEquiv.Unicode (by the rules governing the respective level)
     into TextEquiv.Unicode of the next higher level, replacing them.
+    If ``overwrite`` is false and the higher level already has text, keep it.
     
     When two successive elements appear in a ``Relation`` of type ``join``,
     then join them directly (without their respective white space).
@@ -1187,14 +1188,16 @@ def page_update_higher_textequiv_levels(level, pcgts):
                                 word_conf = sum(page_element_conf0(glyph) for glyph in glyphs)
                                 if glyphs:
                                     word_conf /= len(glyphs)
-                                word.set_TextEquiv( # replace old, if any
-                                    [TextEquivType(Unicode=word_unicode, conf=word_conf)])
+                                if not word.get_TextEquiv() or overwrite:
+                                    word.set_TextEquiv( # replace old, if any
+                                        [TextEquivType(Unicode=word_unicode, conf=word_conf)])
                         line_unicode = ' '.join(page_element_unicode0(word) for word in words)
                         line_conf = sum(page_element_conf0(word) for word in words)
                         if words:
                             line_conf /= len(words)
-                        line.set_TextEquiv( # replace old, if any
-                            [TextEquivType(Unicode=line_unicode, conf=line_conf)])
+                        if not line.get_TextEquiv() or overwrite:
+                            line.set_TextEquiv( # replace old, if any
+                                [TextEquivType(Unicode=line_unicode, conf=line_conf)])
                 region_unicode = ''
                 region_conf = 0
                 if lines:
@@ -1207,8 +1210,9 @@ def page_update_higher_textequiv_levels(level, pcgts):
                         region_unicode += page_element_unicode0(next_line)
                     region_conf = sum(page_element_conf0(line) for line in lines)
                     region_conf /= len(lines)
-            region.set_TextEquiv( # replace old, if any
-                [TextEquivType(Unicode=region_unicode, conf=region_conf)])
+            if not region.get_TextEquiv() or overwrite:
+                region.set_TextEquiv( # replace old, if any
+                    [TextEquivType(Unicode=region_unicode, conf=region_conf)])
 
 def page_shrink_higher_coordinate_levels(maxlevel, minlevel, pcgts):
     """Project the coordinate hull of all PAGE-XML hierarchy levels above ``minlevel`` up to ``maxlevel``.
