@@ -807,8 +807,9 @@ class TesserocrRecognize(Processor):
             if not region_image.width or not region_image.height:
                 self.logger.warning("Skipping text region '%s' with zero size", region.id)
                 continue
-            if (self.parameter['textequiv_level'] not in ['region', 'cell'] and
-                self.parameter['segmentation_level'] != 'line'):
+            if (region.get_TextEquiv() and not self.parameter['overwrite_text']
+                if self.parameter['textequiv_level'] in ['region', 'cell']
+                else self.parameter['segmentation_level'] != 'line'):
                 pass # image not used here
             elif self.parameter['padding']:
                 tessapi.SetImage(pad_image(region_image, self.parameter['padding']))
@@ -820,10 +821,12 @@ class TesserocrRecognize(Processor):
             # cell (region in table): we could enter from existing_tables or top-level existing regions
             if self.parameter['textequiv_level'] in ['region', 'cell']:
                 #if region.get_primaryScript() not in tessapi.GetLoadedLanguages()...
-                self.logger.debug("Recognizing text in region '%s'", region.id)
-                if region.get_TextEquiv() and self.parameter['overwrite_text']:
+                if region.get_TextEquiv():
+                    if not self.parameter['overwrite_text']:
+                        continue
                     self.logger.warning("Region '%s' already contained text results", region.id)
                     region.set_TextEquiv([])
+                self.logger.debug("Recognizing text in region '%s'", region.id)
                 # todo: consider SetParagraphSeparator
                 region.add_TextEquiv(TextEquivType(
                     Unicode=tessapi.GetUTF8Text().rstrip("\n\f"),
@@ -859,8 +862,9 @@ class TesserocrRecognize(Processor):
             if not line_image.width or not line_image.height:
                 self.logger.warning("Skipping text line '%s' with zero size", line.id)
                 continue
-            if (self.parameter['textequiv_level'] != 'line' and
-                self.parameter['segmentation_level'] != 'word'):
+            if (line.get_TextEquiv() and not self.parameter['overwrite_text']
+                if self.parameter['textequiv_level'] == 'line'
+                else self.parameter['segmentation_level'] != 'word'):
                 pass # image not used here
             elif self.parameter['padding']:
                 tessapi.SetImage(pad_image(line_image, self.parameter['padding']))
@@ -874,10 +878,12 @@ class TesserocrRecognize(Processor):
                 tessapi.SetPageSegMode(PSM.SINGLE_LINE)
             #if line.get_primaryScript() not in tessapi.GetLoadedLanguages()...
             if self.parameter['textequiv_level'] == 'line':
-                self.logger.debug("Recognizing text in line '%s'", line.id)
-                if line.get_TextEquiv() and self.parameter['overwrite_text']:
+                if line.get_TextEquiv():
+                    if not self.parameter['overwrite_text']:
+                        continue
                     self.logger.warning("Line '%s' already contained text results", line.id)
                     line.set_TextEquiv([])
+                self.logger.debug("Recognizing text in line '%s'", line.id)
                 # todo: consider BlankBeforeWord, SetLineSeparator
                 line.add_TextEquiv(TextEquivType(
                     Unicode=tessapi.GetUTF8Text().rstrip("\n\f"),
@@ -916,8 +922,9 @@ class TesserocrRecognize(Processor):
             if not word_image.width or not word_image.height:
                 self.logger.warning("Skipping word '%s' with zero size", word.id)
                 continue
-            if (self.parameter['textequiv_level'] != 'word' and
-                self.parameter['segmentation_level'] != 'glyph'):
+            if (word.get_TextEquiv() and not self.parameter['overwrite_text']
+                if self.parameter['textequiv_level'] == 'word'
+                else self.parameter['segmentation_level'] != 'glyph'):
                 pass # image not used here
             elif self.parameter['padding']:
                 tessapi.SetImage(pad_image(word_image, self.parameter['padding']))
@@ -927,10 +934,12 @@ class TesserocrRecognize(Processor):
                 tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
             if self.parameter['textequiv_level'] == 'word':
-                self.logger.debug("Recognizing text in word '%s'", word.id)
-                if word.get_TextEquiv() and self.parameter['overwrite_text']:
+                if word.get_TextEquiv():
+                    if not self.parameter['overwrite_text']:
+                        continue
                     self.logger.warning("Word '%s' already contained text results", word.id)
                     word.set_TextEquiv([])
+                self.logger.debug("Recognizing text in word '%s'", word.id)
                 word_conf = tessapi.AllWordConfidences()
                 word.add_TextEquiv(TextEquivType(
                     Unicode=tessapi.GetUTF8Text().rstrip("\n\f"),
@@ -968,15 +977,19 @@ class TesserocrRecognize(Processor):
             if not glyph_image.width or not glyph_image.height:
                 self.logger.warning("Skipping glyph '%s' with zero size", glyph.id)
                 continue
-            if self.parameter['padding']:
+            if glyph.get_TextEquiv() and not self.parameter['overwrite_text']:
+                pass # image not used here
+            elif self.parameter['padding']:
                 tessapi.SetImage(pad_image(glyph_image, self.parameter['padding']))
             else:
                 tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
-            self.logger.debug("Recognizing text in glyph '%s'", glyph.id)
-            if glyph.get_TextEquiv() and self.parameter['overwrite_text']:
+            if glyph.get_TextEquiv():
+                if not self.parameter['overwrite_text']:
+                    continue
                 self.logger.warning("Glyph '%s' already contained text results", glyph.id)
                 glyph.set_TextEquiv([])
+            self.logger.debug("Recognizing text in glyph '%s'", glyph.id)
             #glyph_text = tessapi.GetUTF8Text().rstrip("\n\f")
             glyph_conf = tessapi.AllWordConfidences()
             glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 1.0
