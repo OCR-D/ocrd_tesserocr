@@ -77,7 +77,7 @@ class TesserocrFontShape(Processor):
                     page, page_id)
                 if self.parameter['dpi'] > 0:
                     dpi = self.parameter['dpi']
-                    LOG.info("Page '%s' images will use %d DPI from paramter override", page_id, dpi)
+                    LOG.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
                 elif page_image_info.resolution != 1:
                     dpi = page_image_info.resolution
                     if page_image_info.resolutionUnit == 'cm':

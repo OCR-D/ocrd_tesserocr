@@ -203,14 +203,18 @@ class TesserocrRecognize(Processor):
         inlevel = self.parameter['segmentation_level']
         outlevel = self.parameter['textequiv_level']
         
-        model = get_languages()[1][-1] # last installed model
         if 'model' in self.parameter:
             model = self.parameter['model']
             for sub_model in model.split('+'):
+                if sub_model.endswith('.traineddata'):
+                    self.logger.warning("Model '%s' has a  .traineddata extension, removing. Please use model names without .traineddata extension" % sub_model)
+                    sub_model = sub_model.replace('.traineddata', '')
                 if sub_model not in get_languages()[1]:
                     raise Exception("configured model " + sub_model + " is not installed")
                 self.logger.info("Using model '%s' in %s for recognition at the %s level",
                                  model, get_languages()[0], outlevel)
+        else:
+            model = get_languages()[1][-1] # last installed model
         
         with PyTessBaseAPI(path=TESSDATA_PREFIX,
                            lang=model,
@@ -286,7 +290,7 @@ class TesserocrRecognize(Processor):
                     page, page_id)
                 if self.parameter['dpi'] > 0:
                     dpi = self.parameter['dpi']
-                    self.logger.info("Page '%s' images will use %d DPI from paramter override",
+                    self.logger.info("Page '%s' images will use %d DPI from parameter override",
                                      page_id, dpi)
                 elif page_image_info.resolution != 1:
                     dpi = page_image_info.resolution
