@@ -7,10 +7,9 @@ import tesserocr
 
 from ocrd.resource_manager import OcrdResourceManager
 
-if 'TESSDATA_PREFIX' in os.environ:
-    TESSDATA_PREFIX = os.environ['TESSDATA_PREFIX']
-else:
-    location = OcrdResourceManager().default_resource_dir
-    TESSDATA_PREFIX = join(location, 'ocrd-tesserocr-recognize')
+def get_tessdata_path():
+    if 'TESSDATA_PREFIX' in os.environ:
+        return os.environ['TESSDATA_PREFIX']
+    return join(OcrdResourceManager().default_resource_dir, 'ocrd-tesserocr-recognize')
 
 OCRD_TOOL = json.loads(resource_string(__name__, 'ocrd-tool.json').decode('utf8'))
