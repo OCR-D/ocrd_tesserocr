@@ -20,7 +20,7 @@ from ocrd_models.ocrd_page import (
 )
 from ocrd import Processor
 
-from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .config import get_tessdata_path, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-binarize'
 
@@ -53,7 +53,7 @@ class TesserocrBinarize(Processor):
 
         oplevel = self.parameter['operation_level']
         
-        with PyTessBaseAPI(path=TESSDATA_PREFIX) as tessapi:
+        with PyTessBaseAPI(path=get_tessdata_path()) as tessapi:
             for n, input_file in enumerate(self.input_files):
                 file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
