@@ -5,6 +5,8 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.12.0] - 2021-03-05
+
 Changed:
 
   * resource lookup in a function to avoid module-level instantiation, #172
@@ -284,6 +286,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.12.0]: ../../compare/v0.12.0...v0.11.0
 [0.11.0]: ../../compare/v0.11.0...v0.10.1
 [0.10.1]: ../../compare/v0.10.0...v0.10.1
 [0.10.0]: ../../compare/v0.9.5...v0.10.0
