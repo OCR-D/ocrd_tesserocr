@@ -5,6 +5,15 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Changed:
+
+  * resource lookup in a function to avoid module-level instantiation, #172
+  * skip recognition of elements if they have `pc:TextEquiv` and `overwrite_text` is false-y, #170
+
+Added:
+
+  * New parameter `oem` to explicitly set the engine backend to use, #168, #170
+
 ## [0.11.0] - 2021-01-29
 
 Changed:
