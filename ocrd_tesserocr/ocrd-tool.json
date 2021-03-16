@@ -24,7 +24,7 @@
         },
         "operation_level": {
           "type": "string",
-          "enum": ["page","region"],
+          "enum": ["page","region", "line"],
           "default": "region",
           "description": "PAGE XML hierarchy level to operate on"
         },
