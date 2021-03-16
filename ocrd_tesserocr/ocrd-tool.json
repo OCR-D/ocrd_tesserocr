@@ -172,6 +172,16 @@
           "default": {},
           "description": "Dictionary of additional Tesseract runtime variables (cf. tesseract --print-parameters), string values."
         },
+	"script_model": {
+	  "type": "object",
+	  "default": {},
+	  "description": "Prefer models mapped according to annotated @primaryScript (where available). If no mappings match (or under the default empty parameter), then fall back to `model`. (Example: {'Latn - Latin': 'lat+Latin', 'Grek - Greek': 'grc+ell'})"
+	},
+	"lang_model": {
+	  "type": "object",
+	  "default": {},
+	  "description": "Prefer models mapped according to annotated @primaryLanguage (where available). If no mappings match (or under the default empty parameter), then fall back to `model`. (Example: {'Latin': 'lat+Latin', 'Greek': 'grc+ell', 'German': 'deu+frk'})"
+	},
         "model": {
           "type": "string",
           "description": "The tessdata text recognition model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)."

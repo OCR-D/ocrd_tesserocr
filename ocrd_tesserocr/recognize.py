@@ -203,7 +203,8 @@ class TesserocrRecognize(Processor):
         inlevel = self.parameter['segmentation_level']
         outlevel = self.parameter['textequiv_level']
         
-        model = get_languages()[1][-1] # last installed model
+        model = "eng"
+        self.languages = get_languages()[1]
         if 'model' in self.parameter:
             model = self.parameter['model']
             for sub_model in model.split('+'):
@@ -350,6 +351,7 @@ class TesserocrRecognize(Processor):
                         tessapi.AnalyseLayout()
                     else:
                         self.logger.debug("Recognizing text in page '%s'", page_id)
+                        self._reinit(tessapi, page)
                         tessapi.Recognize()
                     self._process_regions_in_page(tessapi.GetIterator(), page, page_coords, dpi)
                 elif inlevel == 'cell':
@@ -795,6 +797,7 @@ class TesserocrRecognize(Processor):
                 tessapi.AnalyseLayout()
             else:
                 self.logger.debug("Recognizing text in table '%s'", table.id)
+                self._reinit(tessapi, table)
                 tessapi.Recognize()
             self._process_cells_in_table(tessapi.GetIterator(), table, roelem, table_coords)
     
@@ -842,6 +845,7 @@ class TesserocrRecognize(Processor):
                     tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in region '%s'", region.id)
+                    self._reinit(tessapi, region)
                     tessapi.Recognize()
                 self._process_lines_in_region(tessapi.GetIterator(), region, region_coords)
             elif textlines:
@@ -896,6 +900,7 @@ class TesserocrRecognize(Processor):
                     tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in line '%s'", line.id)
+                    self._reinit(tessapi, line)
                     tessapi.Recognize()
                 ## internal word and glyph layout:
                 self._process_words_in_line(tessapi.GetIterator(), line, line_coords)
@@ -948,6 +953,7 @@ class TesserocrRecognize(Processor):
                     tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in word '%s'", word.id)
+                    self._reinit(tessapi, word)
                     tessapi.Recognize()
                 ## internal glyph layout:
                 self._process_glyphs_in_word(tessapi.GetIterator(), word, word_coords)
@@ -1045,6 +1051,31 @@ class TesserocrRecognize(Processor):
                 TextlineOrder.RIGHT_TO_LEFT: 'right-to-left',
                 TextlineOrder.TOP_TO_BOTTOM: 'top-to-bottom'
             }.get(textline_order, 'bottom-to-top'))
+    
+    def _reinit(self, tessapi, segment):
+        tag = segment.__class__.__name__[:-4]
+        ident = segment.id if hasattr(segment, 'id') else segment.imageFilename
+        if self.parameter['script_model']:
+            script = next((getattr(segment, name)
+                           for name in ['primaryScript', 'secondaryScript', 'script']
+                           if hasattr(segment, name)), None)
+            if script:
+                script = self.parameter['script_model'].get(script, '')
+                if script in self.languages:
+                    self.logger.info("Reloading script '%s' for %s '%s'", script, tag, ident)
+                    tessapi.Init(path=TESSDATA_PREFIX, lang=script)
+                    return
+        if self.parameter['lang_model']:
+            lang = next((getattr(segment, name)
+                         for name in ['primaryLanguage', 'secondaryLanguage', 'language']
+                         if hasattr(segment, name)), None)
+            if lang:
+                lang = self.parameter['lang_model'].get(lang, '')
+                if lang in self.languages:
+                    self.logger.info("Reloading language '%s' for %s '%s'", lang, tag, ident)
+                    tessapi.Init(path=TESSDATA_PREFIX, lang=lang)
+                    return
+        tessapi.Init(path=TESSDATA_PREFIX, lang=self.parameter['model'])
 
 def page_element_unicode0(element):
     """Get Unicode string of the first text result."""
