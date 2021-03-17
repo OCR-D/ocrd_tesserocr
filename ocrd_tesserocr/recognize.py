@@ -202,6 +202,7 @@ class TesserocrRecognize(Processor):
 
         inlevel = self.parameter['segmentation_level']
         outlevel = self.parameter['textequiv_level']
+        segment_only = outlevel == 'none' or not self.parameter.get('model', '')
         
         model = "eng"
         self.languages = get_languages()[1]
@@ -342,16 +343,17 @@ class TesserocrRecognize(Processor):
                         # disable table detection here, so tables will be
                         # analysed as independent text/line blocks:
                         tessapi.SetVariable("textord_tabfind_find_tables", "0")
+                    if not segment_only:
+                        self._reinit(tessapi, page)
                     tessapi.SetImage(page_image) # is already cropped to Border
                     tessapi.SetPageSegMode(PSM.SPARSE_TEXT
                                            if self.parameter['sparse_text']
                                            else PSM.AUTO)
-                    if outlevel == 'none' or not self.parameter.get('model', ''):
+                    if segment_only:
                         self.logger.debug("Detecting regions in page '%s'", page_id)
                         tessapi.AnalyseLayout()
                     else:
                         self.logger.debug("Recognizing text in page '%s'", page_id)
-                        self._reinit(tessapi, page)
                         tessapi.Recognize()
                     self._process_regions_in_page(tessapi.GetIterator(), page, page_coords, dpi)
                 elif inlevel == 'cell':
@@ -730,6 +732,7 @@ class TesserocrRecognize(Processor):
         else:
             rogroup = ro.get_OrderedGroup() or ro.get_UnorderedGroup()
             page_get_reading_order(reading_order, rogroup)
+        segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
         # dive into tables
         for table in tables:
             cells = table.get_TextRegion()
@@ -784,6 +787,8 @@ class TesserocrRecognize(Processor):
             if not table_image.width or not table_image.height:
                 self.logger.warning("Skipping table region '%s' with zero size", table.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, table)
             if self.parameter['padding']:
                 tessapi.SetImage(pad_image(table_image, self.parameter['padding']))
                 table_coords['transform'] = shift_coordinates(
@@ -792,24 +797,26 @@ class TesserocrRecognize(Processor):
                 tessapi.SetImage(table_image)
             tessapi.SetPageSegMode(PSM.SPARSE_TEXT) # retrieve "cells"
             # TODO: we should XY-cut the sparse cells in regroup them into consistent cells
-            if self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', ''):
+            if segment_only:
                 self.logger.debug("Detecting cells in table '%s'", table.id)
                 tessapi.AnalyseLayout()
             else:
                 self.logger.debug("Recognizing text in table '%s'", table.id)
-                self._reinit(tessapi, table)
                 tessapi.Recognize()
             self._process_cells_in_table(tessapi.GetIterator(), table, roelem, table_coords)
     
     def _process_existing_regions(self, tessapi, regions, page_image, page_coords):
         if self.parameter['textequiv_level'] in ['region', 'cell'] and not self.parameter.get('model', ''):
             return
+        segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
         for region in regions:
             region_image, region_coords = self.workspace.image_from_segment(
                 region, page_image, page_coords)
             if not region_image.width or not region_image.height:
                 self.logger.warning("Skipping text region '%s' with zero size", region.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, region)
             if (self.parameter['textequiv_level'] not in ['region', 'cell'] and
                 self.parameter['segmentation_level'] != 'line'):
                 pass # image not used here
@@ -840,12 +847,11 @@ class TesserocrRecognize(Processor):
                 if textlines:
                     self.logger.info('Removing existing text lines in region %s', region.id)
                 region.set_TextLine([])
-                if self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', ''):
+                if segment_only:
                     self.logger.debug("Detecting lines in region '%s'", region.id)
                     tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in region '%s'", region.id)
-                    self._reinit(tessapi, region)
                     tessapi.Recognize()
                 self._process_lines_in_region(tessapi.GetIterator(), region, region_coords)
             elif textlines:
@@ -857,12 +863,15 @@ class TesserocrRecognize(Processor):
     def _process_existing_lines(self, tessapi, textlines, region_image, region_coords):
         if self.parameter['textequiv_level'] == 'line' and not self.parameter.get('model', ''):
             return
+        segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
         for line in textlines:
             line_image, line_coords = self.workspace.image_from_segment(
                 line, region_image, region_coords)
             if not line_image.width or not line_image.height:
                 self.logger.warning("Skipping text line '%s' with zero size", line.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, line)
             if (self.parameter['textequiv_level'] != 'line' and
                 self.parameter['segmentation_level'] != 'word'):
                 pass # image not used here
@@ -895,12 +904,11 @@ class TesserocrRecognize(Processor):
                 if words:
                     self.logger.info('Removing existing words in line %s', line.id)
                 line.set_Word([])
-                if self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', ''):
+                if segment_only:
                     self.logger.debug("Detecting words in line '%s'", line.id)
                     tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in line '%s'", line.id)
-                    self._reinit(tessapi, line)
                     tessapi.Recognize()
                 ## internal word and glyph layout:
                 self._process_words_in_line(tessapi.GetIterator(), line, line_coords)
@@ -915,12 +923,15 @@ class TesserocrRecognize(Processor):
     def _process_existing_words(self, tessapi, words, line_image, line_coords):
         if self.parameter['textequiv_level'] == 'word' and not self.parameter.get('model', ''):
             return
+        segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
         for word in words:
             word_image, word_coords = self.workspace.image_from_segment(
                 word, line_image, line_coords)
             if not word_image.width or not word_image.height:
                 self.logger.warning("Skipping word '%s' with zero size", word.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, word)
             if (self.parameter['textequiv_level'] != 'word' and
                 self.parameter['segmentation_level'] != 'glyph'):
                 pass # image not used here
@@ -948,12 +959,11 @@ class TesserocrRecognize(Processor):
                 if glyphs:
                     self.logger.info('Removing existing glyphs in word %s', word.id)
                 word.set_Glyph([])
-                if self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', ''):
+                if segment_only:
                     self.logger.debug("Detecting glyphs in word '%s'", word.id)
                     tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in word '%s'", word.id)
-                    self._reinit(tessapi, word)
                     tessapi.Recognize()
                 ## internal glyph layout:
                 self._process_glyphs_in_word(tessapi.GetIterator(), word, word_coords)
@@ -974,6 +984,7 @@ class TesserocrRecognize(Processor):
             if not glyph_image.width or not glyph_image.height:
                 self.logger.warning("Skipping glyph '%s' with zero size", glyph.id)
                 continue
+            self.reinit(tessapi, glyph)
             if self.parameter['padding']:
                 tessapi.SetImage(pad_image(glyph_image, self.parameter['padding']))
             else:
