@@ -343,8 +343,6 @@ class TesserocrRecognize(Processor):
                         # disable table detection here, so tables will be
                         # analysed as independent text/line blocks:
                         tessapi.SetVariable("textord_tabfind_find_tables", "0")
-                    if not segment_only:
-                        self._reinit(tessapi, page)
                     tessapi.SetImage(page_image) # is already cropped to Border
                     tessapi.SetPageSegMode(PSM.SPARSE_TEXT
                                            if self.parameter['sparse_text']
@@ -353,6 +351,7 @@ class TesserocrRecognize(Processor):
                         self.logger.debug("Detecting regions in page '%s'", page_id)
                         tessapi.AnalyseLayout()
                     else:
+                        self._reinit(tessapi, page, page_image)
                         self.logger.debug("Recognizing text in page '%s'", page_id)
                         tessapi.Recognize()
                     self._process_regions_in_page(tessapi.GetIterator(), page, page_coords, dpi)
@@ -787,8 +786,6 @@ class TesserocrRecognize(Processor):
             if not table_image.width or not table_image.height:
                 self.logger.warning("Skipping table region '%s' with zero size", table.id)
                 continue
-            if not segment_only:
-                self._reinit(tessapi, table)
             if self.parameter['padding']:
                 tessapi.SetImage(pad_image(table_image, self.parameter['padding']))
                 table_coords['transform'] = shift_coordinates(
@@ -801,6 +798,7 @@ class TesserocrRecognize(Processor):
                 self.logger.debug("Detecting cells in table '%s'", table.id)
                 tessapi.AnalyseLayout()
             else:
+                self._reinit(tessapi, table, table_image)
                 self.logger.debug("Recognizing text in table '%s'", table.id)
                 tessapi.Recognize()
             self._process_cells_in_table(tessapi.GetIterator(), table, roelem, table_coords)
@@ -815,18 +813,19 @@ class TesserocrRecognize(Processor):
             if not region_image.width or not region_image.height:
                 self.logger.warning("Skipping text region '%s' with zero size", region.id)
                 continue
-            if not segment_only:
-                self._reinit(tessapi, region)
             if (self.parameter['textequiv_level'] not in ['region', 'cell'] and
                 self.parameter['segmentation_level'] != 'line'):
                 pass # image not used here
             elif self.parameter['padding']:
-                tessapi.SetImage(pad_image(region_image, self.parameter['padding']))
+                region_image = pad_image(region_image, self.parameter['padding'])
+                tessapi.SetImage(region_image)
                 region_coords['transform'] = shift_coordinates(
                     region_coords['transform'], 2*[self.parameter['padding']])
             else:
                 tessapi.SetImage(region_image)
             tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
+            if not segment_only:
+                self._reinit(tessapi, region, region_image)
             # cell (region in table): we could enter from existing_tables or top-level existing regions
             if self.parameter['textequiv_level'] in ['region', 'cell']:
                 #if region.get_primaryScript() not in tessapi.GetLoadedLanguages()...
@@ -870,13 +869,12 @@ class TesserocrRecognize(Processor):
             if not line_image.width or not line_image.height:
                 self.logger.warning("Skipping text line '%s' with zero size", line.id)
                 continue
-            if not segment_only:
-                self._reinit(tessapi, line)
             if (self.parameter['textequiv_level'] != 'line' and
                 self.parameter['segmentation_level'] != 'word'):
                 pass # image not used here
             elif self.parameter['padding']:
-                tessapi.SetImage(pad_image(line_image, self.parameter['padding']))
+                line_image = pad_image(line_image, self.parameter['padding'])
+                tessapi.SetImage(line_image)
                 line_coords['transform'] = shift_coordinates(
                     line_coords['transform'], 2*[self.parameter['padding']])
             else:
@@ -885,6 +883,8 @@ class TesserocrRecognize(Processor):
                 tessapi.SetPageSegMode(PSM.RAW_LINE)
             else:
                 tessapi.SetPageSegMode(PSM.SINGLE_LINE)
+            if not segment_only:
+                self._reinit(tessapi, line, line_image)
             #if line.get_primaryScript() not in tessapi.GetLoadedLanguages()...
             if self.parameter['textequiv_level'] == 'line':
                 self.logger.debug("Recognizing text in line '%s'", line.id)
@@ -930,18 +930,19 @@ class TesserocrRecognize(Processor):
             if not word_image.width or not word_image.height:
                 self.logger.warning("Skipping word '%s' with zero size", word.id)
                 continue
-            if not segment_only:
-                self._reinit(tessapi, word)
             if (self.parameter['textequiv_level'] != 'word' and
                 self.parameter['segmentation_level'] != 'glyph'):
                 pass # image not used here
             elif self.parameter['padding']:
-                tessapi.SetImage(pad_image(word_image, self.parameter['padding']))
+                word_image = pad_image(word_image, self.parameter['padding'])
+                tessapi.SetImage(word_image)
                 word_coords['transform'] = shift_coordinates(
                     word_coords['transform'], 2*[self.parameter['padding']])
             else:
                 tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
+            if not segment_only:
+                self._reinit(tessapi, word, word_image)
             if self.parameter['textequiv_level'] == 'word':
                 self.logger.debug("Recognizing text in word '%s'", word.id)
                 if word.get_TextEquiv() and self.parameter['overwrite_text']:
@@ -984,12 +985,11 @@ class TesserocrRecognize(Processor):
             if not glyph_image.width or not glyph_image.height:
                 self.logger.warning("Skipping glyph '%s' with zero size", glyph.id)
                 continue
-            self.reinit(tessapi, glyph)
             if self.parameter['padding']:
-                tessapi.SetImage(pad_image(glyph_image, self.parameter['padding']))
-            else:
-                tessapi.SetImage(glyph_image)
+                glyph_image = pad_image(glyph_image, self.parameter['padding'])
+            tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
+            self._reinit(tessapi, glyph, glyph_image)
             self.logger.debug("Recognizing text in glyph '%s'", glyph.id)
             if glyph.get_TextEquiv() and self.parameter['overwrite_text']:
                 self.logger.warning("Glyph '%s' already contained text results", glyph.id)
@@ -1063,9 +1063,10 @@ class TesserocrRecognize(Processor):
                 TextlineOrder.TOP_TO_BOTTOM: 'top-to-bottom'
             }.get(textline_order, 'bottom-to-top'))
     
-    def _reinit(self, tessapi, segment):
+    def _reinit(self, tessapi, segment, image):
         tag = segment.__class__.__name__[:-4]
         ident = segment.id if hasattr(segment, 'id') else segment.imageFilename
+        psm = tessapi.GetPageSegMode()
         if self.parameter['script_model']:
             script = next((getattr(segment, name)
                            for name in ['primaryScript', 'secondaryScript', 'script']
@@ -1075,6 +1076,8 @@ class TesserocrRecognize(Processor):
                 if script in self.languages:
                     self.logger.info("Reloading script '%s' for %s '%s'", script, tag, ident)
                     tessapi.Init(path=TESSDATA_PREFIX, lang=script)
+                    tessapi.SetImage(image)
+                    tessapi.SetPageSegMode(psm)
                     return
         if self.parameter['lang_model']:
             lang = next((getattr(segment, name)
@@ -1085,8 +1088,28 @@ class TesserocrRecognize(Processor):
                 if lang in self.languages:
                     self.logger.info("Reloading language '%s' for %s '%s'", lang, tag, ident)
                     tessapi.Init(path=TESSDATA_PREFIX, lang=lang)
+                    tessapi.SetImage(image)
+                    tessapi.SetPageSegMode(psm)
                     return
+        if self.parameter['auto_model']:
+            models = self.parameter['model'].split('+')
+            if len(models) > 1:
+                confs = list()
+                for model in models:
+                    tessapi.Init(path=TESSDATA_PREFIX, lang=model)
+                    tessapi.SetImage(image)
+                    tessapi.SetPageSegMode(psm)
+                    tessapi.Recognize()
+                    confs.append(tessapi.MeanTextConf())
+                model = models[np.argmax(confs)]
+                self.logger.info("Reloading best model '%s' for %s '%s'", model, tag, ident)
+                tessapi.Init(path=TESSDATA_PREFIX, lang=model)
+                tessapi.SetImage(image)
+                tessapi.SetPageSegMode(psm)
+                return
         tessapi.Init(path=TESSDATA_PREFIX, lang=self.parameter['model'])
+        tessapi.SetImage(image)
+        tessapi.SetPageSegMode(psm)
 
 def page_element_unicode0(element):
     """Get Unicode string of the first text result."""

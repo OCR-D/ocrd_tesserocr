@@ -182,6 +182,11 @@
 	  "default": {},
 	  "description": "Prefer models mapped according to annotated @primaryLanguage (where available). If no mappings match (or under the default empty parameter), then fall back to `model`. (Example: {'Latin': 'lat+Latin', 'Greek': 'grc+ell', 'German': 'deu+frk'})"
 	},
+	"auto_model": {
+	  "type": "boolean",
+	  "default": false,
+	  "description": "Prefer models performing best (by confidence) per segment (if multiple given in `model`). Repeats the OCR of the best model once (i.e. slower). (Use if you do not trust script/language detection.)"
+	},
         "model": {
           "type": "string",
           "description": "The tessdata text recognition model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)."
