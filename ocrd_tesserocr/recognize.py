@@ -1,5 +1,7 @@
 from __future__ import absolute_import
-import os.path
+from os.path import join
+from sys import exit
+from os import scandir
 import math
 from PIL import Image, ImageStat
 import numpy as np
@@ -17,6 +19,7 @@ from tesserocr import (
 from ocrd_utils import (
     getLogger,
     make_file_id,
+    initLogging,
     assert_file_grp_cardinality,
     shift_coordinates,
     coordinates_for_segment,
@@ -74,6 +77,12 @@ class TesserocrRecognize(Processor):
     def __init__(self, *args, **kwargs):
         kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version'] + ' (' + tesseract_version().split('\n')[0] + ')'
+        if kwargs.get('list_resources', False):
+            initLogging()
+            resdir = get_tessdata_path()
+            for res in scandir(resdir):
+                print(join(resdir, res.name))
+            exit(0)
         super(TesserocrRecognize, self).__init__(*args, **kwargs)
         
         if hasattr(self, 'workspace'):
@@ -392,7 +401,7 @@ class TesserocrRecognize(Processor):
                     file_grp=self.output_file_grp,
                     pageId=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
-                    local_filename=os.path.join(self.output_file_grp,
+                    local_filename=join(self.output_file_grp,
                                                 file_id + '.xml'),
                     content=to_xml(pcgts))
 
