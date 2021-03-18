@@ -6,7 +6,7 @@ jobs:
 
   build-python36:
     docker:
-      - image: ocrd/core
+      - image: python:3.6
     steps:
       - run: apt-get update && apt-get install -y --no-install-recommends make git curl
       - checkout
