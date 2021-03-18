@@ -6,17 +6,69 @@ jobs:
 
   build-python36:
     docker:
-      - image: python:3.6
+      - image: ubuntu:18.04
     steps:
-      - run: apt-get update && apt-get install -y --no-install-recommends make git curl
+      - run: apt-get update
+      - run: apt-get install -y software-properties-common
+      - run: add-apt-repository -y ppa:deadsnakes/ppa
+      - run: apt-get update && apt-get install -y --no-install-recommends make git curl python3.6
       - checkout
       - run: make deps-ubuntu
-      - run: make install
-      - run: make test-cli
-      - run: make coverage
+      - run: make install PYTHON=python3.6
+      - run: make test-cli PYTHON=python3.6
+      - run: make coverage PYTHON=python3.6
+      - codecov/upload
+
+  build-python37:
+    docker:
+      - image: ubuntu:18.04
+    steps:
+      - run: apt-get update
+      - run: apt-get install -y software-properties-common
+      - run: add-apt-repository -y ppa:deadsnakes/ppa
+      - run: apt-get update && apt-get install -y --no-install-recommends make git curl python3.7
+      - checkout
+      - run: make deps-ubuntu
+      - run: make install PYTHON=python3.7
+      - run: make test-cli PYTHON=python3.7
+      - run: make coverage PYTHON=python3.7
+      - codecov/upload
+
+
+  build-python38:
+    docker:
+      - image: ubuntu:18.04
+    steps:
+      - run: apt-get update
+      - run: apt-get install -y software-properties-common
+      - run: add-apt-repository -y ppa:deadsnakes/ppa
+      - run: apt-get update && apt-get install -y --no-install-recommends make git curl python3.8
+      - checkout
+      - run: make deps-ubuntu
+      - run: make install PYTHON=python3.8
+      - run: make test-cli PYTHON=python3.8
+      - run: make coverage PYTHON=python3.8
+      - codecov/upload
+
+  build-python39:
+    docker:
+      - image: ubuntu:18.04
+    steps:
+      - run: apt-get update
+      - run: apt-get install -y software-properties-common
+      - run: add-apt-repository -y ppa:deadsnakes/ppa
+      - run: apt-get update && DEBIAN_FRONTEND=noninteractive TZ=Europe/Berlin apt-get install -y --no-install-recommends make git curl python3.9
+      - checkout
+      - run: make deps-ubuntu
+      - run: make install PYTHON=python3.9
+      - run: make test-cli PYTHON=python3.9
+      - run: make coverage PYTHON=python3.9
       - codecov/upload
 
 workflows:
   build:
     jobs:
       - build-python36
+      - build-python37
+      - build-python38
+      - build-python39
