@@ -13,6 +13,7 @@ class TestTesserocrCli(TestCase):
             environ['TESSDATA_PREFIX'] = tempdir
             _, out, _ = self.invoke_cli(ocrd_tesserocr_recognize, ['-L'])
             assert out == str(samplefile) + '\n'
+            del(environ['TESSDATA_PREFIX'])
 
 if __name__ == '__main__':
     main(__file__)
