@@ -1,74 +1,49 @@
 version: 2.1
+
 orbs:
   codecov: codecov/codecov@1.0.5
 
+executors:
+  ubuntu1804:
+    docker:
+      - image: ubuntu:18.04
+
+commands:
+  install-test-coverage:
+    parameters:
+      python-version:
+        type: string
+    steps:
+      - run: apt-get update
+      - run: apt-get install -y software-properties-common
+      - run: add-apt-repository -y ppa:deadsnakes/ppa
+      - run: apt-get update && DEBIAN_FRONTEND=noninteractive TZ=Europe/Berlin apt-get install -y --no-install-recommends make git curl python<<parameters.python-version>>
+      - checkout
+      - run: make deps-ubuntu
+      - run: make install PYTHON=python<<parameters.python-version>>
+      - run: make test-cli PYTHON=python<<parameters.python-version>>
+      - run: make coverage PYTHON=python<<parameters.python-version>>
+      - codecov/upload
+
 jobs:
 
-  build-python36:
-    docker:
-      - image: ubuntu:18.04
+  build-python:
+    executor: ubuntu1804
+    parameters:
+      python-version:
+        type: string
     steps:
-      - run: apt-get update
-      - run: apt-get install -y software-properties-common
-      - run: add-apt-repository -y ppa:deadsnakes/ppa
-      - run: apt-get update && apt-get install -y --no-install-recommends make git curl python3.6
-      - checkout
-      - run: make deps-ubuntu
-      - run: make install PYTHON=python3.6
-      - run: make test-cli PYTHON=python3.6
-      - run: make coverage PYTHON=python3.6
-      - codecov/upload
-
-  build-python37:
-    docker:
-      - image: ubuntu:18.04
-    steps:
-      - run: apt-get update
-      - run: apt-get install -y software-properties-common
-      - run: add-apt-repository -y ppa:deadsnakes/ppa
-      - run: apt-get update && apt-get install -y --no-install-recommends make git curl python3.7
-      - checkout
-      - run: make deps-ubuntu
-      - run: make install PYTHON=python3.7
-      - run: make test-cli PYTHON=python3.7
-      - run: make coverage PYTHON=python3.7
-      - codecov/upload
-
-
-  build-python38:
-    docker:
-      - image: ubuntu:18.04
-    steps:
-      - run: apt-get update
-      - run: apt-get install -y software-properties-common
-      - run: add-apt-repository -y ppa:deadsnakes/ppa
-      - run: apt-get update && apt-get install -y --no-install-recommends make git curl python3.8
-      - checkout
-      - run: make deps-ubuntu
-      - run: make install PYTHON=python3.8
-      - run: make test-cli PYTHON=python3.8
-      - run: make coverage PYTHON=python3.8
-      - codecov/upload
-
-  build-python39:
-    docker:
-      - image: ubuntu:18.04
-    steps:
-      - run: apt-get update
-      - run: apt-get install -y software-properties-common
-      - run: add-apt-repository -y ppa:deadsnakes/ppa
-      - run: apt-get update && DEBIAN_FRONTEND=noninteractive TZ=Europe/Berlin apt-get install -y --no-install-recommends make git curl python3.9
-      - checkout
-      - run: make deps-ubuntu
-      - run: make install PYTHON=python3.9
-      - run: make test-cli PYTHON=python3.9
-      - run: make coverage PYTHON=python3.9
-      - codecov/upload
+      - install-test-coverage:
+          python-version: <<parameters.python-version>>
 
 workflows:
   build:
     jobs:
-      - build-python36
-      - build-python37
-      - build-python38
-      - build-python39
+      - build-python:
+          matrix:
+            parameters:
+              python-version:
+                - '3.6'
+                - '3.7'
+                - '3.8'
+                - '3.9'
