@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 from os.path import join
-from sys import exit
+from sys import exit, stdout
 from os import scandir
 import math
 from PIL import Image, ImageStat
 import numpy as np
 from shapely.geometry import Polygon, asPolygon
 from shapely.ops import unary_union
+from shutil import copyfileobj
+from pathlib import Path
 
 from tesserocr import (
     RIL, PSM, PT, OEM,
@@ -77,6 +79,22 @@ class TesserocrRecognize(Processor):
     def __init__(self, *args, **kwargs):
         kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version'] + ' (' + tesseract_version().split('\n')[0] + ')'
+
+        if kwargs.get('show_resource', False):
+            initLogging()
+            resdir = get_tessdata_path()
+            fpath = kwargs['show_resource']
+            if not fpath.endswith('.traineddata'):
+                fpath += '.traineddata'
+            fpath = Path(resdir, fpath)
+            try:
+                with open(fpath, 'rb') as f:
+                    copyfileobj(f, stdout.buffer)
+                exit(0)
+            except FileNotFoundError as e:
+                getLogger('processor.TesserocrRecognize').error("Resource %s does not exist", fpath)
+                exit(1)
+
         if kwargs.get('list_resources', False):
             initLogging()
             resdir = get_tessdata_path()
