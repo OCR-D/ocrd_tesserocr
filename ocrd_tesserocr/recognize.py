@@ -60,8 +60,8 @@ from .config import TESSDATA_PREFIX, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-recognize'
 
-CHOICE_THRESHOLD_NUM = 6 # maximum number of choices to query and annotate
-CHOICE_THRESHOLD_CONF = 0.2 # maximum score drop from best choice to query and annotate
+CHOICE_THRESHOLD_NUM = 16 # maximum number of choices to query and annotate
+CHOICE_THRESHOLD_CONF = 0.001 # maximum score drop from best choice to query and annotate
 
 def get_languages(*args, **kwargs):
     """
