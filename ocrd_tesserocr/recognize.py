@@ -56,7 +56,7 @@ from ocrd_models.ocrd_page_generateds import (
 from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 
-from .config import TESSDATA_PREFIX, OCRD_TOOL
+from .config import get_tessdata_path, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-recognize'
 
@@ -67,7 +67,7 @@ def get_languages(*args, **kwargs):
     """
     Wraps tesserocr.get_languages() with a fixed path parameter.
     """
-    return get_languages_(*args, path=TESSDATA_PREFIX, **kwargs)
+    return get_languages_(*args, path=get_tessdata_path(), **kwargs)
 
 # monkey-patch the tesserocr base class so have at least some state
 class TessBaseAPI(PyTessBaseAPI):
@@ -265,12 +265,18 @@ class TesserocrRecognize(Processor):
         if 'model' in self.parameter:
             model = self.parameter['model']
             for sub_model in model.split('+'):
+                if sub_model.endswith('.traineddata'):
+                    self.logger.warning("Model '%s' has a  .traineddata extension, removing. Please use model names without .traineddata extension" % sub_model)
+                    sub_model = sub_model.replace('.traineddata', '')
                 if sub_model not in get_languages()[1]:
                     raise Exception("configured model " + sub_model + " is not installed")
             self.logger.info("Using model '%s' in %s for recognition at the %s level",
                              model, get_languages()[0], outlevel)
         
-        with TessBaseAPI(path=TESSDATA_PREFIX, lang=model) as tessapi:
+        with TessBaseAPI(path=get_tessdata_path(),
+                         lang=model,
+                         oem=getattr(OEM, self.parameter['oem'])
+        ) as tessapi:
             # self.SetVariable("debug_file", "") # show debug output (default: /dev/null)
             if outlevel == 'glyph':
                 # populate GetChoiceIterator() with LSTM models, too:
@@ -434,7 +440,7 @@ class TesserocrRecognize(Processor):
                 # post-processing
                 # bottom-up text concatenation
                 if outlevel != 'none' and self.parameter.get('model', ''):
-                    page_update_higher_textequiv_levels(outlevel, pcgts)
+                    page_update_higher_textequiv_levels(outlevel, pcgts, self.parameter['overwrite_text'])
                 # bottom-up polygonal outline projection
                 # if inlevel != 'none' and self.parameter['shrink_polygons']:
                 #     page_shrink_higher_coordinate_levels(inlevel, outlevel, pcgts)
@@ -868,8 +874,9 @@ class TesserocrRecognize(Processor):
             if not region_image.width or not region_image.height:
                 self.logger.warning("Skipping text region '%s' with zero size", region.id)
                 continue
-            if (self.parameter['textequiv_level'] not in ['region', 'cell'] and
-                self.parameter['segmentation_level'] != 'line'):
+            if (region.get_TextEquiv() and not self.parameter['overwrite_text']
+                if self.parameter['textequiv_level'] in ['region', 'cell']
+                else self.parameter['segmentation_level'] != 'line'):
                 pass # image not used here
             elif self.parameter['padding']:
                 region_image = pad_image(region_image, self.parameter['padding'])
@@ -884,10 +891,12 @@ class TesserocrRecognize(Processor):
             # cell (region in table): we could enter from existing_tables or top-level existing regions
             if self.parameter['textequiv_level'] in ['region', 'cell']:
                 #if region.get_primaryScript() not in tessapi.GetLoadedLanguages()...
-                self.logger.debug("Recognizing text in region '%s'", region.id)
-                if region.get_TextEquiv() and self.parameter['overwrite_text']:
+                if region.get_TextEquiv():
+                    if not self.parameter['overwrite_text']:
+                        continue
                     self.logger.warning("Region '%s' already contained text results", region.id)
                     region.set_TextEquiv([])
+                self.logger.debug("Recognizing text in region '%s'", region.id)
                 # todo: consider SetParagraphSeparator
                 region.add_TextEquiv(TextEquivType(
                     Unicode=tessapi.GetUTF8Text().rstrip("\n\f"),
@@ -924,8 +933,9 @@ class TesserocrRecognize(Processor):
             if not line_image.width or not line_image.height:
                 self.logger.warning("Skipping text line '%s' with zero size", line.id)
                 continue
-            if (self.parameter['textequiv_level'] != 'line' and
-                self.parameter['segmentation_level'] != 'word'):
+            if (line.get_TextEquiv() and not self.parameter['overwrite_text']
+                if self.parameter['textequiv_level'] == 'line'
+                else self.parameter['segmentation_level'] != 'word'):
                 pass # image not used here
             elif self.parameter['padding']:
                 line_image = pad_image(line_image, self.parameter['padding'])
@@ -942,10 +952,12 @@ class TesserocrRecognize(Processor):
                 self._reinit(tessapi, line, mapping)
             #if line.get_primaryScript() not in tessapi.GetLoadedLanguages()...
             if self.parameter['textequiv_level'] == 'line':
-                self.logger.debug("Recognizing text in line '%s'", line.id)
-                if line.get_TextEquiv() and self.parameter['overwrite_text']:
+                if line.get_TextEquiv():
+                    if not self.parameter['overwrite_text']:
+                        continue
                     self.logger.warning("Line '%s' already contained text results", line.id)
                     line.set_TextEquiv([])
+                self.logger.debug("Recognizing text in line '%s'", line.id)
                 # todo: consider BlankBeforeWord, SetLineSeparator
                 line.add_TextEquiv(TextEquivType(
                     Unicode=tessapi.GetUTF8Text().rstrip("\n\f"),
@@ -985,8 +997,9 @@ class TesserocrRecognize(Processor):
             if not word_image.width or not word_image.height:
                 self.logger.warning("Skipping word '%s' with zero size", word.id)
                 continue
-            if (self.parameter['textequiv_level'] != 'word' and
-                self.parameter['segmentation_level'] != 'glyph'):
+            if (word.get_TextEquiv() and not self.parameter['overwrite_text']
+                if self.parameter['textequiv_level'] == 'word'
+                else self.parameter['segmentation_level'] != 'glyph'):
                 pass # image not used here
             elif self.parameter['padding']:
                 word_image = pad_image(word_image, self.parameter['padding'])
@@ -999,10 +1012,12 @@ class TesserocrRecognize(Processor):
             if not segment_only:
                 self._reinit(tessapi, word, mapping)
             if self.parameter['textequiv_level'] == 'word':
-                self.logger.debug("Recognizing text in word '%s'", word.id)
-                if word.get_TextEquiv() and self.parameter['overwrite_text']:
+                if word.get_TextEquiv():
+                    if not self.parameter['overwrite_text']:
+                        continue
                     self.logger.warning("Word '%s' already contained text results", word.id)
                     word.set_TextEquiv([])
+                self.logger.debug("Recognizing text in word '%s'", word.id)
                 word_conf = tessapi.AllWordConfidences()
                 word.add_TextEquiv(TextEquivType(
                     Unicode=tessapi.GetUTF8Text().rstrip("\n\f"),
@@ -1040,15 +1055,20 @@ class TesserocrRecognize(Processor):
             if not glyph_image.width or not glyph_image.height:
                 self.logger.warning("Skipping glyph '%s' with zero size", glyph.id)
                 continue
-            if self.parameter['padding']:
-                glyph_image = pad_image(glyph_image, self.parameter['padding'])
-            tessapi.SetImage(glyph_image)
+            if glyph.get_TextEquiv() and not self.parameter['overwrite_text']:
+                pass # image not used here
+            elif self.parameter['padding']:
+                tessapi.SetImage(pad_image(glyph_image, self.parameter['padding']))
+            else:
+                tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
             self._reinit(tessapi, glyph, mapping)
-            self.logger.debug("Recognizing text in glyph '%s'", glyph.id)
-            if glyph.get_TextEquiv() and self.parameter['overwrite_text']:
+            if glyph.get_TextEquiv():
+                if not self.parameter['overwrite_text']:
+                    continue
                 self.logger.warning("Glyph '%s' already contained text results", glyph.id)
                 glyph.set_TextEquiv([])
+            self.logger.debug("Recognizing text in glyph '%s'", glyph.id)
             #glyph_text = tessapi.GetUTF8Text().rstrip("\n\f")
             glyph_conf = tessapi.AllWordConfidences()
             glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 1.0
@@ -1238,12 +1258,13 @@ def page_get_reading_order(ro, rogroup):
         if not isinstance(elem, (RegionRefType, RegionRefIndexedType)):
             page_get_reading_order(ro, elem)
         
-def page_update_higher_textequiv_levels(level, pcgts):
+def page_update_higher_textequiv_levels(level, pcgts, overwrite=True):
     """Update the TextEquivs of all PAGE-XML hierarchy levels above ``level`` for consistency.
     
     Starting with the lowest hierarchy level chosen for processing,
     join all first TextEquiv.Unicode (by the rules governing the respective level)
     into TextEquiv.Unicode of the next higher level, replacing them.
+    If ``overwrite`` is false and the higher level already has text, keep it.
     
     When two successive elements appear in a ``Relation`` of type ``join``,
     then join them directly (without their respective white space).
@@ -1325,14 +1346,16 @@ def page_update_higher_textequiv_levels(level, pcgts):
                                 word_conf = sum(page_element_conf0(glyph) for glyph in glyphs)
                                 if glyphs:
                                     word_conf /= len(glyphs)
-                                word.set_TextEquiv( # replace old, if any
-                                    [TextEquivType(Unicode=word_unicode, conf=word_conf)])
+                                if not word.get_TextEquiv() or overwrite:
+                                    word.set_TextEquiv( # replace old, if any
+                                        [TextEquivType(Unicode=word_unicode, conf=word_conf)])
                         line_unicode = ' '.join(page_element_unicode0(word) for word in words)
                         line_conf = sum(page_element_conf0(word) for word in words)
                         if words:
                             line_conf /= len(words)
-                        line.set_TextEquiv( # replace old, if any
-                            [TextEquivType(Unicode=line_unicode, conf=line_conf)])
+                        if not line.get_TextEquiv() or overwrite:
+                            line.set_TextEquiv( # replace old, if any
+                                [TextEquivType(Unicode=line_unicode, conf=line_conf)])
                 region_unicode = ''
                 region_conf = 0
                 if lines:
@@ -1345,8 +1368,9 @@ def page_update_higher_textequiv_levels(level, pcgts):
                         region_unicode += page_element_unicode0(next_line)
                     region_conf = sum(page_element_conf0(line) for line in lines)
                     region_conf /= len(lines)
-            region.set_TextEquiv( # replace old, if any
-                [TextEquivType(Unicode=region_unicode, conf=region_conf)])
+            if not region.get_TextEquiv() or overwrite:
+                region.set_TextEquiv( # replace old, if any
+                    [TextEquivType(Unicode=region_unicode, conf=region_conf)])
 
 def page_shrink_higher_coordinate_levels(maxlevel, minlevel, pcgts):
     """Project the coordinate hull of all PAGE-XML hierarchy levels above ``minlevel`` up to ``maxlevel``.

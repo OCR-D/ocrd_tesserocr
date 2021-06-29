@@ -5,6 +5,23 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.12.0] - 2021-03-05
+
+Changed:
+
+  * resource lookup in a function to avoid module-level instantiation, #172
+  * skip recognition of elements if they have `pc:TextEquiv` and `overwrite_text` is false-y, #170
+
+Added:
+
+  * New parameter `oem` to explicitly set the engine backend to use, #168, #170
+
+## [0.11.0] - 2021-01-29
+
+Changed:
+
+  * Models are resolved via OCR-D/core resource manager default location (`$XDG_DATA_HOME`) or `$TESSDATA_PREFIX`, #166
+
 ## [0.10.1] - 2020-12-10
 
 Fixed:
@@ -269,6 +286,8 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.12.0]: ../../compare/v0.12.0...v0.11.0
+[0.11.0]: ../../compare/v0.11.0...v0.10.1
 [0.10.1]: ../../compare/v0.10.0...v0.10.1
 [0.10.0]: ../../compare/v0.9.5...v0.10.0
 [0.9.5]: ../../compare/v0.9.4...v0.9.5
