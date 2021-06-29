@@ -262,6 +262,7 @@ class TesserocrDeskew(Processor):
             # This effectively ignores Orientation from AnalyseLayout,
             # because it is usually wrong when it deviates from OSD results.
             # (We do keep deskew_angle, though – see below.)
+            # FIXME: revisit that decision after trying with api.set_min_orientation_margin
             LOG.warning('inconsistent angles from layout analysis (%d) and orientation detection (%d) in %s',
                         angle2, angle, where)
         # annotate result:
