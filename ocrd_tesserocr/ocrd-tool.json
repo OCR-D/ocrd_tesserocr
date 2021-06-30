@@ -439,8 +439,8 @@
       "parameters": {
         "operation_level": {
           "type": "string",
-          "enum": ["region", "line"],
-          "default": "region",
+          "enum": ["page", "region", "line"],
+          "default": "page",
           "description": "PAGE XML hierarchy level to operate on"
         }
       }
