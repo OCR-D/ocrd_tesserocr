@@ -5,6 +5,13 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.13.0] - 2021-06-30
+
+Changed:
+
+  * segment*/recognize: annotate clipped,binarized AlternativeImage on page level
+  * binarize: add page level, make default
+
 ## [0.12.0] - 2021-03-05
 
 Changed:
@@ -286,6 +293,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.13.0]: ../../compare/v0.13.0...v0.12.0
 [0.12.0]: ../../compare/v0.12.0...v0.11.0
 [0.11.0]: ../../compare/v0.11.0...v0.10.1
 [0.10.1]: ../../compare/v0.10.0...v0.10.1

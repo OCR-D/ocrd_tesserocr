@@ -47,6 +47,7 @@ from ocrd_models.ocrd_page import (
     WordType,
     GlyphType,
     TextEquivType,
+    AlternativeImageType,
     to_xml)
 from ocrd_models.ocrd_page_generateds import (
     ReadingDirectionSimpleType,
@@ -336,10 +337,12 @@ class TesserocrRecognize(Processor):
             for variable in tesseract_params:
                 tessapi.SetVariable(variable, tesseract_params[variable])
             for (n, input_file) in enumerate(self.input_files):
+                file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
                 self.logger.info("INPUT FILE %i / %s", n, page_id)
                 pcgts, pcgts_tree, pcgts_mapping, pcgts_invmap = page_from_file(self.workspace.download_file(input_file),
                                                                                 with_tree=True)
+                pcgts.set_pcGtsId(file_id)
                 self.add_metadata(pcgts)
                 page = pcgts.get_Page()
                 
@@ -415,6 +418,14 @@ class TesserocrRecognize(Processor):
                         self._reinit(tessapi, page, pcgts_mapping)
                         self.logger.debug("Recognizing text in page '%s'", page_id)
                         tessapi.Recognize()
+                    page_image_bin = tessapi.GetThresholdedImage()
+                    file_path = self.workspace.save_image_file(
+                        page_image_bin, file_id + '.IMG-BIN',
+                        page_id=page_id,
+                        file_grp=self.output_file_grp)
+                    # update PAGE (reference the image file):
+                    page.add_AlternativeImage(AlternativeImageType(
+                        filename=file_path, comments=page_coords['features'] + ',binarized,clipped'))
                     self._process_regions_in_page(tessapi.GetIterator(), page, page_coords, pcgts_mapping, dpi)
                 elif inlevel == 'cell':
                     # Tables are obligatorily recursive regions;
@@ -445,8 +456,6 @@ class TesserocrRecognize(Processor):
                 # if inlevel != 'none' and self.parameter['shrink_polygons']:
                 #     page_shrink_higher_coordinate_levels(inlevel, outlevel, pcgts)
                 
-                file_id = make_file_id(input_file, self.output_file_grp)
-                pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
                     ID=file_id,
                     file_grp=self.output_file_grp,

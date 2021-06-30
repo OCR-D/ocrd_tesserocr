@@ -93,14 +93,14 @@ Available [OCR-D processors](https://ocr-d.de/en/spec/cli) are:
 - [ocrd-tesserocr-binarize](ocrd_tesserocr/binarize.py) (Otsu – not recommended)  
   - adds `AlternativeImage` files to the output fileGrp
 - [ocrd-tesserocr-recognize](ocrd_tesserocr/recognize.py) (optionally including segmentation; mind `segmentation_level` and `textequiv_level`)
-  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s and `ReadingOrder` to `Page` and sets their `@orientation` (optionally)
+  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s, `ReadingOrder` and `AlternativeImage` to `Page` and sets their `@orientation` (optionally)
   - adds `TextRegion`s to `TableRegion`s and sets their `@orientation` (optionally)
   - adds `TextLine`s to `TextRegion`s (optionally)
   - adds `Word`s to `TextLine`s (optionally)
   - adds `Glyph`s to `Word`s (optionally)
   - adds `TextEquiv`
 - [ocrd-tesserocr-segment](ocrd_tesserocr/segment.py) (all-in-one segmentation – recommended; delegates to `recognize`)  
-  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s and `ReadingOrder` to `Page` and sets their `@orientation`
+  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s, `ReadingOrder` and `AlternativeImage` to `Page` and sets their `@orientation`
   - adds `TextRegion`s to `TableRegion`s and sets their `@orientation`
   - adds `TextLine`s to `TextRegion`s
   - adds `Word`s to `TextLine`s

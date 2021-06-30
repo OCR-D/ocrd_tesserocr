@@ -65,30 +65,47 @@ class TesserocrBinarize(Processor):
                 page_image, page_xywh, _ = self.workspace.image_from_page(
                     page, page_id)
                 LOG.info("Binarizing on '%s' level in page '%s'", oplevel, page_id)
-                
-                regions = page.get_TextRegion() + page.get_TableRegion()
-                if not regions:
-                    LOG.warning("Page '%s' contains no text regions", page_id)
-                for region in regions:
-                    region_image, region_xywh = self.workspace.image_from_segment(
-                        region, page_image, page_xywh)
-                    if oplevel == 'region':
-                        tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
-                        self._process_segment(tessapi, RIL.BLOCK, region, region_image, region_xywh,
-                                              "region '%s'" % region.id, input_file.pageId,
-                                              file_id + '_' + region.id)
-                    elif isinstance(region, TextRegionType):
-                        lines = region.get_TextLine()
-                        if not lines:
-                            LOG.warning("Page '%s' region '%s' contains no text lines",
-                                        page_id, region.id)
-                        for line in lines:
-                            line_image, line_xywh = self.workspace.image_from_segment(
-                                line, region_image, region_xywh)
-                            tessapi.SetPageSegMode(PSM.SINGLE_LINE)
-                            self._process_segment(tessapi, RIL.TEXTLINE, line, line_image, line_xywh,
-                                                  "line '%s'" % line.id, input_file.pageId,
-                                                  file_id + '_' + region.id + '_' + line.id)
+
+                if oplevel == 'page':
+                    tessapi.SetPageSegMode(PSM.AUTO_ONLY)
+                    tessapi.SetImage(page_image)
+                    page_image_bin = tessapi.GetThresholdedImage()
+                    if page_image_bin:
+                        # update METS (add the image file):
+                        file_path = self.workspace.save_image_file(page_image_bin,
+                                                                   file_id + '.IMG-BIN',
+                                                                   page_id=page_id,
+                                                                   file_grp=self.output_file_grp)
+                        # update PAGE (reference the image file):
+                        features = page_xywh['features'] + ",binarized"
+                        page.add_AlternativeImage(AlternativeImageType(
+                            filename=file_path, comments=features))
+                    else:
+                        LOG.error('Cannot binarize %s', "page '%s'" % page_id)
+                else:
+                    regions = page.get_TextRegion() + page.get_TableRegion()
+                    if not regions:
+                        LOG.warning("Page '%s' contains no text regions", page_id)
+                    for region in regions:
+                        region_image, region_xywh = self.workspace.image_from_segment(
+                            region, page_image, page_xywh)
+                        if oplevel == 'region':
+                            tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
+                            self._process_segment(tessapi, RIL.BLOCK, region, region_image, region_xywh,
+                                                  "region '%s'" % region.id, input_file.pageId,
+                                                  file_id + '_' + region.id)
+                        elif isinstance(region, TextRegionType):
+                            lines = region.get_TextLine()
+                            if not lines:
+                                LOG.warning("Page '%s' region '%s' contains no text lines",
+                                            page_id, region.id)
+                            for line in lines:
+                                line_image, line_xywh = self.workspace.image_from_segment(
+                                    line, region_image, region_xywh)
+                                tessapi.SetPageSegMode(PSM.SINGLE_LINE)
+                                self._process_segment(tessapi, RIL.TEXTLINE, line, line_image, line_xywh,
+                                                      "line '%s'" % line.id, input_file.pageId,
+                                                      file_id + '_' + region.id + '_' + line.id)
 
                 file_id = make_file_id(input_file, self.output_file_grp)
                 pcgts.set_pcGtsId(file_id)
