@@ -22,7 +22,7 @@ from ocrd_utils import (
 from ocrd_modelfactory import page_from_file
 from ocrd_models.ocrd_page import (
     AlternativeImageType,
-    TextRegionType, PageType,
+    TextLineType, TextRegionType, PageType,
     to_xml
 )
 from ocrd import Processor
@@ -67,6 +67,8 @@ class TesserocrDeskew(Processor):
                 oem=OEM.TESSERACT_LSTM_COMBINED, # legacy required for OSD!
                 psm=PSM.AUTO_OSD
         ) as tessapi:
+            if oplevel == 'line':
+                tessapi.SetVariable("min_characters_to_try", "15")
             for n, input_file in enumerate(self.input_files):
                 file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
@@ -103,7 +105,7 @@ class TesserocrDeskew(Processor):
                                           "page '%s'" % page_id, input_file.pageId,
                                           file_id)
                 else:
-                    regions = page.get_TextRegion() + page.get_TableRegion()
+                    regions = page.get_AllRegions(classes=['Text', 'Table'])
                     if not regions:
                         LOG.warning("Page '%s' contains no text regions", page_id)
                     for region in regions:
@@ -113,9 +115,20 @@ class TesserocrDeskew(Processor):
                             # (we will overwrite @orientation anyway,)
                             # abort if no such image can be produced:
                             feature_filter='deskewed')
-                        self._process_segment(tessapi, region, region_image, region_xywh,
-                                              "region '%s'" % region.id, input_file.pageId,
-                                              file_id + '_' + region.id)
+                        if oplevel == 'region':
+                            self._process_segment(tessapi, region, region_image, region_xywh,
+                                                  "region '%s'" % region.id, input_file.pageId,
+                                                  file_id + '_' + region.id)
+                        elif isinstance(region, TextRegionType):
+                            lines = region.get_TextLine()
+                            if not lines:
+                                LOG.warning("Page '%s' region '%s' contains no lines", page_id, region.id)
+                            for line in lines:
+                                line_image, line_xywh = self.workspace.image_from_segment(
+                                    line, region_image, region_xywh)
+                                self._process_segment(tessapi, line, line_image, line_xywh,
+                                                      "line '%s'" % line.id, input_file.pageId,
+                                                      file_id + '_' + region.id + '_' + line.id)
                 
                 self.workspace.add_file(
                     ID=file_id,
@@ -158,7 +171,7 @@ class TesserocrDeskew(Processor):
             else:
                 LOG.info('applying OSD script result "%s" with high confidence %.0f in %s',
                          osr['script_name'], osr['script_conf'], where)
-                if isinstance(segment, (TextRegionType, PageType)):
+                if isinstance(segment, (TextLineType, TextRegionType, PageType)):
                     segment.set_primaryScript({
                         "Arabic": "Arab - Arabic",
                         "Armenian": "Armn - Armenian",
@@ -204,6 +217,8 @@ class TesserocrDeskew(Processor):
                     }.get(osr['script_name'], "Latn - Latin"))
         else:
             LOG.warning('no OSD result in %s', where)
+        if isinstance(segment, TextLineType):
+            return
         #
         # orientation/skew
         #
@@ -247,6 +262,7 @@ class TesserocrDeskew(Processor):
             # This effectively ignores Orientation from AnalyseLayout,
             # because it is usually wrong when it deviates from OSD results.
             # (We do keep deskew_angle, though – see below.)
+            # FIXME: revisit that decision after trying with api.set_min_orientation_margin
             LOG.warning('inconsistent angles from layout analysis (%d) and orientation detection (%d) in %s',
                         angle2, angle, where)
         # annotate result:

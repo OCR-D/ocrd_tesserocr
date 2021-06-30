@@ -61,14 +61,70 @@ from .config import get_tessdata_path, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-recognize'
 
-CHOICE_THRESHOLD_NUM = 6 # maximum number of choices to query and annotate
-CHOICE_THRESHOLD_CONF = 0.2 # maximum score drop from best choice to query and annotate
+CHOICE_THRESHOLD_NUM = 16 # maximum number of choices to query and annotate
+CHOICE_THRESHOLD_CONF = 0.001 # maximum score drop from best choice to query and annotate
 
 def get_languages(*args, **kwargs):
     """
     Wraps tesserocr.get_languages() with a fixed path parameter.
     """
     return get_languages_(*args, path=get_tessdata_path(), **kwargs)
+
+# monkey-patch the tesserocr base class so have at least some state
+class TessBaseAPI(PyTessBaseAPI):
+    parameters = {}
+    psm = PSM.AUTO
+    image = None
+    path = ''
+    lang = ''
+    oem = OEM.DEFAULT
+
+    def __repr__(self):
+        return str({'parameters': self.parameters,
+                    'psm': self.psm,
+                    'image': self.image,
+                    'path': self.path,
+                    'lang': self.lang,
+                    'oem': self.oem})
+
+    def __init__(self, **kwargs):
+        # Cython base class has only __cinit__ (so no kwargs here):
+        super(TessBaseAPI, self).__init__()
+        if 'path' in kwargs:
+            self.path = kwargs['path']
+        if 'lang' in kwargs:
+            self.lang = kwargs['lang']
+        if 'oem' in kwargs:
+            self.oem = kwargs['oem']
+
+    def Init(self, path='', lang='', oem=OEM.DEFAULT):
+        self.path = path
+        self.lang = lang
+        self.oem = oem
+        super().Init(path=path, lang=lang, oem=oem)
+
+    def SetVariable(self, name, val):
+        self.parameters[name] = val
+        return super().SetVariable(name, val)
+
+    def SetPageSegMode(self, psm):
+        self.psm = psm
+        super().SetPageSegMode(psm)
+
+    def SetImage(self, image):
+        self.image = image
+        if image:
+            super().SetImage(image)
+
+    def Reset(self, path=None, lang=None, oem=None, psm=None, parameters=None, image=None):
+        self.End()
+        self.Init(path=path or self.path,
+                  lang=lang or self.lang,
+                  oem=oem or self.oem)
+        self.SetPageSegMode(psm or self.psm)
+        for name, val in (parameters or self.parameters).items():
+            self.SetVariable(name, val)
+        self.SetImage(image or self.image)
 
 class TesserocrRecognize(Processor):
 
@@ -203,7 +259,10 @@ class TesserocrRecognize(Processor):
 
         inlevel = self.parameter['segmentation_level']
         outlevel = self.parameter['textequiv_level']
+        segment_only = outlevel == 'none' or not self.parameter.get('model', '')
         
+        model = "eng"
+        self.languages = get_languages()[1]
         if 'model' in self.parameter:
             model = self.parameter['model']
             for sub_model in model.split('+'):
@@ -212,12 +271,14 @@ class TesserocrRecognize(Processor):
                     sub_model = sub_model.replace('.traineddata', '')
                 if sub_model not in get_languages()[1]:
                     raise Exception("configured model " + sub_model + " is not installed")
-                self.logger.info("Using model '%s' in %s for recognition at the %s level",
-                                 model, get_languages()[0], outlevel)
-        else:
-            model = get_languages()[1][-1] # last installed model
+            self.logger.info("Using model '%s' in %s for recognition at the %s level",
+                             model, get_languages()[0], outlevel)
         
-        with PyTessBaseAPI(path=get_tessdata_path(), lang=model, oem=getattr(OEM, self.parameter['oem'])) as tessapi:
+        with TessBaseAPI(path=get_tessdata_path(),
+                         lang=model,
+                         oem=getattr(OEM, self.parameter['oem'])
+        ) as tessapi:
+            # self.SetVariable("debug_file", "") # show debug output (default: /dev/null)
             if outlevel == 'glyph':
                 # populate GetChoiceIterator() with LSTM models, too:
                 tessapi.SetVariable("lstm_choice_mode", "2") # aggregate symbols
@@ -231,9 +292,6 @@ class TesserocrRecognize(Processor):
                 if self.parameter['char_unblacklist']:
                     tessapi.SetVariable("tessedit_char_unblacklist", self.parameter['char_unblacklist'])
             # todo: determine relevancy of these variables:
-            # tessapi.SetVariable("tessedit_single_match", "0")
-            #
-            # tessedit_load_sublangs
             # tessedit_preserve_min_wd_len 2
             # tessedit_prefer_joined_punct 0
             # tessedit_write_rep_codes 0
@@ -282,7 +340,8 @@ class TesserocrRecognize(Processor):
                 file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
                 self.logger.info("INPUT FILE %i / %s", n, page_id)
-                pcgts = page_from_file(self.workspace.download_file(input_file))
+                pcgts, pcgts_tree, pcgts_mapping, pcgts_invmap = page_from_file(self.workspace.download_file(input_file),
+                                                                                with_tree=True)
                 pcgts.set_pcGtsId(file_id)
                 self.add_metadata(pcgts)
                 page = pcgts.get_Page()
@@ -352,10 +411,11 @@ class TesserocrRecognize(Processor):
                     tessapi.SetPageSegMode(PSM.SPARSE_TEXT
                                            if self.parameter['sparse_text']
                                            else PSM.AUTO)
-                    if outlevel == 'none' or not self.parameter.get('model', ''):
+                    if segment_only:
                         self.logger.debug("Detecting regions in page '%s'", page_id)
                         tessapi.AnalyseLayout()
                     else:
+                        self._reinit(tessapi, page, pcgts_mapping)
                         self.logger.debug("Recognizing text in page '%s'", page_id)
                         tessapi.Recognize()
                     page_image_bin = tessapi.GetThresholdedImage()
@@ -366,7 +426,7 @@ class TesserocrRecognize(Processor):
                     # update PAGE (reference the image file):
                     page.add_AlternativeImage(AlternativeImageType(
                         filename=file_path, comments=page_coords['features'] + ',binarized,clipped'))
-                    self._process_regions_in_page(tessapi.GetIterator(), page, page_coords, dpi)
+                    self._process_regions_in_page(tessapi.GetIterator(), page, page_coords, pcgts_mapping, dpi)
                 elif inlevel == 'cell':
                     # Tables are obligatorily recursive regions;
                     # they might have existing text regions (cells),
@@ -381,9 +441,9 @@ class TesserocrRecognize(Processor):
                         self.logger.warning("Page '%s' contains no table regions (but segmentation is off)",
                                             page_id)
                     else:
-                        self._process_existing_tables(tessapi, tables, page, page_image, page_coords)
+                        self._process_existing_tables(tessapi, tables, page, page_image, page_coords, pcgts_mapping)
                 elif regions:
-                    self._process_existing_regions(tessapi, regions, page_image, page_coords)
+                    self._process_existing_regions(tessapi, regions, page_image, page_coords, pcgts_mapping)
                 else:
                     self.logger.warning("Page '%s' contains no text regions (but segmentation is off)",
                                             page_id)
@@ -405,7 +465,7 @@ class TesserocrRecognize(Processor):
                                                 file_id + '.xml'),
                     content=to_xml(pcgts))
 
-    def _process_regions_in_page(self, result_it, page, page_coords, dpi):
+    def _process_regions_in_page(self, result_it, page, page_coords, mapping, dpi):
         index = 0
         ro = page.get_ReadingOrder()
         if not ro:
@@ -512,7 +572,7 @@ class TesserocrRecognize(Processor):
                 page.add_TextRegion(region)
                 og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
                 if self.parameter['textequiv_level'] not in ['region', 'cell']:
-                    self._process_lines_in_region(it, region, page_coords)
+                    self._process_lines_in_region(it, region, page_coords, mapping)
                 elif self.parameter.get('model', ''):
                     region.add_TextEquiv(TextEquivType(
                         Unicode=it.GetUTF8Text(RIL.BLOCK).rstrip("\n\f"),
@@ -550,7 +610,7 @@ class TesserocrRecognize(Processor):
                     #     # iterator scores are arithmetic averages, too
                     #     conf=it.Confidence(RIL.BLOCK)/100.0))
                 else:
-                    self._process_cells_in_table(it, region, rogroup, page_coords)
+                    self._process_cells_in_table(it, region, rogroup, page_coords, mapping)
             else:
                 region = NoiseRegionType(id=ID, Coords=coords)
                 page.add_NoiseRegion()
@@ -569,7 +629,7 @@ class TesserocrRecognize(Processor):
             # schema forbids empty OrderedGroup
             ro.set_OrderedGroup(None)
     
-    def _process_cells_in_table(self, result_it, region, rogroup, page_coords):
+    def _process_cells_in_table(self, result_it, region, rogroup, page_coords, mapping):
         if self.parameter['segmentation_level'] == 'cell':
             ril = RIL.BLOCK # for sparse_text mode
         else:
@@ -607,14 +667,14 @@ class TesserocrRecognize(Processor):
             if rogroup:
                 rogroup.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
             if self.parameter['textequiv_level'] != 'cell':
-                self._process_lines_in_region(it, cell, page_coords, parent_ril=ril)
+                self._process_lines_in_region(it, cell, page_coords, mapping, parent_ril=ril)
             elif self.parameter.get('model', ''):
                 cell.add_TextEquiv(TextEquivType(
                     Unicode=it.GetUTF8Text(ril).rstrip("\n\f"),
                     # iterator scores are arithmetic averages, too
                     conf=it.Confidence(ril)/100.0))
 
-    def _process_lines_in_region(self, result_it, region, page_coords, parent_ril=RIL.BLOCK):
+    def _process_lines_in_region(self, result_it, region, page_coords, mapping, parent_ril=RIL.BLOCK):
         if self.parameter['sparse_text']:
             it = result_it
             region.set_type(TextTypeSimpleType.OTHER)
@@ -622,7 +682,7 @@ class TesserocrRecognize(Processor):
                                 Coords=region.get_Coords())
             region.add_TextLine(line)
             if self.parameter['textequiv_level'] != 'line':
-                self._process_words_in_line(it, line, page_coords)
+                self._process_words_in_line(it, line, page_coords, mapping)
             elif self.parameter.get('model', ''):
                 # todo: consider BlankBeforeWord, SetLineSeparator
                 line.add_TextEquiv(TextEquivType(
@@ -653,7 +713,7 @@ class TesserocrRecognize(Processor):
             line = TextLineType(id=ID, Coords=coords)
             region.add_TextLine(line)
             if self.parameter['textequiv_level'] != 'line':
-                self._process_words_in_line(it, line, page_coords)
+                self._process_words_in_line(it, line, page_coords, mapping)
             elif self.parameter.get('model', ''):
                 # todo: consider BlankBeforeWord, SetLineSeparator
                 line.add_TextEquiv(TextEquivType(
@@ -661,7 +721,7 @@ class TesserocrRecognize(Processor):
                     # iterator scores are arithmetic averages, too
                     conf=it.Confidence(RIL.TEXTLINE)/100.0))
 
-    def _process_words_in_line(self, result_it, line, coords):
+    def _process_words_in_line(self, result_it, line, coords, mapping):
         for index, it in enumerate(iterate_level(result_it, RIL.WORD)):
             bbox = it.BoundingBox(RIL.WORD, padding=self.parameter['padding'])
             if self.parameter['shrink_polygons'] and not it.Empty(RIL.SYMBOL):
@@ -688,14 +748,14 @@ class TesserocrRecognize(Processor):
             word = WordType(id=ID, Coords=CoordsType(points=points))
             line.add_Word(word)
             if self.parameter['textequiv_level'] != 'word':
-                self._process_glyphs_in_word(it, word, coords)
+                self._process_glyphs_in_word(it, word, coords, mapping)
             elif self.parameter.get('model', ''):
                 word.add_TextEquiv(TextEquivType(
                     Unicode=it.GetUTF8Text(RIL.WORD),
                     # iterator scores are arithmetic averages, too
                     conf=it.Confidence(RIL.WORD)/100.0))
 
-    def _process_glyphs_in_word(self, result_it, word, coords):
+    def _process_glyphs_in_word(self, result_it, word, coords, mapping):
         for index, it in enumerate(iterate_level(result_it, RIL.SYMBOL)):
             bbox = it.BoundingBox(RIL.SYMBOL, padding=self.parameter['padding'])
             polygon = polygon_from_x0y0x1y1(bbox)
@@ -731,7 +791,7 @@ class TesserocrRecognize(Processor):
                         Unicode=alternative_text,
                         conf=alternative_conf))
 
-    def _process_existing_tables(self, tessapi, tables, page, page_image, page_coords):
+    def _process_existing_tables(self, tessapi, tables, page, page_image, page_coords, mapping):
         # prepare dict of reading order
         reading_order = dict()
         ro = page.get_ReadingOrder()
@@ -741,12 +801,13 @@ class TesserocrRecognize(Processor):
         else:
             rogroup = ro.get_OrderedGroup() or ro.get_UnorderedGroup()
             page_get_reading_order(reading_order, rogroup)
+        segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
         # dive into tables
         for table in tables:
             cells = table.get_TextRegion()
             if cells:
                 if not self.parameter['overwrite_segments']:
-                    self._process_existing_regions(tessapi, cells, page_image, page_coords)
+                    self._process_existing_regions(tessapi, cells, page_image, page_coords, mapping)
                     continue
                 self.logger.info('Removing existing TextRegion cells in table %s', table.id)
                 for cell in table.get_TextRegion():
@@ -803,17 +864,19 @@ class TesserocrRecognize(Processor):
                 tessapi.SetImage(table_image)
             tessapi.SetPageSegMode(PSM.SPARSE_TEXT) # retrieve "cells"
             # TODO: we should XY-cut the sparse cells in regroup them into consistent cells
-            if self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', ''):
+            if segment_only:
                 self.logger.debug("Detecting cells in table '%s'", table.id)
                 tessapi.AnalyseLayout()
             else:
+                self._reinit(tessapi, table, mapping)
                 self.logger.debug("Recognizing text in table '%s'", table.id)
                 tessapi.Recognize()
-            self._process_cells_in_table(tessapi.GetIterator(), table, roelem, table_coords)
+            self._process_cells_in_table(tessapi.GetIterator(), table, roelem, table_coords, mapping)
     
-    def _process_existing_regions(self, tessapi, regions, page_image, page_coords):
+    def _process_existing_regions(self, tessapi, regions, page_image, page_coords, mapping):
         if self.parameter['textequiv_level'] in ['region', 'cell'] and not self.parameter.get('model', ''):
             return
+        segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
         for region in regions:
             region_image, region_coords = self.workspace.image_from_segment(
                 region, page_image, page_coords)
@@ -825,12 +888,15 @@ class TesserocrRecognize(Processor):
                 else self.parameter['segmentation_level'] != 'line'):
                 pass # image not used here
             elif self.parameter['padding']:
-                tessapi.SetImage(pad_image(region_image, self.parameter['padding']))
+                region_image = pad_image(region_image, self.parameter['padding'])
+                tessapi.SetImage(region_image)
                 region_coords['transform'] = shift_coordinates(
                     region_coords['transform'], 2*[self.parameter['padding']])
             else:
                 tessapi.SetImage(region_image)
             tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
+            if not segment_only:
+                self._reinit(tessapi, region, mapping)
             # cell (region in table): we could enter from existing_tables or top-level existing regions
             if self.parameter['textequiv_level'] in ['region', 'cell']:
                 #if region.get_primaryScript() not in tessapi.GetLoadedLanguages()...
@@ -853,22 +919,23 @@ class TesserocrRecognize(Processor):
                 if textlines:
                     self.logger.info('Removing existing text lines in region %s', region.id)
                 region.set_TextLine([])
-                if self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', ''):
+                if segment_only:
                     self.logger.debug("Detecting lines in region '%s'", region.id)
                     tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in region '%s'", region.id)
                     tessapi.Recognize()
-                self._process_lines_in_region(tessapi.GetIterator(), region, region_coords)
+                self._process_lines_in_region(tessapi.GetIterator(), region, region_coords, mapping)
             elif textlines:
-                self._process_existing_lines(tessapi, textlines, region_image, region_coords)
+                self._process_existing_lines(tessapi, textlines, region_image, region_coords, mapping)
             else:
                 self.logger.warning("Region '%s' contains no text lines (but segmentation is off)",
                                     region.id)
 
-    def _process_existing_lines(self, tessapi, textlines, region_image, region_coords):
+    def _process_existing_lines(self, tessapi, textlines, region_image, region_coords, mapping):
         if self.parameter['textequiv_level'] == 'line' and not self.parameter.get('model', ''):
             return
+        segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
         for line in textlines:
             line_image, line_coords = self.workspace.image_from_segment(
                 line, region_image, region_coords)
@@ -880,7 +947,8 @@ class TesserocrRecognize(Processor):
                 else self.parameter['segmentation_level'] != 'word'):
                 pass # image not used here
             elif self.parameter['padding']:
-                tessapi.SetImage(pad_image(line_image, self.parameter['padding']))
+                line_image = pad_image(line_image, self.parameter['padding'])
+                tessapi.SetImage(line_image)
                 line_coords['transform'] = shift_coordinates(
                     line_coords['transform'], 2*[self.parameter['padding']])
             else:
@@ -889,6 +957,8 @@ class TesserocrRecognize(Processor):
                 tessapi.SetPageSegMode(PSM.RAW_LINE)
             else:
                 tessapi.SetPageSegMode(PSM.SINGLE_LINE)
+            if not segment_only:
+                self._reinit(tessapi, line, mapping)
             #if line.get_primaryScript() not in tessapi.GetLoadedLanguages()...
             if self.parameter['textequiv_level'] == 'line':
                 if line.get_TextEquiv():
@@ -910,25 +980,26 @@ class TesserocrRecognize(Processor):
                 if words:
                     self.logger.info('Removing existing words in line %s', line.id)
                 line.set_Word([])
-                if self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', ''):
+                if segment_only:
                     self.logger.debug("Detecting words in line '%s'", line.id)
                     tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in line '%s'", line.id)
                     tessapi.Recognize()
                 ## internal word and glyph layout:
-                self._process_words_in_line(tessapi.GetIterator(), line, line_coords)
+                self._process_words_in_line(tessapi.GetIterator(), line, line_coords, mapping)
             elif words:
                 ## external word layout:
                 self.logger.warning("Line '%s' contains words already, recognition might be suboptimal", line.id)
-                self._process_existing_words(tessapi, words, line_image, line_coords)
+                self._process_existing_words(tessapi, words, line_image, line_coords, mapping)
             else:
                 self.logger.warning("Line '%s' contains no words (but segmentation if off)",
                                     line.id)
 
-    def _process_existing_words(self, tessapi, words, line_image, line_coords):
+    def _process_existing_words(self, tessapi, words, line_image, line_coords, mapping):
         if self.parameter['textequiv_level'] == 'word' and not self.parameter.get('model', ''):
             return
+        segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
         for word in words:
             word_image, word_coords = self.workspace.image_from_segment(
                 word, line_image, line_coords)
@@ -940,12 +1011,15 @@ class TesserocrRecognize(Processor):
                 else self.parameter['segmentation_level'] != 'glyph'):
                 pass # image not used here
             elif self.parameter['padding']:
-                tessapi.SetImage(pad_image(word_image, self.parameter['padding']))
+                word_image = pad_image(word_image, self.parameter['padding'])
+                tessapi.SetImage(word_image)
                 word_coords['transform'] = shift_coordinates(
                     word_coords['transform'], 2*[self.parameter['padding']])
             else:
                 tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
+            if not segment_only:
+                self._reinit(tessapi, word, mapping)
             if self.parameter['textequiv_level'] == 'word':
                 if word.get_TextEquiv():
                     if not self.parameter['overwrite_text']:
@@ -965,23 +1039,23 @@ class TesserocrRecognize(Processor):
                 if glyphs:
                     self.logger.info('Removing existing glyphs in word %s', word.id)
                 word.set_Glyph([])
-                if self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', ''):
+                if segment_only:
                     self.logger.debug("Detecting glyphs in word '%s'", word.id)
                     tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in word '%s'", word.id)
                     tessapi.Recognize()
                 ## internal glyph layout:
-                self._process_glyphs_in_word(tessapi.GetIterator(), word, word_coords)
+                self._process_glyphs_in_word(tessapi.GetIterator(), word, word_coords, mapping)
             elif glyphs:
                 ## external glyph layout:
                 self.logger.warning("Word '%s' contains glyphs already, recognition might be suboptimal", word.id)
-                self._process_existing_glyphs(tessapi, glyphs, word_image, word_coords)
+                self._process_existing_glyphs(tessapi, glyphs, word_image, word_coords, mapping)
             else:
                 self.logger.warning("Word '%s' contains no glyphs (but segmentation if off)",
                                     word.id)
 
-    def _process_existing_glyphs(self, tessapi, glyphs, word_image, word_xywh):
+    def _process_existing_glyphs(self, tessapi, glyphs, word_image, word_xywh, mapping):
         if not self.parameter.get('model', ''):
             return
         for glyph in glyphs:
@@ -997,6 +1071,7 @@ class TesserocrRecognize(Processor):
             else:
                 tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
+            self._reinit(tessapi, glyph, mapping)
             if glyph.get_TextEquiv():
                 if not self.parameter['overwrite_text']:
                     continue
@@ -1071,6 +1146,91 @@ class TesserocrRecognize(Processor):
                 TextlineOrder.RIGHT_TO_LEFT: 'right-to-left',
                 TextlineOrder.TOP_TO_BOTTOM: 'top-to-bottom'
             }.get(textline_order, 'bottom-to-top'))
+    
+    def _reinit(self, tessapi, segment, mapping):
+        """Reset Tesseract API to initial state, and apply API-level settings for the given segment.
+        
+        If ``xpath_parameters`` is used, try each XPath expression against ``segment``,
+        and in case of a match, apply given parameters, respectively.
+        
+        If ``xpath_model`` is used, try each XPath expression against ``segment``,
+        and in case of a match, load the given language/model, respectively.
+        
+        If ``auto_model`` is used, and no ``xpath_model`` was applied yet,
+        try each given language/model individually on ``segment``, compare
+        their confidences, and load the best-scoring language/model.
+        
+        Before returning, store all previous settings (to catch by the next call).
+        """
+        # Tesseract API is stateful but does not allow copy constructors
+        # for segment-by-segment configuration we therefore need to
+        # re-initialize the API with the currently loaded settings,
+        # and add some custom choices
+        node = mapping.get(id(segment), None)
+        tag = segment.__class__.__name__[:-4]
+        if hasattr(segment, 'id'):
+            at_ident = 'id'
+        else:
+            at_ident = 'imageFilename'
+        ident = getattr(segment, at_ident)
+        parameters = tessapi.parameters.copy()
+        lang = tessapi.lang
+        if self.parameter['xpath_parameters']:
+            if node is not None and node.attrib.get(at_ident, None) == ident:
+                ns = {'re': 'http://exslt.org/regular-expressions',
+                      'pc': node.nsmap[node.prefix],
+                      node.prefix: node.nsmap[node.prefix]}
+                for xpath, params in self.parameter['xpath_parameters'].items():
+                    if node.xpath(xpath, namespaces=ns):
+                        self.logger.info("Found '%s' in '%s', setting '%s'",
+                                         xpath, ident, params)
+                        for name, val in params.items():
+                            tessapi.SetVariable(name, val)
+            else:
+                self.logger.error("Cannot find segment '%s' in etree mapping, " \
+                                  "ignoring xpath_parameters", ident)
+        if self.parameter['xpath_model']:
+            if node is not None and node.attrib.get(at_ident, None) == ident:
+                ns = {'re': 'http://exslt.org/regular-expressions',
+                      'pc': node.nsmap[node.prefix],
+                      node.prefix: node.nsmap[node.prefix]}
+                models = []
+                for xpath, model in self.parameter['xpath_model'].items():
+                    if node.xpath(xpath, namespaces=ns):
+                        self.logger.info("Found '%s' in '%s', reloading with '%s'",
+                                         xpath, ident, model)
+                        models.append(model)
+                if models:
+                    model = '+'.join(models)
+                    self.logger.debug("Reloading model '%s' for %s '%s'", model, tag, ident)
+                    tessapi.Reset(lang=model)
+                    # forget the above next time
+                    tessapi.parameters = parameters
+                    tessapi.lang = lang
+                    return
+            else:
+                self.logger.error("Cannot find segment '%s' in etree mapping, " \
+                                  "ignoring xpath_model", ident)
+        if self.parameter['auto_model']:
+            models = self.parameter['model'].split('+')
+            if len(models) > 1:
+                confs = list()
+                for model in models:
+                    tessapi.Reset(lang=model)
+                    tessapi.Recognize()
+                    confs.append(tessapi.MeanTextConf())
+                model = models[np.argmax(confs)]
+                self.logger.debug("Reloading best model '%s' for %s '%s'", model, tag, ident)
+                tessapi.Reset(lang=model)
+                # forget the above next time
+                tessapi.parameters = parameters
+                tessapi.lang = lang
+                return
+        # default: undo everything
+        tessapi.Reset()
+        # forget the above next time
+        tessapi.parameters = parameters
+        tessapi.lang = lang
 
 def page_element_unicode0(element):
     """Get Unicode string of the first text result."""
@@ -1307,6 +1467,10 @@ def polygon_for_parent(polygon, parent):
     # (this can happen when shapes valid in floating point are rounded)
     childp = make_valid(childp)
     parentp = make_valid(parentp)
+    if not childp.is_valid:
+        return None
+    if not parentp.is_valid:
+        return None
     # check if clipping is necessary
     if childp.within(parentp):
         return childp.exterior.coords[:-1]

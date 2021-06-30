@@ -12,6 +12,9 @@ PYTEST_ARGS =
 # Docker container tag
 DOCKER_TAG = 'ocrd/tesserocr'
 
+# search path for recognition models
+TESSDATA_PREFIX ?= $(or $(XDG_DATA_HOME),$(HOME)/.local/share)/ocrd-resources/ocrd-tesserocr-recognize
+
 # BEGIN-EVAL makefile-parser --make-help Makefile
 
 help:
@@ -38,8 +41,9 @@ help:
 	@echo ""
 	@echo "  Variables"
 	@echo ""
-	@echo "    PYTEST_ARGS  pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. Default: '$(PYTEST_ARGS)'"
-	@echo "    DOCKER_TAG   Docker container tag"
+	@echo "    PYTEST_ARGS     pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. Default: '$(PYTEST_ARGS)'"
+	@echo "    DOCKER_TAG      Docker container tag"
+	@echo "    TESSDATA_PREFIX search path for recognition models"
 
 # END-EVAL
 
@@ -62,6 +66,8 @@ deps-ubuntu:
 		libleptonica-dev \
 		tesseract-ocr-eng \
 		tesseract-ocr
+	mkdir -p $(TESSDATA_PREFIX)
+	ln -rs -t $(TESSDATA_PREFIX) /usr/share/tesseract-ocr/4.00/tessdata/*.traineddata
 
 # Install Python deps for install via pip
 deps:
@@ -75,7 +81,10 @@ deps-test:
 
 # Build docker image
 docker:
-	docker build -t $(DOCKER_TAG) .
+	docker build \
+	--build-arg VCS_REF=$$(git rev-parse --short HEAD) \
+	--build-arg BUILD_DATE=$$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+	-t $(DOCKER_TAG) .
 
 # Install this package
 install: deps
@@ -99,6 +108,7 @@ test-cli: test/assets
 	$(PIP) install -e .
 	rm -rfv test/workspace
 	cp -rv test/assets/kant_aufklaerung_1784 test/workspace
+	ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
 	ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
 	cd test/workspace/data && \
 		ocrd-tesserocr-segment-region -l DEBUG -I OCR-D-IMG -O OCR-D-SEG-REGION && \
