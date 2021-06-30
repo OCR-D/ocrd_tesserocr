@@ -5,6 +5,12 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.13.2] - 2021-06-30
+
+Fixed:
+
+  * updated requirements
+
 ## [0.13.1] - 2021-06-30
 
 Fixed:
@@ -309,6 +315,8 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.13.2]: ../../compare/v0.13.2...v0.13.1
+[0.13.1]: ../../compare/v0.13.1...v0.13.0
 [0.13.0]: ../../compare/v0.13.0...v0.12.0
 [0.12.0]: ../../compare/v0.12.0...v0.11.0
 [0.11.0]: ../../compare/v0.11.0...v0.10.1
