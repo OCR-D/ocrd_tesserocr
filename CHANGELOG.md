@@ -5,6 +5,22 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.13.1] - 2021-06-30
+
+Fixed:
+
+  * deps-ubuntu/Docker: adapt to resmgr location mechanism, link to PPA models
+  * recognize: :bug: skip detected segments if polygon cannot be made valid
+
+Changed:
+
+  * deskew: add line-level operation for script detection
+  * recognize: query more choices for textequiv_level=glyph if available
+  * recognize: :fire: reset Tesseract API when applying model/param settings per segment
+  * recognize: :eyes: allow configuring Tesseract parameters per segment via XPath queries
+  * recognize: :eyes: allow selecting recognition model per segment via XPath queries
+  * recognize: :eyes: allow selecting recognition model automatically via confidence
+
 ## [0.13.0] - 2021-06-30
 
 Changed:
