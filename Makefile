@@ -13,7 +13,7 @@ PYTEST_ARGS =
 DOCKER_TAG = 'ocrd/tesserocr'
 
 # search path for recognition models
-TESSDATA_PREFIX ?= $(or $(XDG_DATA_HOME),$(HOME)/.local/share)/ocrd-resources
+TESSDATA_PREFIX ?= $(or $(XDG_DATA_HOME),$(HOME)/.local/share)/ocrd-resources/ocrd-tesserocr-recognize
 
 # BEGIN-EVAL makefile-parser --make-help Makefile
 
