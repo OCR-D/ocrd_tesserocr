@@ -774,7 +774,7 @@ class TesserocrRecognize(Processor):
             if self.parameter['textequiv_level'] != 'glyph':
                 pass
             elif self.parameter.get('model', ''):
-                # glyph_text = it.GetUTF8Text(RIL.SYMBOL) # equals first choice?
+                glyph_text = it.GetUTF8Text(RIL.SYMBOL) # equals first choice?
                 glyph_conf = it.Confidence(RIL.SYMBOL)/100 # equals first choice?
                 #self.logger.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
                 choice_it = it.GetChoiceIterator()
@@ -790,6 +790,11 @@ class TesserocrRecognize(Processor):
                         index=choice_no,
                         Unicode=alternative_text,
                         conf=alternative_conf))
+                if not glyph.TextEquiv:
+                    glyph.add_TextEquiv(TextEquivType(
+                        index=0,
+                        Unicode=glyph_text,
+                        conf=glyph_conf))
 
     def _process_existing_tables(self, tessapi, tables, page, page_image, page_coords, mapping):
         # prepare dict of reading order
@@ -1078,7 +1083,7 @@ class TesserocrRecognize(Processor):
                 self.logger.warning("Glyph '%s' already contained text results", glyph.id)
                 glyph.set_TextEquiv([])
             self.logger.debug("Recognizing text in glyph '%s'", glyph.id)
-            #glyph_text = tessapi.GetUTF8Text().rstrip("\n\f")
+            glyph_text = tessapi.GetUTF8Text().rstrip("\n\f")
             glyph_conf = tessapi.AllWordConfidences()
             glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 1.0
             #self.logger.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
@@ -1087,7 +1092,7 @@ class TesserocrRecognize(Processor):
                 self.logger.error("No text in glyph '%s'", glyph.id)
                 continue
             choice_it = result_it.GetChoiceIterator()
-            for (choice_no, choice) in enumerate(choice_it):
+            for choice_no, choice in enumerate(choice_it):
                 alternative_text = choice.GetUTF8Text()
                 alternative_conf = choice.Confidence()/100
                 #self.logger.debug('alternative glyph: "%s" [%f]', alternative_text, alternative_conf)
@@ -1096,7 +1101,14 @@ class TesserocrRecognize(Processor):
                     break
                 # todo: consider SymbolIsSuperscript (TextStyle), SymbolIsDropcap (RelationType) etc
                 glyph.add_TextEquiv(TextEquivType(
-                    index=choice_no, Unicode=alternative_text, conf=alternative_conf))
+                    index=choice_no,
+                    Unicode=alternative_text,
+                    conf=alternative_conf))
+            if not glyph.TextEquiv:
+                glyph.add_TextEquiv(TextEquivType(
+                    index=0,
+                    Unicode=glyph_text,
+                    conf=glyph_conf))
     
     def _add_orientation(self, result_it, region, coords):
         # Tesseract layout analysis already rotates the image, even for each
