@@ -5,7 +5,7 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
-## [0.13.2] - 2021-07-01
+## [0.13.3] - 2021-07-01
 
 Changed:
 
