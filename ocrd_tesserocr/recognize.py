@@ -87,21 +87,12 @@ class TessBaseAPI(PyTessBaseAPI):
                     'lang': self.lang,
                     'oem': self.oem})
 
-    def __init__(self, **kwargs):
-        # Cython base class has only __cinit__ (so no kwargs here):
-        super(TessBaseAPI, self).__init__()
-        if 'path' in kwargs:
-            self.path = kwargs['path']
-        if 'lang' in kwargs:
-            self.lang = kwargs['lang']
-        if 'oem' in kwargs:
-            self.oem = kwargs['oem']
-
-    def Init(self, path='', lang='', oem=OEM.DEFAULT):
-        self.path = path
-        self.lang = lang
-        self.oem = oem
-        super().Init(path=path, lang=lang, oem=oem)
+    def InitFull(self, path=None, lang=None, oem=None, psm=None, variables=None):
+        self.path = path or self.path
+        self.lang = lang or self.lang
+        self.oem = oem or self.oem
+        self.parameters = variables or self.parameters
+        super().InitFull(path=self.path, lang=self.lang, oem=self.oem, variables=self.parameters)
 
     def SetVariable(self, name, val):
         self.parameters[name] = val
@@ -111,20 +102,26 @@ class TessBaseAPI(PyTessBaseAPI):
         self.psm = psm
         super().SetPageSegMode(psm)
 
-    def SetImage(self, image):
-        self.image = image
-        if image:
-            super().SetImage(image)
-
-    def Reset(self, path=None, lang=None, oem=None, psm=None, parameters=None, image=None):
-        self.End()
-        self.Init(path=path or self.path,
-                  lang=lang or self.lang,
-                  oem=oem or self.oem)
+    def Reset(self, path=None, lang=None, oem=None, psm=None, parameters=None):
+        self.Clear()
+        self.InitFull(path=path, lang=lang, oem=oem, variables=parameters)
         self.SetPageSegMode(psm or self.psm)
-        for name, val in (parameters or self.parameters).items():
-            self.SetVariable(name, val)
-        self.SetImage(image or self.image)
+
+    def __enter__(self):
+        self.original_path = self.path
+        self.original_lang = self.lang
+        self.original_oem = self.oem
+        self.original_parameters = self.parameters.copy()
+        self.original_psm = self.psm
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_trace):
+        self.path = self.original_path
+        self.lang = self.original_lang
+        self.oem = self.original_oem
+        self.parameters = self.original_parameters
+        self.psm = self.original_psm
+        return None
 
 class TesserocrRecognize(Processor):
 
@@ -274,10 +271,8 @@ class TesserocrRecognize(Processor):
             self.logger.info("Using model '%s' in %s for recognition at the %s level",
                              model, get_languages()[0], outlevel)
         
-        with TessBaseAPI(path=get_tessdata_path(),
-                         lang=model,
-                         oem=getattr(OEM, self.parameter['oem'])
-        ) as tessapi:
+        with TessBaseAPI(init=False) as tessapi:
+            # Set init-time parameters
             # self.SetVariable("debug_file", "") # show debug output (default: /dev/null)
             if outlevel == 'glyph':
                 # populate GetChoiceIterator() with LSTM models, too:
@@ -336,6 +331,11 @@ class TesserocrRecognize(Processor):
             tesseract_params = self.parameter['tesseract_parameters']
             for variable in tesseract_params:
                 tessapi.SetVariable(variable, tesseract_params[variable])
+            # Initialize Tesseract (loading model)
+            tessapi.InitFull(path=get_tessdata_path(),
+                             lang=model,
+                             oem=getattr(OEM, self.parameter['oem']))
+            # Iterate input files
             for (n, input_file) in enumerate(self.input_files):
                 file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
@@ -1185,64 +1185,56 @@ class TesserocrRecognize(Processor):
         else:
             at_ident = 'imageFilename'
         ident = getattr(segment, at_ident)
-        parameters = tessapi.parameters.copy()
-        lang = tessapi.lang
-        if self.parameter['xpath_parameters']:
-            if node is not None and node.attrib.get(at_ident, None) == ident:
-                ns = {'re': 'http://exslt.org/regular-expressions',
-                      'pc': node.nsmap[node.prefix],
-                      node.prefix: node.nsmap[node.prefix]}
-                for xpath, params in self.parameter['xpath_parameters'].items():
-                    if node.xpath(xpath, namespaces=ns):
-                        self.logger.info("Found '%s' in '%s', setting '%s'",
-                                         xpath, ident, params)
-                        for name, val in params.items():
-                            tessapi.SetVariable(name, val)
-            else:
-                self.logger.error("Cannot find segment '%s' in etree mapping, " \
-                                  "ignoring xpath_parameters", ident)
-        if self.parameter['xpath_model']:
-            if node is not None and node.attrib.get(at_ident, None) == ident:
-                ns = {'re': 'http://exslt.org/regular-expressions',
-                      'pc': node.nsmap[node.prefix],
-                      node.prefix: node.nsmap[node.prefix]}
-                models = []
-                for xpath, model in self.parameter['xpath_model'].items():
-                    if node.xpath(xpath, namespaces=ns):
-                        self.logger.info("Found '%s' in '%s', reloading with '%s'",
-                                         xpath, ident, model)
-                        models.append(model)
-                if models:
-                    model = '+'.join(models)
-                    self.logger.debug("Reloading model '%s' for %s '%s'", model, tag, ident)
+        with tessapi:
+            # apply temporary changes
+            if self.parameter['xpath_parameters']:
+                if node is not None and node.attrib.get(at_ident, None) == ident:
+                    ns = {'re': 'http://exslt.org/regular-expressions',
+                          'pc': node.nsmap[node.prefix],
+                          node.prefix: node.nsmap[node.prefix]}
+                    for xpath, params in self.parameter['xpath_parameters'].items():
+                        if node.xpath(xpath, namespaces=ns):
+                            self.logger.info("Found '%s' in '%s', setting '%s'",
+                                             xpath, ident, params)
+                            for name, val in params.items():
+                                tessapi.SetVariable(name, val)
+                else:
+                    self.logger.error("Cannot find segment '%s' in etree mapping, " \
+                                      "ignoring xpath_parameters", ident)
+            if self.parameter['xpath_model']:
+                if node is not None and node.attrib.get(at_ident, None) == ident:
+                    ns = {'re': 'http://exslt.org/regular-expressions',
+                          'pc': node.nsmap[node.prefix],
+                          node.prefix: node.nsmap[node.prefix]}
+                    models = []
+                    for xpath, model in self.parameter['xpath_model'].items():
+                        if node.xpath(xpath, namespaces=ns):
+                            self.logger.info("Found '%s' in '%s', reloading with '%s'",
+                                             xpath, ident, model)
+                            models.append(model)
+                    if models:
+                        model = '+'.join(models)
+                        self.logger.debug("Reloading model '%s' for %s '%s'", model, tag, ident)
+                        tessapi.Reset(lang=model)
+                        return
+                else:
+                    self.logger.error("Cannot find segment '%s' in etree mapping, " \
+                                      "ignoring xpath_model", ident)
+            if self.parameter['auto_model']:
+                models = self.parameter['model'].split('+')
+                if len(models) > 1:
+                    confs = list()
+                    for model in models:
+                        tessapi.Reset(lang=model)
+                        tessapi.Recognize()
+                        confs.append(tessapi.MeanTextConf())
+                    model = models[np.argmax(confs)]
+                    self.logger.debug("Reloading best model '%s' for %s '%s'", model, tag, ident)
                     tessapi.Reset(lang=model)
-                    # forget the above next time
-                    tessapi.parameters = parameters
-                    tessapi.lang = lang
                     return
-            else:
-                self.logger.error("Cannot find segment '%s' in etree mapping, " \
-                                  "ignoring xpath_model", ident)
-        if self.parameter['auto_model']:
-            models = self.parameter['model'].split('+')
-            if len(models) > 1:
-                confs = list()
-                for model in models:
-                    tessapi.Reset(lang=model)
-                    tessapi.Recognize()
-                    confs.append(tessapi.MeanTextConf())
-                model = models[np.argmax(confs)]
-                self.logger.debug("Reloading best model '%s' for %s '%s'", model, tag, ident)
-                tessapi.Reset(lang=model)
-                # forget the above next time
-                tessapi.parameters = parameters
-                tessapi.lang = lang
-                return
-        # default: undo everything
-        tessapi.Reset()
-        # forget the above next time
-        tessapi.parameters = parameters
-        tessapi.lang = lang
+            if self.parameter['xpath_model'] or self.parameter['auto_model']:
+                # default: undo all settings from previous calls (reset to init-state)
+                tessapi.Reset()
 
 def page_element_unicode0(element):
     """Get Unicode string of the first text result."""
