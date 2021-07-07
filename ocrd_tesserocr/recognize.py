@@ -1240,7 +1240,7 @@ class TesserocrRecognize(Processor):
 def page_element_unicode0(element):
     """Get Unicode string of the first text result."""
     if element.get_TextEquiv():
-        return element.get_TextEquiv()[0].Unicode
+        return element.get_TextEquiv()[0].Unicode or ''
     else:
         return ''
 
