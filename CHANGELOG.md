@@ -5,6 +5,19 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.13.4] - 2021-07-20
+
+Fixed:
+
+  * recognize: only reset API when `xpath_model` or `auto_model` is active
+  * recognize: for `glyph` level output, reduce choice confidence threshold
+  * recognize: for `glyph` level output, skip choices with same text
+  * recognize: avoid projecting empty text results from lower levels
+
+Changed:
+
+  * recognize: allow setting init-time (model-related) parameters
+
 ## [0.13.3] - 2021-07-01
 
 Changed:
@@ -321,6 +334,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.13.4]: ../../compare/v0.13.4...v0.13.3
 [0.13.3]: ../../compare/v0.13.3...v0.13.2
 [0.13.2]: ../../compare/v0.13.2...v0.13.1
 [0.13.1]: ../../compare/v0.13.1...v0.13.0
