@@ -61,8 +61,9 @@ from .config import get_tessdata_path, OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-recognize'
 
-CHOICE_THRESHOLD_NUM = 16 # maximum number of choices to query and annotate
-CHOICE_THRESHOLD_CONF = 0.001 # maximum score drop from best choice to query and annotate
+CHOICE_THRESHOLD_NUM = 10 # maximum number of choices to query and annotate
+CHOICE_THRESHOLD_CONF = 1 # maximum score drop from best choice to query and annotate
+# (ChoiceIterator usually rounds to 0.0 for non-best, so this better be maximum)
 
 def get_languages(*args, **kwargs):
     """
@@ -87,21 +88,12 @@ class TessBaseAPI(PyTessBaseAPI):
                     'lang': self.lang,
                     'oem': self.oem})
 
-    def __init__(self, **kwargs):
-        # Cython base class has only __cinit__ (so no kwargs here):
-        super(TessBaseAPI, self).__init__()
-        if 'path' in kwargs:
-            self.path = kwargs['path']
-        if 'lang' in kwargs:
-            self.lang = kwargs['lang']
-        if 'oem' in kwargs:
-            self.oem = kwargs['oem']
-
-    def Init(self, path='', lang='', oem=OEM.DEFAULT):
-        self.path = path
-        self.lang = lang
-        self.oem = oem
-        super().Init(path=path, lang=lang, oem=oem)
+    def InitFull(self, path=None, lang=None, oem=None, psm=None, variables=None):
+        self.path = path or self.path
+        self.lang = lang or self.lang
+        self.oem = oem or self.oem
+        self.parameters = variables or self.parameters
+        super().InitFull(path=self.path, lang=self.lang, oem=self.oem, variables=self.parameters)
 
     def SetVariable(self, name, val):
         self.parameters[name] = val
@@ -111,20 +103,26 @@ class TessBaseAPI(PyTessBaseAPI):
         self.psm = psm
         super().SetPageSegMode(psm)
 
-    def SetImage(self, image):
-        self.image = image
-        if image:
-            super().SetImage(image)
-
-    def Reset(self, path=None, lang=None, oem=None, psm=None, parameters=None, image=None):
-        self.End()
-        self.Init(path=path or self.path,
-                  lang=lang or self.lang,
-                  oem=oem or self.oem)
+    def Reset(self, path=None, lang=None, oem=None, psm=None, parameters=None):
+        self.Clear()
+        self.InitFull(path=path, lang=lang, oem=oem, variables=parameters)
         self.SetPageSegMode(psm or self.psm)
-        for name, val in (parameters or self.parameters).items():
-            self.SetVariable(name, val)
-        self.SetImage(image or self.image)
+
+    def __enter__(self):
+        self.original_path = self.path
+        self.original_lang = self.lang
+        self.original_oem = self.oem
+        self.original_parameters = self.parameters.copy()
+        self.original_psm = self.psm
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_trace):
+        self.path = self.original_path
+        self.lang = self.original_lang
+        self.oem = self.original_oem
+        self.parameters = self.original_parameters
+        self.psm = self.original_psm
+        return None
 
 class TesserocrRecognize(Processor):
 
@@ -274,10 +272,8 @@ class TesserocrRecognize(Processor):
             self.logger.info("Using model '%s' in %s for recognition at the %s level",
                              model, get_languages()[0], outlevel)
         
-        with TessBaseAPI(path=get_tessdata_path(),
-                         lang=model,
-                         oem=getattr(OEM, self.parameter['oem'])
-        ) as tessapi:
+        with TessBaseAPI(init=False) as tessapi:
+            # Set init-time parameters
             # self.SetVariable("debug_file", "") # show debug output (default: /dev/null)
             if outlevel == 'glyph':
                 # populate GetChoiceIterator() with LSTM models, too:
@@ -336,6 +332,11 @@ class TesserocrRecognize(Processor):
             tesseract_params = self.parameter['tesseract_parameters']
             for variable in tesseract_params:
                 tessapi.SetVariable(variable, tesseract_params[variable])
+            # Initialize Tesseract (loading model)
+            tessapi.InitFull(path=get_tessdata_path(),
+                             lang=model,
+                             oem=getattr(OEM, self.parameter['oem']))
+            # Iterate input files
             for (n, input_file) in enumerate(self.input_files):
                 file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
@@ -777,10 +778,16 @@ class TesserocrRecognize(Processor):
                 glyph_text = it.GetUTF8Text(RIL.SYMBOL) # equals first choice?
                 glyph_conf = it.Confidence(RIL.SYMBOL)/100 # equals first choice?
                 #self.logger.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
+                glyph.add_TextEquiv(TextEquivType(
+                    index=0,
+                    Unicode=glyph_text,
+                    conf=glyph_conf))
                 choice_it = it.GetChoiceIterator()
-                for choice_no, choice in enumerate(choice_it):
+                for choice_no, choice in enumerate(choice_it, 1):
                     alternative_text = choice.GetUTF8Text()
                     alternative_conf = choice.Confidence()/100
+                    if alternative_text == glyph_text:
+                        continue
                     #self.logger.debug('alternative glyph: "%s" [%f]', alternative_text, alternative_conf)
                     if (glyph_conf - alternative_conf > CHOICE_THRESHOLD_CONF or
                         choice_no > CHOICE_THRESHOLD_NUM):
@@ -790,11 +797,6 @@ class TesserocrRecognize(Processor):
                         index=choice_no,
                         Unicode=alternative_text,
                         conf=alternative_conf))
-                if not glyph.TextEquiv:
-                    glyph.add_TextEquiv(TextEquivType(
-                        index=0,
-                        Unicode=glyph_text,
-                        conf=glyph_conf))
 
     def _process_existing_tables(self, tessapi, tables, page, page_image, page_coords, mapping):
         # prepare dict of reading order
@@ -1087,14 +1089,20 @@ class TesserocrRecognize(Processor):
             glyph_conf = tessapi.AllWordConfidences()
             glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 1.0
             #self.logger.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
+            glyph.add_TextEquiv(TextEquivType(
+                index=0,
+                Unicode=glyph_text,
+                conf=glyph_conf))
             result_it = tessapi.GetIterator()
             if not result_it or result_it.Empty(RIL.SYMBOL):
                 self.logger.error("No text in glyph '%s'", glyph.id)
                 continue
             choice_it = result_it.GetChoiceIterator()
-            for choice_no, choice in enumerate(choice_it):
+            for choice_no, choice in enumerate(choice_it, 1):
                 alternative_text = choice.GetUTF8Text()
                 alternative_conf = choice.Confidence()/100
+                if alternative_text == glyph_text:
+                    continue
                 #self.logger.debug('alternative glyph: "%s" [%f]', alternative_text, alternative_conf)
                 if (glyph_conf - alternative_conf > CHOICE_THRESHOLD_CONF or
                     choice_no > CHOICE_THRESHOLD_NUM):
@@ -1104,11 +1112,6 @@ class TesserocrRecognize(Processor):
                     index=choice_no,
                     Unicode=alternative_text,
                     conf=alternative_conf))
-            if not glyph.TextEquiv:
-                glyph.add_TextEquiv(TextEquivType(
-                    index=0,
-                    Unicode=glyph_text,
-                    conf=glyph_conf))
     
     def _add_orientation(self, result_it, region, coords):
         # Tesseract layout analysis already rotates the image, even for each
@@ -1185,69 +1188,61 @@ class TesserocrRecognize(Processor):
         else:
             at_ident = 'imageFilename'
         ident = getattr(segment, at_ident)
-        parameters = tessapi.parameters.copy()
-        lang = tessapi.lang
-        if self.parameter['xpath_parameters']:
-            if node is not None and node.attrib.get(at_ident, None) == ident:
-                ns = {'re': 'http://exslt.org/regular-expressions',
-                      'pc': node.nsmap[node.prefix],
-                      node.prefix: node.nsmap[node.prefix]}
-                for xpath, params in self.parameter['xpath_parameters'].items():
-                    if node.xpath(xpath, namespaces=ns):
-                        self.logger.info("Found '%s' in '%s', setting '%s'",
-                                         xpath, ident, params)
-                        for name, val in params.items():
-                            tessapi.SetVariable(name, val)
-            else:
-                self.logger.error("Cannot find segment '%s' in etree mapping, " \
-                                  "ignoring xpath_parameters", ident)
-        if self.parameter['xpath_model']:
-            if node is not None and node.attrib.get(at_ident, None) == ident:
-                ns = {'re': 'http://exslt.org/regular-expressions',
-                      'pc': node.nsmap[node.prefix],
-                      node.prefix: node.nsmap[node.prefix]}
-                models = []
-                for xpath, model in self.parameter['xpath_model'].items():
-                    if node.xpath(xpath, namespaces=ns):
-                        self.logger.info("Found '%s' in '%s', reloading with '%s'",
-                                         xpath, ident, model)
-                        models.append(model)
-                if models:
-                    model = '+'.join(models)
-                    self.logger.debug("Reloading model '%s' for %s '%s'", model, tag, ident)
+        with tessapi:
+            # apply temporary changes
+            if self.parameter['xpath_parameters']:
+                if node is not None and node.attrib.get(at_ident, None) == ident:
+                    ns = {'re': 'http://exslt.org/regular-expressions',
+                          'pc': node.nsmap[node.prefix],
+                          node.prefix: node.nsmap[node.prefix]}
+                    for xpath, params in self.parameter['xpath_parameters'].items():
+                        if node.xpath(xpath, namespaces=ns):
+                            self.logger.info("Found '%s' in '%s', setting '%s'",
+                                             xpath, ident, params)
+                            for name, val in params.items():
+                                tessapi.SetVariable(name, val)
+                else:
+                    self.logger.error("Cannot find segment '%s' in etree mapping, " \
+                                      "ignoring xpath_parameters", ident)
+            if self.parameter['xpath_model']:
+                if node is not None and node.attrib.get(at_ident, None) == ident:
+                    ns = {'re': 'http://exslt.org/regular-expressions',
+                          'pc': node.nsmap[node.prefix],
+                          node.prefix: node.nsmap[node.prefix]}
+                    models = []
+                    for xpath, model in self.parameter['xpath_model'].items():
+                        if node.xpath(xpath, namespaces=ns):
+                            self.logger.info("Found '%s' in '%s', reloading with '%s'",
+                                             xpath, ident, model)
+                            models.append(model)
+                    if models:
+                        model = '+'.join(models)
+                        self.logger.debug("Reloading model '%s' for %s '%s'", model, tag, ident)
+                        tessapi.Reset(lang=model)
+                        return
+                else:
+                    self.logger.error("Cannot find segment '%s' in etree mapping, " \
+                                      "ignoring xpath_model", ident)
+            if self.parameter['auto_model']:
+                models = self.parameter['model'].split('+')
+                if len(models) > 1:
+                    confs = list()
+                    for model in models:
+                        tessapi.Reset(lang=model)
+                        tessapi.Recognize()
+                        confs.append(tessapi.MeanTextConf())
+                    model = models[np.argmax(confs)]
+                    self.logger.debug("Reloading best model '%s' for %s '%s'", model, tag, ident)
                     tessapi.Reset(lang=model)
-                    # forget the above next time
-                    tessapi.parameters = parameters
-                    tessapi.lang = lang
                     return
-            else:
-                self.logger.error("Cannot find segment '%s' in etree mapping, " \
-                                  "ignoring xpath_model", ident)
-        if self.parameter['auto_model']:
-            models = self.parameter['model'].split('+')
-            if len(models) > 1:
-                confs = list()
-                for model in models:
-                    tessapi.Reset(lang=model)
-                    tessapi.Recognize()
-                    confs.append(tessapi.MeanTextConf())
-                model = models[np.argmax(confs)]
-                self.logger.debug("Reloading best model '%s' for %s '%s'", model, tag, ident)
-                tessapi.Reset(lang=model)
-                # forget the above next time
-                tessapi.parameters = parameters
-                tessapi.lang = lang
-                return
-        # default: undo everything
-        tessapi.Reset()
-        # forget the above next time
-        tessapi.parameters = parameters
-        tessapi.lang = lang
+            if self.parameter['xpath_model'] or self.parameter['auto_model']:
+                # default: undo all settings from previous calls (reset to init-state)
+                tessapi.Reset()
 
 def page_element_unicode0(element):
     """Get Unicode string of the first text result."""
     if element.get_TextEquiv():
-        return element.get_TextEquiv()[0].Unicode
+        return element.get_TextEquiv()[0].Unicode or ''
     else:
         return ''
 
