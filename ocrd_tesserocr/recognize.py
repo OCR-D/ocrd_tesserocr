@@ -784,7 +784,7 @@ class TesserocrRecognize(Processor):
                     conf=glyph_conf))
                 choice_it = it.GetChoiceIterator()
                 for choice_no, choice in enumerate(choice_it, 1):
-                    alternative_text = choice.GetUTF8Text()
+                    alternative_text = choice.GetUTF8Text() or ''
                     alternative_conf = choice.Confidence()/100
                     if alternative_text == glyph_text:
                         continue
