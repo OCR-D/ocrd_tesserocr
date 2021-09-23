@@ -437,6 +437,9 @@ class TesserocrRecognize(Processor):
                     # or not they should be segmented into cells.
                     if outlevel == 'region':
                         raise Exception("When segmentation_level is cell, textequiv_level must be at least cell too, because text results cannot be annotated on tables directly.")
+                    # disable table detection here, so tables will be
+                    # analysed as independent text/line blocks:
+                    tessapi.SetVariable("textord_tabfind_find_tables", "0")
                     tables = page.get_AllRegions(classes=['Table'])
                     if not tables:
                         self.logger.warning("Page '%s' contains no table regions (but segmentation is off)",
