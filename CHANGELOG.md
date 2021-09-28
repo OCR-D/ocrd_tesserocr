@@ -5,6 +5,17 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.13.6] - 2021-09-28
+
+Fixed:
+
+ * segment/recognize: no find_tables when already looking for cells
+
+Changed:
+
+ * segment/recognize: add param find_staves (for pageseg_apply_music_mask)
+ * segment/recognize: :fire: set find_staves=false by default
+
 ## [0.13.5] - 2021-07-26
 
 Fixed:
@@ -340,6 +351,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.13.6]: ../../compare/v0.13.6...v0.13.5
 [0.13.5]: ../../compare/v0.13.5...v0.13.4
 [0.13.4]: ../../compare/v0.13.4...v0.13.3
 [0.13.3]: ../../compare/v0.13.3...v0.13.2
