@@ -279,14 +279,14 @@ class TesserocrRecognize(Processor):
                 # populate GetChoiceIterator() with LSTM models, too:
                 tessapi.SetVariable("lstm_choice_mode", "2") # aggregate symbols
                 tessapi.SetVariable("lstm_choice_iterations", "15") # squeeze out more best paths
-            if outlevel != 'none' and self.parameter.get('model', ''):
-                # TODO: maybe warn/raise when illegal combinations or characters not in the model unicharset?
-                if self.parameter['char_whitelist']:
-                    tessapi.SetVariable("tessedit_char_whitelist", self.parameter['char_whitelist'])
-                if self.parameter['char_blacklist']:
-                    tessapi.SetVariable("tessedit_char_blacklist", self.parameter['char_blacklist'])
-                if self.parameter['char_unblacklist']:
-                    tessapi.SetVariable("tessedit_char_unblacklist", self.parameter['char_unblacklist'])
+            tessapi.SetVariable("pageseg_apply_music_mask", "1" if self.parameter['find_staves'] else "0")
+            # TODO: maybe warn/raise when illegal combinations or characters not in the model unicharset?
+            if self.parameter['char_whitelist']:
+                tessapi.SetVariable("tessedit_char_whitelist", self.parameter['char_whitelist'])
+            if self.parameter['char_blacklist']:
+                tessapi.SetVariable("tessedit_char_blacklist", self.parameter['char_blacklist'])
+            if self.parameter['char_unblacklist']:
+                tessapi.SetVariable("tessedit_char_unblacklist", self.parameter['char_unblacklist'])
             # todo: determine relevancy of these variables:
             # tessedit_preserve_min_wd_len 2
             # tessedit_prefer_joined_punct 0
@@ -437,6 +437,9 @@ class TesserocrRecognize(Processor):
                     # or not they should be segmented into cells.
                     if outlevel == 'region':
                         raise Exception("When segmentation_level is cell, textequiv_level must be at least cell too, because text results cannot be annotated on tables directly.")
+                    # disable table detection here, so tables will be
+                    # analysed as independent text/line blocks:
+                    tessapi.SetVariable("textord_tabfind_find_tables", "0")
                     tables = page.get_AllRegions(classes=['Table'])
                     if not tables:
                         self.logger.warning("Page '%s' contains no table regions (but segmentation is off)",

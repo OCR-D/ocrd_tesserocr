@@ -142,6 +142,11 @@
           "default": true,
           "description": "When detecting regions, recognise tables as table regions (Tesseract's ``textord_tabfind_find_tables=1``)."
         },
+        "find_staves": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting regions, recognize music staves as non-text, suppressing it in the binary image (Tesseract's ``pageseg_apply_music_mask``). Note that this might wrongly detect tables as staves."
+        },
         "sparse_text": {
           "type": "boolean",
           "default": false,
@@ -240,6 +245,11 @@
           "default": true,
           "description": "recognise tables as table regions (textord_tabfind_find_tables)"
         },
+        "find_staves": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting regions, recognize music staves as non-text, suppressing it in the binary image (Tesseract's ``pageseg_apply_music_mask``). Note that this might wrongly detect tables as staves."
+        },
         "sparse_text": {
           "type": "boolean",
           "default": false,
@@ -292,6 +302,11 @@
           "type": "boolean",
           "default": true,
           "description": "recognise tables as table regions (textord_tabfind_find_tables)"
+        },
+        "find_staves": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting regions, recognize music staves as non-text, suppressing it in the binary image (Tesseract's ``pageseg_apply_music_mask``). Note that this might wrongly detect tables as staves."
         },
         "sparse_text": {
           "type": "boolean",
