@@ -1,5 +1,5 @@
 {
-  "version": "0.12.0",
+  "version": "0.13.6",
   "git_url": "https://github.com/OCR-D/ocrd_tesserocr",
   "dockerhub": "ocrd/tesserocr",
   "tools": {
@@ -24,7 +24,7 @@
         },
         "operation_level": {
           "type": "string",
-          "enum": ["page","region"],
+          "enum": ["page","region", "line"],
           "default": "region",
           "description": "PAGE XML hierarchy level to operate on"
         },
@@ -144,6 +144,11 @@
           "default": true,
           "description": "When detecting regions, recognise tables as table regions (Tesseract's ``textord_tabfind_find_tables=1``)."
         },
+        "find_staves": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting regions, recognize music staves as non-text, suppressing it in the binary image (Tesseract's ``pageseg_apply_music_mask``). Note that this might wrongly detect tables as staves."
+        },
         "sparse_text": {
           "type": "boolean",
           "default": false,
@@ -174,17 +179,32 @@
           "default": {},
           "description": "Dictionary of additional Tesseract runtime variables (cf. tesseract --print-parameters), string values."
         },
-        "oem": {
-          "type": "string",
-          "enum": ["TESSERACT_ONLY", "LSTM_ONLY", "TESSERACT_LSTM_COMBINED", "DEFAULT"],
-          "default": "DEFAULT",
-          "description": "Tesseract OCR engine mode to use:\n* Run Tesseract only - fastest,\n* Run just the LSTM line recognizer. (>=v4.00),\n*Run the LSTM recognizer, but allow fallback to Tesseract when things get difficult. (>=v4.00),\n*Run both and combine results - best accuracy."
+        "xpath_parameters": {
+          "type": "object",
+          "default": {},
+          "description": "Set additional Tesseract runtime variables according to results of XPath queries into the segment. (As a convenience, `@language` and `@script` also match their upwards `@primary*` and `@secondary*` variants where applicable.) (Example: {'ancestor::TextRegion/@type=\"page-number\"': {'char_whitelist': '0123456789-'}, 'contains(@custom,\"ISBN\")': {'char_whitelist': '0123456789-'}})"
+        },
+        "xpath_model": {
+          "type": "object",
+          "default": {},
+          "description": "Prefer models mapped according to results of XPath queries into the segment. (As a convenience, `@language` and `@script` also match their upwards `@primary*` and `@secondary*` variants where applicable.) If no queries / mappings match (or under the default empty parameter), then fall back to `model`. If there are multiple matches, combine their results. (Example: {'starts-with(@script,\"Latn\")': 'Latin', 'starts-with(@script,\"Grek\")': 'Greek', '@language=\"Latin\"': 'lat', '@language=\"Greek\"': 'grc+ell', 'ancestor::TextRegion/@type=\"page-number\"': 'eng'})"
+        },
+        "auto_model": {
+          "type": "boolean",
+          "default": false,
+          "description": "Prefer models performing best (by confidence) per segment (if multiple given in `model`). Repeats the OCR of the best model once (i.e. slower). (Use as a fallback to xpath_model if you do not trust script/language detection.)"
         },
         "model": {
           "type": "string",
           "format": "uri",
           "content-type": "application/octet-stream",
           "description": "The tessdata text recognition model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)."
+        },
+        "oem": {
+          "type": "string",
+          "enum": ["TESSERACT_ONLY", "LSTM_ONLY", "TESSERACT_LSTM_COMBINED", "DEFAULT"],
+          "default": "DEFAULT",
+          "description": "Tesseract OCR engine mode to use:\n* Run Tesseract only - fastest,\n* Run just the LSTM line recognizer. (>=v4.00),\n*Run the LSTM recognizer, but allow fallback to Tesseract when things get difficult. (>=v4.00),\n*Run both and combine results - best accuracy."
         }
       }
     },
@@ -228,6 +248,11 @@
           "type": "boolean",
           "default": true,
           "description": "recognise tables as table regions (textord_tabfind_find_tables)"
+        },
+        "find_staves": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting regions, recognize music staves as non-text, suppressing it in the binary image (Tesseract's ``pageseg_apply_music_mask``). Note that this might wrongly detect tables as staves."
         },
         "sparse_text": {
           "type": "boolean",
@@ -281,6 +306,11 @@
           "type": "boolean",
           "default": true,
           "description": "recognise tables as table regions (textord_tabfind_find_tables)"
+        },
+        "find_staves": {
+          "type": "boolean",
+          "default": false,
+          "description": "When detecting regions, recognize music staves as non-text, suppressing it in the binary image (Tesseract's ``pageseg_apply_music_mask``). Note that this might wrongly detect tables as staves."
         },
         "sparse_text": {
           "type": "boolean",
@@ -443,8 +473,8 @@
       "parameters": {
         "operation_level": {
           "type": "string",
-          "enum": ["region", "line"],
-          "default": "region",
+          "enum": ["page", "region", "line"],
+          "default": "page",
           "description": "PAGE XML hierarchy level to operate on"
         }
       }

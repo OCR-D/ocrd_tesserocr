@@ -17,13 +17,23 @@ Most processors can operate on different levels of the PAGE hierarchy, depending
 
 ## Installation
 
-### Required ubuntu packages:
+### With docker
 
-- Tesseract headers (`libtesseract-dev`)
-- Some Tesseract language models (`tesseract-ocr-{eng,deu,frk,...}` or script models (`tesseract-ocr-script-{latn,frak,...}`); or better yet custom [trained](https://github.com/tesseract-ocr/tesstrain) models
-- Leptonica headers (`libleptonica-dev`)
+This is the best option if you want to run the software in a container.
 
-### From PyPI
+You need to have [Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
+
+
+    docker pull ocrd/tesserocr
+
+
+To run with docker:
+
+
+    docker run -v path/to/workspaces:/data ocrd/tesserocr ocrd-tesserocrd-crop ...
+
+
+### From PyPI and PPA
 
 This is the best option if you want to use the stable, released version.
 
@@ -44,40 +54,41 @@ sudo apt-get update
 ---
 
 ```sh
-sudo apt-get install git python3 python3-pip libtesseract-dev libleptonica-dev tesseract-ocr-eng tesseract-ocr wget
+sudo apt-get install python3 python3-pip libtesseract-dev libleptonica-dev tesseract-ocr wget
 pip install ocrd_tesserocr
 ```
 
-### With docker
+### From git
 
-This is the best option if you want to run the software in a container.
-
-You need to have [Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/)
-
-```sh
-docker pull ocrd/tesserocr
-```
-
-To run with docker:
-
-```
-docker run -v path/to/workspaces:/data ocrd/tesserocr ocrd-tesserocrd-crop ...
-```
-
-
-### From git 
-
-This is the best option if you want to change the source code or install the latest, unpublished changes.
+Use this option if you want to change the source code or install the latest, unpublished changes.
 
 We strongly recommend to use [venv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
 
 ```sh
 git clone https://github.com/OCR-D/ocrd_tesserocr
 cd ocrd_tesserocr
-sudo make deps-ubuntu # or manually with apt-get
+# install Tesseract:
+sudo make deps-ubuntu # or manually from git or via ocrd_all
+# install tesserocr and ocrd_tesserocr:
 make deps        # or pip install -r requirements
 make install     # or pip install .
 ```
+
+## Models
+
+Tesseract comes with synthetically trained models for languages (`tesseract-ocr-{eng,deu,frk,...}` or scripts (`tesseract-ocr-script-{latn,frak,...}`). In addition, various models [trained](https://github.com/tesseract-ocr/tesstrain) on scan data are available from the community.
+
+Note that since all OCR-D processors must resolve file/data resources in a [standardized way](https://ocr-d.de/en/spec/cli#processor-resources), `ocrd-tesserocr-recognize` expects the recognition models to be installed in `$XDG_DATA_HOME/ocrd-resources/ocrd-tesserocr-recognize` (where, usually, `$XDG_DATA_HOME=$HOME/.local/share`). This is the default **resource location** used by `ocrd resmgr`, which you can use to download and list models:
+
+    ocrd resmgr --help
+
+(However, for backwards compatibility, this can be overriden by defining `$TESSDATA_PREFIX` in the environment. In this case users must install models manually – by linking/copying or downloading them into that directory. The same is true for the non-default location used by the system packages `tesseract-ocr-*`, which is usually `/usr/share/tesseract-ocr/4.00/tessdata`.)
+
+Cf. [OCR-D model guide](https://ocr-d.de/en/models).
+
+Models always use the filename suffix `.traineddata`, but are just loaded by their basename. You will need **at least** `eng` and `osd` (even for segmentation and deskewing), probably also `Latin` and `Fraktur` etc.
+
+As of v0.13.1, you can configure `ocrd-tesserocr-recognize` to select models **dynamically** segment by segment, either via custom conditions on the PAGE-XML annotation (presented as XPath rules), or by automatically choosing the model with highest confidence.
 
 ## Usage
 
@@ -93,14 +104,14 @@ Available [OCR-D processors](https://ocr-d.de/en/spec/cli) are:
 - [ocrd-tesserocr-binarize](ocrd_tesserocr/binarize.py) (Otsu – not recommended)  
   - adds `AlternativeImage` files to the output fileGrp
 - [ocrd-tesserocr-recognize](ocrd_tesserocr/recognize.py) (optionally including segmentation; mind `segmentation_level` and `textequiv_level`)
-  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s and `ReadingOrder` to `Page` and sets their `@orientation` (optionally)
+  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s, `ReadingOrder` and `AlternativeImage` to `Page` and sets their `@orientation` (optionally)
   - adds `TextRegion`s to `TableRegion`s and sets their `@orientation` (optionally)
   - adds `TextLine`s to `TextRegion`s (optionally)
   - adds `Word`s to `TextLine`s (optionally)
   - adds `Glyph`s to `Word`s (optionally)
   - adds `TextEquiv`
 - [ocrd-tesserocr-segment](ocrd_tesserocr/segment.py) (all-in-one segmentation – recommended; delegates to `recognize`)  
-  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s and `ReadingOrder` to `Page` and sets their `@orientation`
+  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s, `ReadingOrder` and `AlternativeImage` to `Page` and sets their `@orientation`
   - adds `TextRegion`s to `TableRegion`s and sets their `@orientation`
   - adds `TextLine`s to `TextRegion`s
   - adds `Word`s to `TextLine`s

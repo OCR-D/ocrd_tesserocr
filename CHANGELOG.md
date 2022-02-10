@@ -5,6 +5,71 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.13.6] - 2021-09-28
+
+Fixed:
+
+ * segment/recognize: no find_tables when already looking for cells
+
+Changed:
+
+ * segment/recognize: add param find_staves (for pageseg_apply_music_mask)
+ * segment/recognize: :fire: set find_staves=false by default
+
+## [0.13.5] - 2021-07-26
+
+Fixed:
+
+ * recognize: prevent invalid empty `Unicode` glyph choices
+
+## [0.13.4] - 2021-07-20
+
+Fixed:
+
+  * recognize: only reset API when `xpath_model` or `auto_model` is active
+  * recognize: for `glyph` level output, reduce choice confidence threshold
+  * recognize: for `glyph` level output, skip choices with same text
+  * recognize: avoid projecting empty text results from lower levels
+
+Changed:
+
+  * recognize: allow setting init-time (model-related) parameters
+
+## [0.13.3] - 2021-07-01
+
+Changed:
+
+  * recognize: on glyph level, fall back to RIL.SYMBOL if ChoiceIterator is empty
+
+## [0.13.2] - 2021-06-30
+
+Fixed:
+
+  * updated requirements
+
+## [0.13.1] - 2021-06-30
+
+Fixed:
+
+  * deps-ubuntu/Docker: adapt to resmgr location mechanism, link to PPA models
+  * recognize: :bug: skip detected segments if polygon cannot be made valid
+
+Changed:
+
+  * deskew: add line-level operation for script detection
+  * recognize: query more choices for textequiv_level=glyph if available
+  * recognize: :fire: reset Tesseract API when applying model/param settings per segment
+  * recognize: :eyes: allow configuring Tesseract parameters per segment via XPath queries
+  * recognize: :eyes: allow selecting recognition model per segment via XPath queries
+  * recognize: :eyes: allow selecting recognition model automatically via confidence
+
+## [0.13.0] - 2021-06-30
+
+Changed:
+
+  * segment*/recognize: annotate clipped,binarized AlternativeImage on page level
+  * binarize: add page level, make default
+
 ## [0.12.0] - 2021-03-05
 
 Changed:
@@ -286,6 +351,13 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.13.6]: ../../compare/v0.13.6...v0.13.5
+[0.13.5]: ../../compare/v0.13.5...v0.13.4
+[0.13.4]: ../../compare/v0.13.4...v0.13.3
+[0.13.3]: ../../compare/v0.13.3...v0.13.2
+[0.13.2]: ../../compare/v0.13.2...v0.13.1
+[0.13.1]: ../../compare/v0.13.1...v0.13.0
+[0.13.0]: ../../compare/v0.13.0...v0.12.0
 [0.12.0]: ../../compare/v0.12.0...v0.11.0
 [0.11.0]: ../../compare/v0.11.0...v0.10.1
 [0.10.1]: ../../compare/v0.10.0...v0.10.1
