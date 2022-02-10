@@ -15,7 +15,7 @@ commands:
         type: string
     steps:
       - run: apt-get update
-      - run: apt-get install -y software-properties-common
+      - run: apt-get install -y software-properties-common imagemagick
       - run: add-apt-repository -y ppa:deadsnakes/ppa
       - run: apt-get update && DEBIAN_FRONTEND=noninteractive TZ=Europe/Berlin apt-get install -y --no-install-recommends make git curl python<<parameters.python-version>>
       - checkout
