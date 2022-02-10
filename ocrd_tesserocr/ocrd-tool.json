@@ -63,6 +63,8 @@
         },
         "model": {
           "type": "string",
+          "format": "uri",
+          "content-type": "application/octet-stream",
           "default": "osd",
           "description": "tessdata model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or osd); must be an old (pre-LSTM) model"
         }
@@ -180,6 +182,8 @@
         },
         "model": {
           "type": "string",
+          "format": "uri",
+          "content-type": "application/octet-stream",
           "description": "The tessdata text recognition model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)."
         }
       }
