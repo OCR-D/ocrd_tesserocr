@@ -135,22 +135,22 @@ class TesserocrRecognize(Processor):
             self.logger = getLogger('processor.TesserocrRecognize')
 
     def process(self):
-        """Perform layout segmentation and/or text recognition with Tesseract on the workspace.
+        """Perform layout segmentation and/or text recognition with Tesseract.
         
-        Open and deserialise PAGE input files and their respective images,
+        Open and deserialise each PAGE input file and its respective images,
         then iterate over the element hierarchy down to the requested
         ``textequiv_level`` if it exists and if ``segmentation_level``
         is lower (i.e. more granular) or ``none``.
         
         Otherwise stop before (i.e. above) ``segmentation_level``. If any
-        segmentation exist at that level already, and ``overwrite_segments``
+        segmentation exists at that level already, and ``overwrite_segments``
         is false, then descend into these segments, else remove them.
         
         Set up Tesseract to recognise each segment's image (either from
         AlternativeImage or cropping the bounding box rectangle and masking
         it from the polygon outline) with the appropriate segmentation mode
-        and ``model``. (If no ``model`` is given, only layout analysis will
-        be performed.)
+        and recognition ``model``. (If no ``model`` is given, then only
+        layout analysis will be performed.)
         
         Next, if there still is a gap between the current level in the PAGE hierarchy
         and the requested ``textequiv_level``, then iterate down the result hierarchy,
@@ -177,6 +177,9 @@ class TesserocrRecognize(Processor):
         by whitespace as appropriate for each level and according to its
         Relation/join status.
         
+        Produce a new output file by serialising the resulting hierarchy.
+
+        \b
         In other words:
         - If ``segmentation_level=region``, then segment the page into regions
           (unless ``overwrite_segments=false``), else iterate existing regions.
@@ -230,6 +233,9 @@ class TesserocrRecognize(Processor):
         table blocks and add them as TableRegion, then query the page iterator
         for paragraphs and add them as TextRegion cells.
         
+        If ``find_staves``, then during region segmentation, also try to detect
+        sheet music blocks and suppress them during page layout analysis.
+        
         If ``block_polygons``, then during region segmentation, query Tesseract
         for polygon outlines instead of bounding boxes for each region.
         (This is more precise, but due to some path representation errors does
@@ -246,9 +252,13 @@ class TesserocrRecognize(Processor):
         mode ``SPARSE_TEXT``).
         
         If ``tesseract_parameters`` is given, setup each of its key-value pairs as
-        run-time parameters in Tesseract.
+        run-time parameters in Tesseract. For local (per-segment) parameter selection
+        based on XPath queries into the input PAGE, use ``xpath_parameters``.
         
-        Finally, produce new output files by serialising the resulting hierarchy.
+        Similarly, for local (per-segment) OCR model selection based on XPath queries
+        into the input PAGE, use ``xpath_model``. For auto-detection of the best performing
+        model (among the models given in ``model``), enable ``auto_model``. To constrain
+        models by type (called OCR engine mode), use ``oem``.
         """
         self.logger.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
 
@@ -1003,7 +1013,7 @@ class TesserocrRecognize(Processor):
                 self.logger.warning("Line '%s' contains words already, recognition might be suboptimal", line.id)
                 self._process_existing_words(tessapi, words, line_image, line_coords, mapping)
             else:
-                self.logger.warning("Line '%s' contains no words (but segmentation if off)",
+                self.logger.warning("Line '%s' contains no words (but segmentation is off)",
                                     line.id)
 
     def _process_existing_words(self, tessapi, words, line_image, line_coords, mapping):
@@ -1062,7 +1072,7 @@ class TesserocrRecognize(Processor):
                 self.logger.warning("Word '%s' contains glyphs already, recognition might be suboptimal", word.id)
                 self._process_existing_glyphs(tessapi, glyphs, word_image, word_coords, mapping)
             else:
-                self.logger.warning("Word '%s' contains no glyphs (but segmentation if off)",
+                self.logger.warning("Word '%s' contains no glyphs (but segmentation is off)",
                                     word.id)
 
     def _process_existing_glyphs(self, tessapi, glyphs, word_image, word_xywh, mapping):
