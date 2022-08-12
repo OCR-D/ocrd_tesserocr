@@ -220,6 +220,13 @@
           "size": 4358948
         },
         {
+        "url": "https://ub-backup.bib.uni-mannheim.de/~stweil/tesstrain/frak2021/tessdata_best/frak2021-0.905.traineddata",
+          "name": "frak2021.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model based on Austrian National Library newspaper data",
+          "size": 3421140
+        },
+        {
           "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/equ.traineddata",
           "name": "equ.traineddata",
           "parameter_usage": "without-extension",
