@@ -21,6 +21,7 @@ commands:
       - checkout
       - run: make deps-ubuntu
       - run: make install PYTHON=python<<parameters.python-version>>
+      - run: ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
       - run: make test-cli PYTHON=python<<parameters.python-version>>
       - run: make coverage PYTHON=python<<parameters.python-version>>
       - codecov/upload
