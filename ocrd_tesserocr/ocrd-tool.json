@@ -63,6 +63,8 @@
         },
         "model": {
           "type": "string",
+          "format": "uri",
+          "content-type": "application/octet-stream",
           "default": "osd",
           "description": "tessdata model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or osd); must be an old (pre-LSTM) model"
         }
@@ -177,23 +179,25 @@
           "default": {},
           "description": "Dictionary of additional Tesseract runtime variables (cf. tesseract --print-parameters), string values."
         },
-	"xpath_parameters": {
-	  "type": "object",
-	  "default": {},
-	  "description": "Set additional Tesseract runtime variables according to results of XPath queries into the segment. (As a convenience, `@language` and `@script` also match their upwards `@primary*` and `@secondary*` variants where applicable.) (Example: {'ancestor::TextRegion/@type=\"page-number\"': {'char_whitelist': '0123456789-'}, 'contains(@custom,\"ISBN\")': {'char_whitelist': '0123456789-'}})"
-	},
-	"xpath_model": {
-	  "type": "object",
-	  "default": {},
-	  "description": "Prefer models mapped according to results of XPath queries into the segment. (As a convenience, `@language` and `@script` also match their upwards `@primary*` and `@secondary*` variants where applicable.) If no queries / mappings match (or under the default empty parameter), then fall back to `model`. If there are multiple matches, combine their results. (Example: {'starts-with(@script,\"Latn\")': 'Latin', 'starts-with(@script,\"Grek\")': 'Greek', '@language=\"Latin\"': 'lat', '@language=\"Greek\"': 'grc+ell', 'ancestor::TextRegion/@type=\"page-number\"': 'eng'})"
-	},
-	"auto_model": {
-	  "type": "boolean",
-	  "default": false,
-	  "description": "Prefer models performing best (by confidence) per segment (if multiple given in `model`). Repeats the OCR of the best model once (i.e. slower). (Use as a fallback to xpath_model if you do not trust script/language detection.)"
-	},
+        "xpath_parameters": {
+          "type": "object",
+          "default": {},
+          "description": "Set additional Tesseract runtime variables according to results of XPath queries into the segment. (As a convenience, `@language` and `@script` also match their upwards `@primary*` and `@secondary*` variants where applicable.) (Example: {'ancestor::TextRegion/@type=\"page-number\"': {'char_whitelist': '0123456789-'}, 'contains(@custom,\"ISBN\")': {'char_whitelist': '0123456789-'}})"
+        },
+        "xpath_model": {
+          "type": "object",
+          "default": {},
+          "description": "Prefer models mapped according to results of XPath queries into the segment. (As a convenience, `@language` and `@script` also match their upwards `@primary*` and `@secondary*` variants where applicable.) If no queries / mappings match (or under the default empty parameter), then fall back to `model`. If there are multiple matches, combine their results. (Example: {'starts-with(@script,\"Latn\")': 'Latin', 'starts-with(@script,\"Grek\")': 'Greek', '@language=\"Latin\"': 'lat', '@language=\"Greek\"': 'grc+ell', 'ancestor::TextRegion/@type=\"page-number\"': 'eng'})"
+        },
+        "auto_model": {
+          "type": "boolean",
+          "default": false,
+          "description": "Prefer models performing best (by confidence) per segment (if multiple given in `model`). Repeats the OCR of the best model once (i.e. slower). (Use as a fallback to xpath_model if you do not trust script/language detection.)"
+        },
         "model": {
           "type": "string",
+          "format": "uri",
+          "content-type": "application/octet-stream",
           "description": "The tessdata text recognition model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)."
         },
         "oem": {
