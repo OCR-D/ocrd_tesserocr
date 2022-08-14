@@ -5,6 +5,8 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.14.0] - 2022-08-14
+
 Changed:
 
   * list all resources in the ocrd-tool.json, #184, OCR-D/core#800
@@ -356,6 +358,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.14.0]: ../../compare/v0.14.0...v0.13.6
 [0.13.6]: ../../compare/v0.13.6...v0.13.5
 [0.13.5]: ../../compare/v0.13.5...v0.13.4
 [0.13.4]: ../../compare/v0.13.4...v0.13.3
