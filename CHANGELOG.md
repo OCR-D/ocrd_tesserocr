@@ -5,6 +5,11 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Changed:
+
+  * list all resources in the ocrd-tool.json, #184, OCR-D/core#800
+  * custom `--list-resources` handler, #176
+
 ## [0.13.6] - 2021-09-28
 
 Fixed:
