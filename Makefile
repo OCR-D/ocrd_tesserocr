@@ -5,6 +5,10 @@ PYTHON = python3
 PIP = pip3
 LOG_LEVEL = INFO
 PYTHONIOENCODING=utf8
+LC_ALL = C.UTF-8
+LANG = C.UTF-8
+export
+
 
 # pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. Default: '$(PYTEST_ARGS)'
 PYTEST_ARGS =
@@ -57,6 +61,7 @@ help:
 deps-ubuntu:
 	apt-get install -y --no-install-recommends software-properties-common
 	add-apt-repository -y ppa:alex-p/tesseract-ocr
+	apt-get update
 	apt-get install -y \
 		g++ \
 		git \

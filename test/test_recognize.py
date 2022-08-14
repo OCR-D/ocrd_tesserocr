@@ -64,4 +64,4 @@ class TestTesserocrRecognize(TestCase):
         workspace.save_mets()
 
 if __name__ == '__main__':
-    main()
+    main(__file__)

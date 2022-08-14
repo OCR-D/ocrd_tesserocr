@@ -1,22 +1,50 @@
 version: 2.1
+
 orbs:
   codecov: codecov/codecov@1.0.5
 
-jobs:
-
-  build-python36:
+executors:
+  ubuntu1804:
     docker:
       - image: ocrd/core
+
+commands:
+  install-test-coverage:
+    parameters:
+      python-version:
+        type: string
     steps:
-      - run: apt-get update && apt-get install -y --no-install-recommends make git curl
+      - run: apt-get update
+      - run: apt-get install -y software-properties-common imagemagick
+      - run: add-apt-repository -y ppa:deadsnakes/ppa
+      - run: apt-get update && DEBIAN_FRONTEND=noninteractive TZ=Europe/Berlin apt-get install -y --no-install-recommends make git curl python<<parameters.python-version>>
       - checkout
       - run: make deps-ubuntu
-      - run: make install
-      - run: make test-cli
-      - run: make coverage
+      - run: make install PYTHON=python<<parameters.python-version>>
+      - run: ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
+      - run: make test-cli PYTHON=python<<parameters.python-version>>
+      - run: make coverage PYTHON=python<<parameters.python-version>>
       - codecov/upload
+
+jobs:
+
+  build-python:
+    executor: ubuntu1804
+    parameters:
+      python-version:
+        type: string
+    steps:
+      - install-test-coverage:
+          python-version: <<parameters.python-version>>
 
 workflows:
   build:
     jobs:
-      - build-python36
+      - build-python:
+          matrix:
+            parameters:
+              python-version:
+                - '3.6'
+                - '3.7'
+                - '3.8'
+                - '3.9'

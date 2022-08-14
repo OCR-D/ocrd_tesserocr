@@ -63,6 +63,8 @@
         },
         "model": {
           "type": "string",
+          "format": "uri",
+          "content-type": "application/octet-stream",
           "default": "osd",
           "description": "tessdata model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or osd); must be an old (pre-LSTM) model"
         }
@@ -177,23 +179,25 @@
           "default": {},
           "description": "Dictionary of additional Tesseract runtime variables (cf. tesseract --print-parameters), string values."
         },
-	"xpath_parameters": {
-	  "type": "object",
-	  "default": {},
-	  "description": "Set additional Tesseract runtime variables according to results of XPath queries into the segment. (As a convenience, `@language` and `@script` also match their upwards `@primary*` and `@secondary*` variants where applicable.) (Example: {'ancestor::TextRegion/@type=\"page-number\"': {'char_whitelist': '0123456789-'}, 'contains(@custom,\"ISBN\")': {'char_whitelist': '0123456789-'}})"
-	},
-	"xpath_model": {
-	  "type": "object",
-	  "default": {},
-	  "description": "Prefer models mapped according to results of XPath queries into the segment. (As a convenience, `@language` and `@script` also match their upwards `@primary*` and `@secondary*` variants where applicable.) If no queries / mappings match (or under the default empty parameter), then fall back to `model`. If there are multiple matches, combine their results. (Example: {'starts-with(@script,\"Latn\")': 'Latin', 'starts-with(@script,\"Grek\")': 'Greek', '@language=\"Latin\"': 'lat', '@language=\"Greek\"': 'grc+ell', 'ancestor::TextRegion/@type=\"page-number\"': 'eng'})"
-	},
-	"auto_model": {
-	  "type": "boolean",
-	  "default": false,
-	  "description": "Prefer models performing best (by confidence) per segment (if multiple given in `model`). Repeats the OCR of the best model once (i.e. slower). (Use as a fallback to xpath_model if you do not trust script/language detection.)"
-	},
+        "xpath_parameters": {
+          "type": "object",
+          "default": {},
+          "description": "Set additional Tesseract runtime variables according to results of XPath queries into the segment. (As a convenience, `@language` and `@script` also match their upwards `@primary*` and `@secondary*` variants where applicable.) (Example: {'ancestor::TextRegion/@type=\"page-number\"': {'char_whitelist': '0123456789-'}, 'contains(@custom,\"ISBN\")': {'char_whitelist': '0123456789-'}})"
+        },
+        "xpath_model": {
+          "type": "object",
+          "default": {},
+          "description": "Prefer models mapped according to results of XPath queries into the segment. (As a convenience, `@language` and `@script` also match their upwards `@primary*` and `@secondary*` variants where applicable.) If no queries / mappings match (or under the default empty parameter), then fall back to `model`. If there are multiple matches, combine their results. (Example: {'starts-with(@script,\"Latn\")': 'Latin', 'starts-with(@script,\"Grek\")': 'Greek', '@language=\"Latin\"': 'lat', '@language=\"Greek\"': 'grc+ell', 'ancestor::TextRegion/@type=\"page-number\"': 'eng'})"
+        },
+        "auto_model": {
+          "type": "boolean",
+          "default": false,
+          "description": "Prefer models performing best (by confidence) per segment (if multiple given in `model`). Repeats the OCR of the best model once (i.e. slower). (Use as a fallback to xpath_model if you do not trust script/language detection.)"
+        },
         "model": {
           "type": "string",
+          "format": "uri",
+          "content-type": "application/octet-stream",
           "description": "The tessdata text recognition model to apply (an ISO 639-3 language specification or some other basename, e.g. deu-frak or Fraktur)."
         },
         "oem": {
@@ -203,7 +207,7 @@
           "description": "Tesseract OCR engine mode to use:\n* Run Tesseract only - fastest,\n* Run just the LSTM line recognizer. (>=v4.00),\n*Run the LSTM recognizer, but allow fallback to Tesseract when things get difficult. (>=v4.00),\n*Run both and combine results - best accuracy."
         }
       },
-      "resource_locations": ["module"],
+      "resource_locations": ["data"],
       "resources": [
         {
           "url": "https://ub-backup.bib.uni-mannheim.de/~stweil/ocrd-train/data/Fraktur_5000000/tessdata_fast/Fraktur_50000000.334_450937.traineddata",
@@ -218,6 +222,13 @@
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model based on Austrian National Library newspaper data",
           "size": 4358948
+        },
+        {
+        "url": "https://ub-backup.bib.uni-mannheim.de/~stweil/tesstrain/frak2021/tessdata_best/frak2021-0.905.traineddata",
+          "name": "frak2021.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model based on Austrian National Library newspaper data",
+          "size": 3421140
         },
         {
           "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/equ.traineddata",
