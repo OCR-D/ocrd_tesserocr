@@ -18,7 +18,7 @@ from ocrd_models.ocrd_page import (
 from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 
-from .config import get_tessdata_path, OCRD_TOOL
+from .config import OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-fontshape'
 

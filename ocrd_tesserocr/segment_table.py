@@ -18,6 +18,7 @@ class TesserocrSegmentTable(Processor):
         if hasattr(self, 'workspace'):
             recognize_kwargs = {**kwargs}
             recognize_kwargs.pop('dump_json', None)
+            recognize_kwargs.pop('dump_module_dir', None)
             recognize_kwargs.pop('show_help', None)
             recognize_kwargs.pop('show_version', None)
             recognize_kwargs['parameter'] = self.parameter

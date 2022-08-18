@@ -20,7 +20,7 @@ from ocrd_models.ocrd_page import (
 )
 from ocrd import Processor
 
-from .config import get_tessdata_path, OCRD_TOOL
+from .config import OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-binarize'
 
@@ -52,8 +52,8 @@ class TesserocrBinarize(Processor):
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
         oplevel = self.parameter['operation_level']
-        
-        with PyTessBaseAPI(path=get_tessdata_path()) as tessapi:
+
+        with PyTessBaseAPI() as tessapi:
             for n, input_file in enumerate(self.input_files):
                 file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
@@ -61,7 +61,7 @@ class TesserocrBinarize(Processor):
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 self.add_metadata(pcgts)
                 page = pcgts.get_Page()
-                
+
                 page_image, page_xywh, _ = self.workspace.image_from_page(
                     page, page_id)
                 LOG.info("Binarizing on '%s' level in page '%s'", oplevel, page_id)
