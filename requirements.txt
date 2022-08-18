@@ -1,4 +1,5 @@
 ocrd >= 2.38
 click
-tesserocr >= 2.5.1
+tesserocr >= 2.5.2
 shapely >= 1.7.1
+scipy
