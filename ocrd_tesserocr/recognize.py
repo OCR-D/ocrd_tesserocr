@@ -3,10 +3,12 @@ from os.path import join
 from sys import exit, stdout
 from os import scandir
 import math
+import itertools
 from PIL import Image, ImageStat
 import numpy as np
-from shapely.geometry import Polygon, asPolygon
-from shapely.ops import unary_union
+from scipy.sparse.csgraph import minimum_spanning_tree
+from shapely.geometry import Polygon, LineString
+from shapely.ops import unary_union, nearest_points
 from shutil import copyfileobj
 from pathlib import Path
 
@@ -1469,16 +1471,41 @@ def join_segments(segments):
     return join_polygons([polygon_from_points(segment.get_Coords().points)
                           for segment in segments])
 
-def join_polygons(polygons, extend=2):
-    # FIXME: construct concave hull / alpha shape
-    jointp = unary_union([make_valid(Polygon(polygon)).buffer(extend)
-                          for polygon in polygons]).convex_hull
+def join_polygons(polygons, scale=20):
+    """construct concave hull (alpha shape) from input polygons by connecting their pairwise nearest points"""
+    # ensure input polygons are simply typed
+    polygons = list(itertools.chain.from_iterable([
+        poly.geoms if poly.type in ['MultiPolygon', 'GeometryCollection']
+        else [poly]
+        for poly in polygons]))
+    npoly = len(polygons)
+    if npoly == 1:
+        return polygons[0]
+    # find min-dist path through all polygons (travelling salesman)
+    pairs = itertools.combinations(range(npoly), 2)
+    dists = np.zeros((npoly, npoly), dtype=float)
+    for i, j in pairs:
+        dist = polygons[i].distance(polygons[j])
+        if dist == 0:
+            dist = 1e-5 # if pair merely touches, we still need to get an edge
+        dists[i, j] = dist
+        dists[j, i] = dist
+    dists = minimum_spanning_tree(dists, overwrite=True)
+    # add bridge polygons (where necessary)
+    for prevp, nextp in zip(*dists.nonzero()):
+        prevp = polygons[prevp]
+        nextp = polygons[nextp]
+        nearest = nearest_points(prevp, nextp)
+        bridgep = LineString(nearest).buffer(max(1, scale/5), resolution=1)
+        polygons.append(bridgep)
+    jointp = unary_union(polygons)
+    assert jointp.type == 'Polygon', jointp.wkt
     if jointp.minimum_clearance < 1.0:
         # follow-up calculations will necessarily be integer;
         # so anticipate rounding here and then ensure validity
-        jointp = asPolygon(np.round(jointp.exterior.coords))
+        jointp = Polygon(np.round(jointp.exterior.coords))
         jointp = make_valid(jointp)
-    return jointp.exterior.coords[:-1]
+    return jointp
 
 def pad_image(image, padding):
     # TODO: input padding can create extra edges if not binarized; at least try to smooth
@@ -1522,7 +1549,14 @@ def polygon_for_parent(polygon, parent):
     if childp.within(parentp):
         return childp.exterior.coords[:-1]
     # clip to parent
-    interp = childp.intersection(parentp)
+    interp = make_intersection(childp, parentp)
+    if not interp:
+        return None
+    return interp.exterior.coords[:-1] # keep open
+
+def make_intersection(poly1, poly2):
+    interp = poly1.intersection(poly2)
+    # post-process
     if interp.is_empty or interp.area == 0.0:
         # this happens if Tesseract "finds" something
         # outside of the valid Border of a deskewed/cropped page
@@ -1533,27 +1567,27 @@ def polygon_for_parent(polygon, parent):
         interp = unary_union([geom for geom in interp.geoms if geom.area > 0])
     if interp.type == 'MultiPolygon':
         # homogeneous result: construct convex hull to connect
-        # FIXME: construct concave hull / alpha shape
-        interp = interp.convex_hull
+        interp = join_polygons(interp.geoms)
     if interp.minimum_clearance < 1.0:
         # follow-up calculations will necessarily be integer;
         # so anticipate rounding here and then ensure validity
-        interp = asPolygon(np.round(interp.exterior.coords))
+        interp = Polygon(np.round(interp.exterior.coords))
         interp = make_valid(interp)
-    return interp.exterior.coords[:-1] # keep open
+    return interp
 
 def make_valid(polygon):
-    for split in range(1, len(polygon.exterior.coords)-1):
+    points = list(polygon.exterior.coords)
+    for split in range(1, len(points)):
         if polygon.is_valid or polygon.simplify(polygon.area).is_valid:
             break
         # simplification may not be possible (at all) due to ordering
         # in that case, try another starting point
-        polygon = Polygon(polygon.exterior.coords[-split:]+polygon.exterior.coords[:-split])
-    for tolerance in range(1, int(polygon.area)):
+        polygon = Polygon(points[-split:]+points[:-split])
+    for tolerance in range(int(polygon.area)):
         if polygon.is_valid:
             break
         # simplification may require a larger tolerance
-        polygon = polygon.simplify(tolerance)
+        polygon = polygon.simplify(tolerance + 1)
     return polygon
 
 def iterate_level(it, ril, parent=None):
