@@ -348,8 +348,7 @@ class TesserocrRecognize(Processor):
             for variable in tesseract_params:
                 tessapi.SetVariable(variable, tesseract_params[variable])
             # Initialize Tesseract (loading model)
-            tessapi.InitFull(path=get_tessdata_path(),
-                             lang=model,
+            tessapi.InitFull(lang=model,
                              oem=getattr(OEM, self.parameter['oem']))
             # Iterate input files
             for (n, input_file) in enumerate(self.input_files):
