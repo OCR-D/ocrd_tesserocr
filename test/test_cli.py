@@ -11,7 +11,7 @@ runner = CliRunner()
 def test_show_resource(tmpdir, monkeypatch):
     samplefile = Path(tmpdir, 'bar.traineddata')
     samplefile.write_text('bar')
-    monkeypatch.setenv('TESSDATA_PREFIX': str(tmpdir))
+    monkeypatch.setenv('TESSDATA_PREFIX', str(tmpdir))
     r = runner.invoke(ocrd_tesserocr_recognize, ['-C', 'bar'])
     assert not r.exit_code
     # XXX doesn't work <del>because shutil.copyfileobj to stdout won't be captured
@@ -21,7 +21,7 @@ def test_show_resource(tmpdir, monkeypatch):
 def test_list_all_resources(tmpdir, monkeypatch):
     samplefile = Path(tmpdir, 'foo.traineddata')
     samplefile.write_text('foo')
-    monkeypatch.setenv('TESSDATA_PREFIX': str(tmpdir))
+    monkeypatch.setenv('TESSDATA_PREFIX', str(tmpdir))
     r = runner.invoke(ocrd_tesserocr_recognize, ['-L'])
     assert not r.exit_code
     # XXX same problem
