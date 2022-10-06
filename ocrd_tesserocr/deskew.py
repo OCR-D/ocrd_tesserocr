@@ -95,8 +95,7 @@ class TesserocrDeskew(Processor):
                 else:
                     dpi = 0
                     LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
-                if dpi:
-                    tessapi.SetVariable('user_defined_dpi', str(dpi))
+                tessapi.SetVariable('user_defined_dpi', str(dpi))
                 
                 LOG.info("Deskewing on '%s' level in page '%s'", oplevel, page_id)
                 

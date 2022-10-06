@@ -402,8 +402,7 @@ class TesserocrRecognize(Processor):
                     dpi = 0
                     self.logger.info("Page '%s' images will use DPI estimated from segmentation",
                                      page_id)
-                if dpi:
-                    tessapi.SetVariable('user_defined_dpi', str(dpi))
+                tessapi.SetVariable('user_defined_dpi', str(dpi))
                 
                 self.logger.info("Processing page '%s'", page_id)
                 # FIXME: We should somehow _mask_ existing regions in order to annotate incrementally (not redundantly).
