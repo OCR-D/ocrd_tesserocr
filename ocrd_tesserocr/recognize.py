@@ -461,7 +461,7 @@ class TesserocrRecognize(Processor):
                     page_image_bin = tessapi.GetThresholdedImage()
                     file_path = self.workspace.save_image_file(
                         page_image_bin, file_id + '.IMG-BIN',
-                        page_id=page_id,
+                        page_id=input_file.pageId,
                         file_grp=self.output_file_grp)
                     # update PAGE (reference the image file):
                     page.add_AlternativeImage(AlternativeImageType(

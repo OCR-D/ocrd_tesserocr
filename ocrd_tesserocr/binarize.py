@@ -74,7 +74,7 @@ class TesserocrBinarize(Processor):
                         # update METS (add the image file):
                         file_path = self.workspace.save_image_file(page_image_bin,
                                                                    file_id + '.IMG-BIN',
-                                                                   page_id=page_id,
+                                                                   page_id=input_file.pageId,
                                                                    file_grp=self.output_file_grp)
                         # update PAGE (reference the image file):
                         features = page_xywh['features'] + ",binarized"
