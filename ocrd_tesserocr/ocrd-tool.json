@@ -560,7 +560,7 @@
         },
         "tiseg": {
           "type": "boolean",
-          "default": false
+          "default": false,
           "description": "also separate text vs image by detecting and suppressing photo+sepline mask"
         }
       }
