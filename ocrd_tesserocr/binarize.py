@@ -51,6 +51,7 @@ class TesserocrBinarize(Processor):
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
+        sepmask = self.parameter['tiseg']
         oplevel = self.parameter['operation_level']
         
         with PyTessBaseAPI(path=get_tessdata_path()) as tessapi:
@@ -69,6 +70,10 @@ class TesserocrBinarize(Processor):
                 if oplevel == 'page':
                     tessapi.SetPageSegMode(PSM.AUTO_ONLY)
                     tessapi.SetImage(page_image)
+                    if sepmask:
+                        # will trigger FindLines() → SegmentPage() → AutoPageSeg()
+                        # → SetupPageSegAndDetectOrientation() → FindAndRemoveLines() + FindImages()
+                        tessapi.AnalyseLayout()
                     page_image_bin = tessapi.GetThresholdedImage()
                     if page_image_bin:
                         # update METS (add the image file):
@@ -78,6 +83,8 @@ class TesserocrBinarize(Processor):
                                                                    file_grp=self.output_file_grp)
                         # update PAGE (reference the image file):
                         features = page_xywh['features'] + ",binarized"
+                        if sepmask:
+                            features += ",clipped"
                         page.add_AlternativeImage(AlternativeImageType(
                             filename=file_path, comments=features))
                     else:

@@ -557,6 +557,11 @@
           "enum": ["page", "region", "line"],
           "default": "page",
           "description": "PAGE XML hierarchy level to operate on"
+        },
+        "tiseg": {
+          "type": "boolean",
+          "default": false
+          "description": "also separate text vs image by detecting and suppressing photo+sepline mask"
         }
       }
     }
