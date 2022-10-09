@@ -265,7 +265,7 @@ class TesserocrRecognize(Processor):
         model (among the models given in ``model``), enable ``auto_model``. To constrain
         models by type (called OCR engine mode), use ``oem``.
         """
-        self.logger.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages()[1])
+        self.logger.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
 
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
