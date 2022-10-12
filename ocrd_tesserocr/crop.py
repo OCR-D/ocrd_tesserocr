@@ -94,8 +94,8 @@ class TesserocrCrop(Processor):
                 else:
                     dpi = 0
                     LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
+                tessapi.SetVariable('user_defined_dpi', str(dpi))
                 if dpi:
-                    tessapi.SetVariable('user_defined_dpi', str(dpi))
                     zoom = 300 / dpi
                 else:
                     zoom = 1

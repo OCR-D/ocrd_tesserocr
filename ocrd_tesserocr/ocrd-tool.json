@@ -19,7 +19,7 @@
         "dpi": {
           "type": "number",
           "format": "float",
-          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images)",
           "default": 0
         },
         "operation_level": {
@@ -52,7 +52,7 @@
         "dpi": {
           "type": "number",
           "format": "float",
-          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images)",
           "default": 0
         },
         "padding": {
@@ -98,7 +98,7 @@
         "dpi": {
           "type": "number",
           "format": "float",
-          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images)",
           "default": 0
         },
         "padding": {
@@ -306,7 +306,7 @@
         "dpi": {
           "type": "number",
           "format": "float",
-          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images)",
           "default": 0
         },
         "padding": {
@@ -359,7 +359,7 @@
         "dpi": {
           "type": "number",
           "format": "float",
-          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images)",
           "default": 0
         },
         "overwrite_regions": {
@@ -416,7 +416,7 @@
         "dpi": {
           "type": "number",
           "format": "float",
-          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images)",
           "default": 0
         },
         "overwrite_cells": {
@@ -453,7 +453,7 @@
         "dpi": {
           "type": "number",
           "format": "float",
-          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images)",
           "default": 0
         },
         "overwrite_lines": {
@@ -490,7 +490,7 @@
         "dpi": {
           "type": "number",
           "format": "float",
-          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images)",
           "default": 0
         },
         "overwrite_words": {
@@ -526,7 +526,7 @@
         "dpi": {
           "type": "number",
           "format": "float",
-          "description": "pixel density in dots per inch (overrides any meta-data in the images); disabled when negative",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images)",
           "default": 0
         },
         "padding": {
@@ -552,6 +552,12 @@
       ],
       "steps": ["preprocessing/optimization/binarization"],
       "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images)",
+          "default": 0
+        },
         "operation_level": {
           "type": "string",
           "enum": ["page", "region", "line"],

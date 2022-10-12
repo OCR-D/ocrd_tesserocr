@@ -63,8 +63,20 @@ class TesserocrBinarize(Processor):
                 self.add_metadata(pcgts)
                 page = pcgts.get_Page()
                 
-                page_image, page_xywh, _ = self.workspace.image_from_page(
+                page_image, page_xywh, page_image_info = self.workspace.image_from_page(
                     page, page_id)
+                if self.parameter['dpi'] > 0:
+                    dpi = self.parameter['dpi']
+                    LOG.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
+                elif page_image_info.resolution != 1:
+                    dpi = page_image_info.resolution
+                    if page_image_info.resolutionUnit == 'cm':
+                        dpi = round(dpi * 2.54)
+                    LOG.info("Page '%s' images will use %d DPI from image meta-data", page_id, dpi)
+                else:
+                    dpi = 0
+                    LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
+                tessapi.SetVariable('user_defined_dpi', str(dpi))
                 LOG.info("Binarizing on '%s' level in page '%s'", oplevel, page_id)
 
                 if oplevel == 'page':
