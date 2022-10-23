@@ -5,6 +5,15 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Added:
+
+  * binarize: `dpi` numerical parameter to specify pixel density, #186
+  * binarize: `tiseg` boolean parameter to specify whether to call `tessapi.AnalyseLayout` for text-image separation, #186
+
+Changed:
+
+  * regonize: improved polygon handling, #186
+
 ## [0.14.0] - 2022-08-14
 
 Changed:
