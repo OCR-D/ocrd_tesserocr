@@ -18,7 +18,8 @@ from tesserocr import (
     WritingDirection,
     TextlineOrder,
     tesseract_version,
-    PyTessBaseAPI, get_languages as get_languages_)
+    PyTessBaseAPI,
+    get_languages)
 
 from ocrd_utils import (
     getLogger,
@@ -64,19 +65,13 @@ from ocrd_models.ocrd_page_generateds import (
 from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 
-from .config import get_tessdata_path, OCRD_TOOL
+from .config import OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-recognize'
 
 CHOICE_THRESHOLD_NUM = 10 # maximum number of choices to query and annotate
 CHOICE_THRESHOLD_CONF = 1 # maximum score drop from best choice to query and annotate
 # (ChoiceIterator usually rounds to 0.0 for non-best, so this better be maximum)
-
-def get_languages(*args, **kwargs):
-    """
-    Wraps tesserocr.get_languages() with a fixed path parameter.
-    """
-    return get_languages_(*args, path=get_tessdata_path(), **kwargs)
 
 # monkey-patch the tesserocr base class so have at least some state
 class TessBaseAPI(PyTessBaseAPI):
@@ -137,31 +132,14 @@ class TesserocrRecognize(Processor):
         kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version'] + ' (' + tesseract_version().split('\n')[0] + ')'
 
-        if kwargs.get('show_resource', False):
-            initLogging()
-            resdir = get_tessdata_path()
-            fpath = kwargs['show_resource']
-            if not fpath.endswith('.traineddata'):
-                fpath += '.traineddata'
-            fpath = Path(resdir, fpath)
-            try:
-                with open(fpath, 'rb') as f:
-                    copyfileobj(f, stdout.buffer)
-                exit(0)
-            except FileNotFoundError as e:
-                getLogger('processor.TesserocrRecognize').error("Resource %s does not exist", fpath)
-                exit(1)
-
-        if kwargs.get('list_resources', False):
-            initLogging()
-            resdir = get_tessdata_path()
-            for res in scandir(resdir):
-                print(join(resdir, res.name))
-            exit(0)
         super(TesserocrRecognize, self).__init__(*args, **kwargs)
         
         if hasattr(self, 'workspace'):
             self.logger = getLogger('processor.TesserocrRecognize')
+
+    @property
+    def moduledir(self):
+        return get_languages()[0]
 
     def process(self):
         """Perform layout segmentation and/or text recognition with Tesseract.
@@ -372,8 +350,7 @@ class TesserocrRecognize(Processor):
             for variable in tesseract_params:
                 tessapi.SetVariable(variable, tesseract_params[variable])
             # Initialize Tesseract (loading model)
-            tessapi.InitFull(path=get_tessdata_path(),
-                             lang=model,
+            tessapi.InitFull(lang=model,
                              oem=getattr(OEM, self.parameter['oem']))
             # Iterate input files
             for (n, input_file) in enumerate(self.input_files):

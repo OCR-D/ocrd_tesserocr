@@ -4,7 +4,9 @@ from PIL import Image, ImageStat
 
 from tesserocr import (
     RIL, PSM, OEM,
-    PyTessBaseAPI, get_languages as get_languages_)
+    PyTessBaseAPI, 
+    get_languages
+)
 
 from ocrd_utils import (
     getLogger,
@@ -18,15 +20,9 @@ from ocrd_models.ocrd_page import (
 from ocrd_modelfactory import page_from_file
 from ocrd import Processor
 
-from .config import get_tessdata_path, OCRD_TOOL
+from .config import OCRD_TOOL
 
 TOOL = 'ocrd-tesserocr-fontshape'
-
-def get_languages(*args, **kwargs):
-    """
-    Wraps tesserocr.get_languages() with a fixed path parameter.
-    """
-    return get_languages_(*args, path=get_tessdata_path(), **kwargs)
 
 class TesserocrFontShape(Processor):
 
@@ -34,6 +30,10 @@ class TesserocrFontShape(Processor):
         kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrFontShape, self).__init__(*args, **kwargs)
+
+    @property
+    def moduledir(self):
+        return get_languages()[0]
 
     def process(self):
         """Detect font shapes via rule-based OCR with Tesseract on the workspace.
@@ -60,8 +60,7 @@ class TesserocrFontShape(Processor):
         if model not in get_languages()[1]:
             raise Exception("model " + model + " (needed for font style detection) is not installed")
         
-        with PyTessBaseAPI(path=get_tessdata_path(),
-                           #oem=OEM.TESSERACT_LSTM_COMBINED, # legacy required for OSD or WordFontAttributes!
+        with PyTessBaseAPI(#oem=OEM.TESSERACT_LSTM_COMBINED, # legacy required for OSD or WordFontAttributes!
                            oem=OEM.TESSERACT_ONLY, # legacy required for OSD or WordFontAttributes!
                            lang=model) as tessapi:
             LOG.info("Using model '%s' in %s for recognition at the word level",

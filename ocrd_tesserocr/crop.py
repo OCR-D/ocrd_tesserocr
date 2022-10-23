@@ -24,7 +24,7 @@ from ocrd_models.ocrd_page import (
 from ocrd_models.ocrd_page_generateds import BorderType
 from ocrd import Processor
 
-from .config import get_tessdata_path, OCRD_TOOL
+from .config import OCRD_TOOL
 from .recognize import polygon_for_parent
 
 TOOL = 'ocrd-tesserocr-crop'
@@ -36,9 +36,13 @@ class TesserocrCrop(Processor):
         kwargs['version'] = OCRD_TOOL['version']
         super(TesserocrCrop, self).__init__(*args, **kwargs)
 
+    @property
+    def moduledir(self):
+        return tesserocr.get_languages()[0]
+
     def process(self):
         """Performs page cropping with Tesseract on the workspace.
-        
+
         Open and deserialize PAGE input files and their respective images.
         Set up Tesseract to detect text blocks on each page, and find
         the largest coordinate extent spanning all of them. Use this
@@ -57,7 +61,7 @@ class TesserocrCrop(Processor):
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
 
-        with tesserocr.PyTessBaseAPI(path=get_tessdata_path()) as tessapi:
+        with tesserocr.PyTessBaseAPI() as tessapi:
             # disable table detection here (tables count as text blocks),
             # because we do not want to risk confusing the spine with
             # a column separator and thus creeping into a neighbouring
