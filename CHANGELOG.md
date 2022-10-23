@@ -13,6 +13,7 @@ Added:
 Changed:
 
   * regonize: improved polygon handling, #186
+  * resources: proper support for `moduledir`, companion to OCR-D/core#904, #187
 
 ## [0.14.0] - 2022-08-14
 
