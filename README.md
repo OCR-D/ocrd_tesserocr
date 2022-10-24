@@ -78,53 +78,90 @@ make install     # or pip install .
 
 Tesseract comes with synthetically trained models for languages (`tesseract-ocr-{eng,deu,frk,...}` or scripts (`tesseract-ocr-script-{latn,frak,...}`). In addition, various models [trained](https://github.com/tesseract-ocr/tesstrain) on scan data are available from the community.
 
-Note that since all OCR-D processors must resolve file/data resources in a [standardized way](https://ocr-d.de/en/spec/cli#processor-resources), `ocrd-tesserocr-recognize` expects the recognition models to be installed in `$XDG_DATA_HOME/ocrd-resources/ocrd-tesserocr-recognize` (where, usually, `$XDG_DATA_HOME=$HOME/.local/share`). This is the default **resource location** used by `ocrd resmgr`, which you can use to download and list models:
+Since all OCR-D processors must resolve file/data resources
+in a [standardized way](https://ocr-d.de/en/spec/cli#processor-resources),
+and we want to stay interoperable with standalone Tesseract
+(which uses a single compile-time `tessdata` directory),
+`ocrd-tesserocr-recognize` expects the recognition models to be installed
+in its [module](https://ocr-d.de/en/spec/ocrd_tool#file-parameters) **resource location** only.
+The `module` location is determined by the underlying Tesseract installation
+(compile-time `tessdata` directory, or run-time `$TESSDATA_PREFIX` environment variable).
+Other resource locations (data/system/cwd) will be ignored, and should not be used
+when installing models with the **Resource Manager** (`ocrd resmgr download`).
+
+For a full description of available commands for resource management, see:
 
     ocrd resmgr --help
+    ocrd resmgr list-available --help
+    ocrd resmgr download --help
+    ocrd resmgr list-installed --help
 
-(However, for backwards compatibility, this can be overriden by defining `$TESSDATA_PREFIX` in the environment. In this case users must install models manually – by linking/copying or downloading them into that directory. The same is true for the non-default location used by the system packages `tesseract-ocr-*`, which is usually `/usr/share/tesseract-ocr/4.00/tessdata`.)
+(In previous versions, the resource locations of standalone Tesseract and the OCR-D wrapper were different.
+ If you already have models under `$XDG_DATA_HOME/ocrd-resources/ocrd-tesserocr-recognize`,
+ usually `~/.local/share/ocrd-resources/ocrd-tesserocr-recognize`, then consider moving them
+ to the new default under `ocrd-tesserocr-recognize -D`,
+ usually `/usr/share/tesseract-ocr/4.00/tessdata`, _or_ alternatively overriding the module directory
+ by setting `TESSDATA_PREFIX=$XDG_DATA_HOME/ocrd-resources/ocrd-tesserocr-recognize` in the environment.)
 
 Cf. [OCR-D model guide](https://ocr-d.de/en/models).
 
-Models always use the filename suffix `.traineddata`, but are just loaded by their basename. You will need **at least** `eng` and `osd` (even for segmentation and deskewing), probably also `Latin` and `Fraktur` etc.
+Models always use the filename suffix `.traineddata`, but are just loaded by their basename.
+You will need **at least** `eng` and `osd` installed (even for segmentation and deskewing),
+probably also `Latin` and `Fraktur` etc.
 
-As of v0.13.1, you can configure `ocrd-tesserocr-recognize` to select models **dynamically** segment by segment, either via custom conditions on the PAGE-XML annotation (presented as XPath rules), or by automatically choosing the model with highest confidence.
+As of v0.13.1, you can configure `ocrd-tesserocr-recognize` to select models **dynamically** segment by segment,
+either via custom conditions on the PAGE-XML annotation (presented as XPath rules),
+or by automatically choosing the model with highest confidence.
 
 ## Usage
 
-For details, see docstrings in the individual processors and [ocrd-tool.json](ocrd_tesserocr/ocrd-tool.json) descriptions,
+For details, see docstrings in the individual processors
+and [ocrd-tool.json](ocrd_tesserocr/ocrd-tool.json) descriptions,
 or simply `--help`.
 
 Available [OCR-D processors](https://ocr-d.de/en/spec/cli) are:
 
-- [ocrd-tesserocr-crop](ocrd_tesserocr/crop.py) (simplistic)
+- [ocrd-tesserocr-crop](ocrd_tesserocr/crop.py)
+  (simplistic)
   - sets `Border` of pages and adds `AlternativeImage` files to the output fileGrp
-- [ocrd-tesserocr-deskew](ocrd_tesserocr/deskew.py) (for skew and orientation; mind `operation_level`)
+- [ocrd-tesserocr-deskew](ocrd_tesserocr/deskew.py)
+  (for skew and orientation; mind `operation_level`)
   - sets `@orientation` of regions or pages and adds `AlternativeImage` files to the output fileGrp
-- [ocrd-tesserocr-binarize](ocrd_tesserocr/binarize.py) (Otsu – not recommended)  
+- [ocrd-tesserocr-binarize](ocrd_tesserocr/binarize.py)
+  (Otsu – not recommended, unless already binarized and using `tiseg`)
   - adds `AlternativeImage` files to the output fileGrp
-- [ocrd-tesserocr-recognize](ocrd_tesserocr/recognize.py) (optionally including segmentation; mind `segmentation_level` and `textequiv_level`)
-  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s, `ReadingOrder` and `AlternativeImage` to `Page` and sets their `@orientation` (optionally)
+- [ocrd-tesserocr-recognize](ocrd_tesserocr/recognize.py)
+  (optionally including segmentation; mind `segmentation_level` and `textequiv_level`)
+  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s,
+    `NoiseRegion`s, `ReadingOrder` and `AlternativeImage` to `Page` and sets their `@orientation` (optionally)
   - adds `TextRegion`s to `TableRegion`s and sets their `@orientation` (optionally)
   - adds `TextLine`s to `TextRegion`s (optionally)
   - adds `Word`s to `TextLine`s (optionally)
   - adds `Glyph`s to `Word`s (optionally)
   - adds `TextEquiv`
-- [ocrd-tesserocr-segment](ocrd_tesserocr/segment.py) (all-in-one segmentation – recommended; delegates to `recognize`)  
-  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s, `ReadingOrder` and `AlternativeImage` to `Page` and sets their `@orientation`
+- [ocrd-tesserocr-segment](ocrd_tesserocr/segment.py)
+  (all-in-one segmentation – recommended; delegates to `recognize`)
+  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s,
+    `NoiseRegion`s, `ReadingOrder` and `AlternativeImage` to `Page` and sets their `@orientation`
   - adds `TextRegion`s to `TableRegion`s and sets their `@orientation`
   - adds `TextLine`s to `TextRegion`s
   - adds `Word`s to `TextLine`s
   - adds `Glyph`s to `Word`s
-- [ocrd-tesserocr-segment-region](ocrd_tesserocr/segment_region.py) (only regions – with overlapping bboxes; delegates to `recognize`)
-  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s, `NoiseRegion`s and `ReadingOrder` to `Page` and sets their `@orientation`
-- [ocrd-tesserocr-segment-table](ocrd_tesserocr/segment_table.py) (only table cells; delegates to `recognize`)
+- [ocrd-tesserocr-segment-region](ocrd_tesserocr/segment_region.py)
+  (only regions – with overlapping bboxes; delegates to `recognize`)
+  - adds `TextRegion`s, `TableRegion`s, `ImageRegion`s, `MathsRegion`s, `SeparatorRegion`s,
+    `NoiseRegion`s and `ReadingOrder` to `Page` and sets their `@orientation`
+- [ocrd-tesserocr-segment-table](ocrd_tesserocr/segment_table.py)
+  (only table cells; delegates to `recognize`)
   - adds `TextRegion`s to `TableRegion`s
-- [ocrd-tesserocr-segment-line](ocrd_tesserocr/segment_line.py) (only lines – from overlapping regions; delegates to `recognize`)
+- [ocrd-tesserocr-segment-line](ocrd_tesserocr/segment_line.py)
+  (only lines – from overlapping regions; delegates to `recognize`)
   - adds `TextLine`s to `TextRegion`s
-- [ocrd-tesserocr-segment-word](ocrd_tesserocr/segment_word.py) (only words; delegates to `recognize`)
+- [ocrd-tesserocr-segment-word](ocrd_tesserocr/segment_word.py)
+  (only words; delegates to `recognize`)
   - adds `Word`s to `TextLine`s
-- [ocrd-tesserocr-fontshape](ocrd_tesserocr/fontshape.py) (only text style – via Tesseract 3 models)
+- [ocrd-tesserocr-fontshape](ocrd_tesserocr/fontshape.py)
+  (only text style – via Tesseract 3 models)
   - adds `TextStyle` to `Word`s
 
 The text region `@type`s detected are (from Tesseract's [PolyBlockType](https://github.com/tesseract-ocr/tesseract/blob/11297c983ec7f5c9765d7fa4faa48f5150cf2d38/include/tesseract/publictypes.h#L52-L69)):
@@ -133,18 +170,35 @@ The text region `@type`s detected are (from Tesseract's [PolyBlockType](https://
 - `heading`: block that `spans more than one column`
 - `caption`: block for `text that belongs to an image`
 
-If you are unhappy with these choices, consider post-processing with a dedicated custom processor in Python, or by modifying the PAGE files directly (e.g. `xmlstarlet ed --inplace -u '//pc:TextRegion/@type[.="floating"]' -v paragraph filegrp/*.xml`).
+If you are unhappy with these choices, then consider post-processing
+with a dedicated custom processor in Python, or by modifying the PAGE files directly
+(e.g. `xmlstarlet ed --inplace -u '//pc:TextRegion/@type[.="floating"]' -v paragraph filegrp/*.xml`).
 
-All segmentation is currently done as **bounding boxes** only by default, i.e. without precise polygonal outlines. For dense page layouts this means that neighbouring regions and neighbouring text lines may overlap a lot. If this is a problem for your workflow, try post-processing like so:
-- after line segmentation: use `ocrd-cis-ocropy-resegment` for polygonalization, or `ocrd-cis-ocropy-clip` on the line level
-- after region segmentation: use `ocrd-segment-repair` with `plausibilize` (and `sanitize` after line segmentation)
+All segmentation is currently done as **bounding boxes** only by default,
+i.e. without precise polygonal outlines. For dense page layouts this means
+that neighbouring regions and neighbouring text lines may overlap a lot.
+If this is a problem for your workflow, try post-processing like so:
+- after line segmentation: use `ocrd-cis-ocropy-resegment` for polygonalization,
+  or `ocrd-cis-ocropy-clip` on the line level
+- after region segmentation: use `ocrd-segment-repair` with `plausibilize`
+  (and `sanitize` after line segmentation)
 
-It also means that Tesseract should be allowed to segment across multiple hierarchy levels at once, to avoid introducing inconsistent/duplicate text line assignments in text regions, or word assignments in text lines. Hence,
-- prefer `ocrd-tesserocr-recognize` with `segmentation_level=region` over `ocrd-tesserocr-segment` followed by `ocrd-tesserocr-recognize`, if you want to do all in one with Tesseract,
-- prefer `ocrd-tesserocr-recognize` with `segmentation_level=line` over `ocrd-tesserocr-segment-line` followed by `ocrd-tesserocr-recognize`, if you want to do everything but region segmentation with Tesseract,
-- prefer `ocrd-tesserocr-segment` over `ocrd-tesserocr-segment-region` followed by (`ocrd-tesserocr-segment-table` and) `ocrd-tesserocr-segment-line`, if you want to do everything but recognition with Tesseract.
+It also means that Tesseract should be allowed to segment across multiple hierarchy levels
+at once, to avoid introducing inconsistent/duplicate text line assignments in text regions,
+or word assignments in text lines. Hence,
+- prefer `ocrd-tesserocr-recognize` with `segmentation_level=region`  
+  over `ocrd-tesserocr-segment` followed by `ocrd-tesserocr-recognize`,  
+  if you want to do all in one with Tesseract,
+- prefer `ocrd-tesserocr-recognize` with `segmentation_level=line`  
+  over `ocrd-tesserocr-segment-line` followed by `ocrd-tesserocr-recognize`,  
+  if you want to do everything but region segmentation with Tesseract,
+- prefer `ocrd-tesserocr-segment` over `ocrd-tesserocr-segment-region`  
+  followed by (`ocrd-tesserocr-segment-table` and) `ocrd-tesserocr-segment-line`,  
+  if you want to do everything but recognition with Tesseract.
 
-However, you can also run `ocrd-tesserocr-segment*` and `ocrd-tesserocr-recognize` with `shrink_polygons=True` to get **polygons** by post-processing each segment, shrinking to the convex hull of all its symbol outlines.
+However, you can also run `ocrd-tesserocr-segment*` and `ocrd-tesserocr-recognize`
+with `shrink_polygons=True` to get **polygons** by post-processing each segment,
+shrinking to the convex hull of all its symbol outlines.
 
 ## Testing
 
@@ -152,6 +206,7 @@ However, you can also run `ocrd-tesserocr-segment*` and `ocrd-tesserocr-recogniz
 make test
 ```
 
-This downloads some test data from https://github.com/OCR-D/assets under `repo/assets`, and runs some basic test of the Python API as well as the CLIs.
+This downloads some test data from https://github.com/OCR-D/assets under `repo/assets`,
+and runs some basic test of the Python API as well as the CLIs.
 
 Set `PYTEST_ARGS="-s --verbose"` to see log output (`-s`) and individual test results (`--verbose`).
