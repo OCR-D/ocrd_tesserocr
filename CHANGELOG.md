@@ -5,6 +5,12 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Changed:
+
+  * require newer OCR-D/core to include OCR-D/core#934, #188
+  * no more need to set `TESSDATA_PREFIX`
+  * improved and up-to-date README
+
 ## [0.15.0] - 2022-10-23
 
 Added:
