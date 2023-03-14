@@ -3,17 +3,21 @@ version: 2.1
 orbs:
   codecov: codecov/codecov@1.0.5
 
-commands:
-  install-test-coverage:
+
+jobs:
+
+  build-python:
     parameters:
-      python-image:
+      python-version:
         type: string
+    docker:
+      - image: cimg/python:<< parameters.python-version >>
     steps:
       - checkout
       - run: sudo make deps-ubuntu
       - when:
           condition:
-            equal: [ 'cimg/python:3.6', << parameters.python-image >> ]
+            equal: [ '3.6', << parameters.python-version >> ]
           steps:
             # speed-up build time for end-of-life Python by holding at latest binary:
             - run: pip install --prefer-binary -U opencv-python-headless numpy
@@ -23,26 +27,10 @@ commands:
       - run: make coverage
       - codecov/upload
 
-jobs:
-
-  build-python:
-    parameters:
-      python-image:
-        type: string
-    docker:
-      - image: << parameters.python-image >>
-    steps:
-      - install-test-coverage
-
 workflows:
   build:
     jobs:
       - build-python:
           matrix:
             parameters:
-              python-image:
-                - 'cimg/python:3.6'
-                - 'cimg/python:3.7'
-                - 'cimg/python:3.8'
-                - 'cimg/python:3.9'
-                - 'cimg/python:3.10'
+              python-version: ['3.6', '3.7', '3.8', '3.9', '3.10']
