@@ -7,7 +7,7 @@ commands:
   install-test-coverage:
     steps:
       - checkout
-      - run: make deps-ubuntu
+      - run: sudo make deps-ubuntu
       - when:
           equal: [ 'cimg/python:3.6', << parameters.python-image >> ]
           steps:
