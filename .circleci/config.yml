@@ -22,6 +22,8 @@ jobs:
             # speed-up build time for end-of-life Python by holding at latest binary:
             - run: pip install --prefer-binary -U opencv-python-headless numpy
       - run: make install
+      # PPA tessdata prefix (= ocrd_tesserocr moduledir) is owned by root
+      - run: sudo chmod go+w `dpkg-query -L tesseract-ocr-eng | sed -n s,/eng.traineddata,,p`
       - run: ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
       - run: make test-cli
       - run: make coverage
