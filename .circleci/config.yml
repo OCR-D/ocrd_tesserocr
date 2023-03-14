@@ -5,6 +5,9 @@ orbs:
 
 commands:
   install-test-coverage:
+    parameters:
+      python-image:
+        type: string
     steps:
       - checkout
       - run: sudo make deps-ubuntu
