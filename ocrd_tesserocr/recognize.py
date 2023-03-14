@@ -127,14 +127,11 @@ class TessBaseAPI(PyTessBaseAPI):
         return None
 
 class TesserocrRecognize(Processor):
-
     def __init__(self, *args, **kwargs):
-        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
-        kwargs['version'] = OCRD_TOOL['version'] + ' (' + tesseract_version().split('\n')[0] + ')'
-
-        super(TesserocrRecognize, self).__init__(*args, **kwargs)
-        
-        if hasattr(self, 'workspace'):
+        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
+        kwargs.setdefault('version', OCRD_TOOL['version'] + ' (' + tesseract_version().split('\n')[0] + ')')
+        super().__init__(*args, **kwargs)
+        if hasattr(self, 'parameter'):
             self.logger = getLogger('processor.TesserocrRecognize')
 
     @property
