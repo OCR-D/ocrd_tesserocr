@@ -9,7 +9,8 @@ commands:
       - checkout
       - run: sudo make deps-ubuntu
       - when:
-          equal: [ 'cimg/python:3.6', << parameters.python-image >> ]
+          condition:
+            equal: [ 'cimg/python:3.6', << parameters.python-image >> ]
           steps:
             # speed-up build time for end-of-life Python by holding at latest binary:
             - run: pip install --prefer-binary -U opencv-python-headless numpy
