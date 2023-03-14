@@ -57,7 +57,7 @@ help:
 #  for details.)
 deps-ubuntu:
 	apt-get install -y --no-install-recommends software-properties-common
-	add-apt-repository -y ppa:alex-p/tesseract-ocr
+	-add-apt-repository -y ppa:alex-p/tesseract-ocr
 	apt-get update
 	apt-get install -y \
 		g++ \
