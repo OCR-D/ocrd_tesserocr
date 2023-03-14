@@ -28,15 +28,16 @@ from ocrd_models.ocrd_page import (
 from ocrd import Processor
 
 from .config import OCRD_TOOL
+from .recognize import TesserocrRecognize
 
 TOOL = 'ocrd-tesserocr-deskew'
 
-class TesserocrDeskew(Processor):
-
+class TesserocrDeskew(TesserocrRecognize):
     def __init__(self, *args, **kwargs):
-        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
-        kwargs['version'] = OCRD_TOOL['version']
-        super(TesserocrDeskew, self).__init__(*args, **kwargs)
+        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
+        super().__init__(*args, **kwargs)
+        if hasattr(self, 'parameter'):
+            self.logger = getLogger('processor.TesserocrDeskew')
 
     def process(self):
         """Performs deskewing of the page / region with Tesseract on the workspace.
@@ -56,7 +57,6 @@ class TesserocrDeskew(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
-        LOG = getLogger('processor.TesserocrDeskew')
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
         oplevel = self.parameter['operation_level']
@@ -71,7 +71,7 @@ class TesserocrDeskew(Processor):
             for n, input_file in enumerate(self.input_files):
                 file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
-                LOG.info("INPUT FILE %i / %s", n, page_id)
+                self.logger.info("INPUT FILE %i / %s", n, page_id)
                 pcgts = page_from_file(self.workspace.download_file(input_file))
                 pcgts.set_pcGtsId(file_id)
                 self.add_metadata(pcgts)
@@ -85,18 +85,18 @@ class TesserocrDeskew(Processor):
                     feature_filter='deskewed' if oplevel == 'page' else '')
                 if self.parameter['dpi'] > 0:
                     dpi = self.parameter['dpi']
-                    LOG.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
+                    self.logger.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
                 elif page_image_info.resolution != 1:
                     dpi = page_image_info.resolution
                     if page_image_info.resolutionUnit == 'cm':
                         dpi = round(dpi * 2.54)
-                    LOG.info("Page '%s' images will use %d DPI from image meta-data", page_id, dpi)
+                    self.logger.info("Page '%s' images will use %d DPI from image meta-data", page_id, dpi)
                 else:
                     dpi = 0
-                    LOG.info("Page '%s' images will use DPI estimated from segmentation", page_id)
+                    self.logger.info("Page '%s' images will use DPI estimated from segmentation", page_id)
                 tessapi.SetVariable('user_defined_dpi', str(dpi))
                 
-                LOG.info("Deskewing on '%s' level in page '%s'", oplevel, page_id)
+                self.logger.info("Deskewing on '%s' level in page '%s'", oplevel, page_id)
                 
                 if oplevel == 'page':
                     self._process_segment(tessapi, page, page_image, page_xywh,
@@ -105,7 +105,7 @@ class TesserocrDeskew(Processor):
                 else:
                     regions = page.get_AllRegions(classes=['Text', 'Table'])
                     if not regions:
-                        LOG.warning("Page '%s' contains no text regions", page_id)
+                        self.logger.warning("Page '%s' contains no text regions", page_id)
                     for region in regions:
                         region_image, region_xywh = self.workspace.image_from_segment(
                             region, page_image, page_xywh,
@@ -120,7 +120,7 @@ class TesserocrDeskew(Processor):
                         elif isinstance(region, TextRegionType):
                             lines = region.get_TextLine()
                             if not lines:
-                                LOG.warning("Page '%s' region '%s' contains no lines", page_id, region.id)
+                                self.logger.warning("Page '%s' region '%s' contains no lines", page_id, region.id)
                             for line in lines:
                                 line_image, line_xywh = self.workspace.image_from_segment(
                                     line, region_image, region_xywh)
@@ -137,9 +137,8 @@ class TesserocrDeskew(Processor):
                     content=to_xml(pcgts))
     
     def _process_segment(self, tessapi, segment, image, xywh, where, page_id, file_id):
-        LOG = getLogger('processor.TesserocrDeskew')
         if not image.width or not image.height:
-            LOG.warning("Skipping %s with zero size", where)
+            self.logger.warning("Skipping %s with zero size", where)
             return
         angle0 = xywh['angle'] # deskewing (w.r.t. top image) already applied to image
         angle = 0. # additional angle to be applied at current level
@@ -153,22 +152,22 @@ class TesserocrDeskew(Processor):
             assert not math.isnan(osr['orient_conf']), \
                 "orientation detection failed (Tesseract probably compiled without legacy OEM, or osd model not installed)"
             if osr['orient_conf'] < self.parameter['min_orientation_confidence']:
-                LOG.info('ignoring OSD orientation result %d° clockwise due to low confidence %.0f in %s',
-                         osr['orient_deg'], osr['orient_conf'], where)
+                self.logger.info('ignoring OSD orientation result %d° clockwise due to low confidence %.0f in %s',
+                                 osr['orient_deg'], osr['orient_conf'], where)
             else:
-                LOG.info('applying OSD orientation result %d° clockwise with high confidence %.0f in %s',
-                         osr['orient_deg'], osr['orient_conf'], where)
+                self.logger.info('applying OSD orientation result %d° clockwise with high confidence %.0f in %s',
+                                 osr['orient_deg'], osr['orient_conf'], where)
                 # defined as 'the detected clockwise rotation of the input image'
                 # i.e. the same amount to be applied counter-clockwise for deskewing:
                 angle = osr['orient_deg']
             assert not math.isnan(osr['script_conf']), \
                 "script detection failed (Tesseract probably compiled without legacy OEM, or osd model not installed)"
             if osr['script_conf'] < 10:
-                LOG.info('ignoring OSD script result "%s" due to low confidence %.0f in %s',
-                         osr['script_name'], osr['script_conf'], where)
+                self.logger.info('ignoring OSD script result "%s" due to low confidence %.0f in %s',
+                                 osr['script_name'], osr['script_conf'], where)
             else:
-                LOG.info('applying OSD script result "%s" with high confidence %.0f in %s',
-                         osr['script_name'], osr['script_conf'], where)
+                self.logger.info('applying OSD script result "%s" with high confidence %.0f in %s',
+                                 osr['script_name'], osr['script_conf'], where)
                 if isinstance(segment, (TextLineType, TextRegionType, PageType)):
                     segment.set_primaryScript({
                         "Arabic": "Arab - Arabic",
@@ -214,7 +213,7 @@ class TesserocrDeskew(Processor):
                         "Vietnamese": "Tavt - Tai Viet",
                     }.get(osr['script_name'], "Latn - Latin"))
         else:
-            LOG.warning('no OSD result in %s', where)
+            self.logger.warning('no OSD result in %s', where)
         if isinstance(segment, TextLineType):
             return
         #
@@ -222,7 +221,7 @@ class TesserocrDeskew(Processor):
         #
         layout = tessapi.AnalyseLayout()
         if not layout:
-            LOG.warning('no result iterator in %s', where)
+            self.logger.warning('no result iterator in %s', where)
             return
         orientation, writing_direction, textline_order, deskew_angle = layout.Orientation()
         if isinstance(segment, (TextRegionType, PageType)):
@@ -243,11 +242,11 @@ class TesserocrDeskew(Processor):
         # defined as 'how many radians does one have to rotate the block anti-clockwise'
         # i.e. positive amount to be applied counter-clockwise for deskewing:
         deskew_angle *= 180 / math.pi
-        LOG.info('orientation/deskewing for %s: %s / %s / %s / %.3f°', where,
-                  membername(Orientation, orientation),
-                  membername(WritingDirection, writing_direction),
-                  membername(TextlineOrder, textline_order),
-                  deskew_angle)
+        self.logger.info('orientation/deskewing for %s: %s / %s / %s / %.3f°', where,
+                         membername(Orientation, orientation),
+                         membername(WritingDirection, writing_direction),
+                         membername(TextlineOrder, textline_order),
+                         deskew_angle)
         # defined as 'the amount of clockwise rotation to be applied to the input image'
         # i.e. the negative amount to be applied counter-clockwise for deskewing:
         # (as defined in Tesseract OrientationIdToValue):
@@ -261,8 +260,8 @@ class TesserocrDeskew(Processor):
             # because it is usually wrong when it deviates from OSD results.
             # (We do keep deskew_angle, though – see below.)
             # FIXME: revisit that decision after trying with api.set_min_orientation_margin
-            LOG.warning('inconsistent angles from layout analysis (%d) and orientation detection (%d) in %s',
-                        angle2, angle, where)
+            self.logger.warning('inconsistent angles from layout analysis (%d) and orientation detection (%d) in %s',
+                                angle2, angle, where)
         # annotate result:
         angle += deskew_angle
         # page angle: PAGE @orientation is defined clockwise,
