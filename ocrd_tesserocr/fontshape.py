@@ -18,7 +18,6 @@ from ocrd_models.ocrd_page import (
     TextStyleType,
     to_xml)
 from ocrd_modelfactory import page_from_file
-from ocrd import Processor
 
 from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize

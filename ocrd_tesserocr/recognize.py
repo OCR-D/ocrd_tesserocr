@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 from os.path import join
-from sys import exit, stdout
-from os import scandir
+from pathlib import Path
 import math
 import itertools
 from PIL import Image, ImageStat
@@ -9,8 +8,6 @@ import numpy as np
 from scipy.sparse.csgraph import minimum_spanning_tree
 from shapely.geometry import Polygon, LineString
 from shapely.ops import unary_union, nearest_points
-from shutil import copyfileobj
-from pathlib import Path
 
 from tesserocr import (
     RIL, PSM, PT, OEM,
@@ -24,7 +21,6 @@ from tesserocr import (
 from ocrd_utils import (
     getLogger,
     make_file_id,
-    initLogging,
     assert_file_grp_cardinality,
     shift_coordinates,
     coordinates_for_segment,
@@ -94,6 +90,7 @@ class TessBaseAPI(PyTessBaseAPI):
         self.path = path or self.path
         self.lang = lang or self.lang
         self.oem = oem or self.oem
+        self.psm = psm or self.psm
         self.parameters = variables or self.parameters
         super().InitFull(path=self.path, lang=self.lang, oem=self.oem, variables=self.parameters)
 
@@ -274,7 +271,6 @@ class TesserocrRecognize(Processor):
         segment_only = outlevel == 'none' or not self.parameter.get('model', '')
         
         model = "eng"
-        self.languages = get_languages()[1]
         if 'model' in self.parameter:
             model = self.parameter['model']
             for sub_model in model.split('+'):
@@ -354,8 +350,8 @@ class TesserocrRecognize(Processor):
                 file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
                 self.logger.info("INPUT FILE %i / %s", n, page_id)
-                pcgts, pcgts_tree, pcgts_mapping, pcgts_invmap = page_from_file(self.workspace.download_file(input_file),
-                                                                                with_tree=True)
+                pcgts, _, pcgts_mapping, _ = page_from_file(self.workspace.download_file(input_file),
+                                                            with_tree=True)
                 pcgts.set_pcGtsId(file_id)
                 self.add_metadata(pcgts)
                 page = pcgts.get_Page()

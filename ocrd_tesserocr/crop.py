@@ -23,7 +23,6 @@ from ocrd_models.ocrd_page import (
     BorderType,
     to_xml
 )
-from ocrd import Processor
 
 from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize, polygon_for_parent

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from ocrd_utils import getLogger
-from ocrd import Processor
 from ocrd_validators import ParameterValidator
 
 from .config import OCRD_TOOL

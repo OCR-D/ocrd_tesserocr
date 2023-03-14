@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import os.path
 import math
-from PIL import Image
 from tesserocr import (
     PyTessBaseAPI,
     PSM, OEM,
@@ -15,7 +14,6 @@ from ocrd_utils import (
     getLogger,
     make_file_id,
     assert_file_grp_cardinality,
-    rotate_image, transpose_image,
     membername,
     MIMETYPE_PAGE
 )
@@ -25,7 +23,6 @@ from ocrd_models.ocrd_page import (
     TextLineType, TextRegionType, PageType,
     to_xml
 )
-from ocrd import Processor
 
 from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
