@@ -5,6 +5,19 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Fixed:
+
+ * CI: test multiple Python versions independent of ocrd/core image
+ * CI: speed up build for EOL Python 3.6
+ * CI: chmod o+w tessdata directory of PPA/OS Tesseract
+ * deps-ubuntu: allow installation of PPA Tesseract to fail (for newer OS)
+
+Changed:
+
+ * adapted to Shapely v2
+ * *: inherit from recognize (but override logger)
+ * segment*: delegate constructor instead of wrapping instance
+
 ## [0.16.0] - 2022-10-25
 
 Changed:
