@@ -27,6 +27,9 @@ TOOL = 'ocrd-tesserocr-fontshape'
 class TesserocrFontShape(TesserocrRecognize):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
+        # workaround for core#998
+        if kwargs['ocrd_tool'] is None:
+            kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         super().__init__(*args, **kwargs)
         if hasattr(self, 'parameter'):
             self.logger = getLogger('processor.TesserocrFontShape')
