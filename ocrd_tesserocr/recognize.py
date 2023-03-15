@@ -126,9 +126,6 @@ class TessBaseAPI(PyTessBaseAPI):
 class TesserocrRecognize(Processor):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
-        # workaround for core#998
-        if kwargs['ocrd_tool'] is None:
-            kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
         kwargs.setdefault('version', OCRD_TOOL['version'] + ' (' + tesseract_version().split('\n')[0] + ')')
         super().__init__(*args, **kwargs)
         if hasattr(self, 'parameter'):
