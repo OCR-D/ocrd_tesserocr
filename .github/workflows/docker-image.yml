@@ -4,6 +4,9 @@ on:
   push:
     branches: [ "master" ]
 
+env:
+  IMAGE_NAME: ghcr.io/ocrd/tesserocr
+
 jobs:
 
   build:
@@ -25,7 +28,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build the Docker image
-      run: make docker
+      run: make docker DOCKER_TAG=${{ env.IMAGE_NAME }}
     - name: Push to Github Container Registry
-      run: docker push ghcr.io/${{ github.actor }}/tesserocr
+      run: docker push ${{ env.IMAGE_NAME }}
     
