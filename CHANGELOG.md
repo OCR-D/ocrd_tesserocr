@@ -5,6 +5,8 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.17.0] - 2023-03-23
+
 Fixed:
 
  * segment/recognize: fix `shrink_polygons`
@@ -394,6 +396,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.17.0]: ../../compare/v0.17.0...v0.16.0
 [0.16.0]: ../../compare/v0.16.0...v0.15.0
 [0.15.0]: ../../compare/v0.15.0...v0.14.0
 [0.14.0]: ../../compare/v0.14.0...v0.13.6
