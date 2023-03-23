@@ -459,8 +459,8 @@ class TesserocrRecognize(Processor):
                     self._process_existing_regions(tessapi, regions, page_image, page_coords, pcgts_mapping)
                 else:
                     self.logger.warning("Page '%s' contains no text regions (but segmentation is off)",
-                                            page_id)
-                
+                                        page_id)
+
                 # post-processing
                 # bottom-up text concatenation
                 if outlevel != 'none' and self.parameter.get('model', ''):
@@ -468,14 +468,14 @@ class TesserocrRecognize(Processor):
                 # bottom-up polygonal outline projection
                 # if inlevel != 'none' and self.parameter['shrink_polygons']:
                 #     page_shrink_higher_coordinate_levels(inlevel, outlevel, pcgts)
-                
+
                 self.workspace.add_file(
-                    ID=file_id,
+                    file_id=file_id,
                     file_grp=self.output_file_grp,
-                    pageId=input_file.pageId,
+                    page_id=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
                     local_filename=join(self.output_file_grp,
-                                                file_id + '.xml'),
+                                        file_id + '.xml'),
                     content=to_xml(pcgts))
 
     def _process_regions_in_page(self, result_it, page, page_coords, mapping, dpi):
@@ -1215,7 +1215,7 @@ class TesserocrRecognize(Processor):
                             for name, val in params.items():
                                 tessapi.SetVariable(name, val)
                 else:
-                    self.logger.error("Cannot find segment '%s' in etree mapping, " \
+                    self.logger.error("Cannot find segment '%s' in etree mapping, "
                                       "ignoring xpath_parameters", ident)
             if self.parameter['xpath_model']:
                 if node is not None and node.attrib.get(at_ident, None) == ident:
@@ -1234,7 +1234,7 @@ class TesserocrRecognize(Processor):
                         tessapi.Reset(lang=model)
                         return
                 else:
-                    self.logger.error("Cannot find segment '%s' in etree mapping, " \
+                    self.logger.error("Cannot find segment '%s' in etree mapping, "
                                       "ignoring xpath_model", ident)
             if self.parameter['auto_model']:
                 models = self.parameter['model'].split('+')
@@ -1392,7 +1392,7 @@ def page_update_higher_textequiv_levels(level, pcgts, overwrite=True):
                     for line, next_line in zip(lines, lines[1:]):
                         words = line.get_Word()
                         next_words = next_line.get_Word()
-                        if not(words and next_words and (words[-1].id, next_words[0].id) in joins):
+                        if not (words and next_words and (words[-1].id, next_words[0].id) in joins):
                             region_unicode += '\n'
                         region_unicode += page_element_unicode0(next_line)
                     region_conf = sum(page_element_conf0(line) for line in lines)

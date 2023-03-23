@@ -104,9 +104,9 @@ class TesserocrCrop(TesserocrRecognize):
 
                 pcgts.set_pcGtsId(file_id)
                 self.workspace.add_file(
-                    ID=file_id,
+                    file_id=file_id,
                     file_grp=self.output_file_grp,
-                    pageId=input_file.pageId,
+                    page_id=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
                     local_filename=os.path.join(self.output_file_grp,
                                                 file_id + '.xml'),
