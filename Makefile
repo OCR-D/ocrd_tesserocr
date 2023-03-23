@@ -66,6 +66,7 @@ deps-ubuntu:
 		libtesseract-dev \
 		libleptonica-dev \
 		tesseract-ocr-eng \
+		tesseract-ocr-script-frak \
 		tesseract-ocr
 
 # Install Python deps for install via pip
@@ -90,11 +91,11 @@ install: deps
 
 # Run unit tests
 test: test/assets deps-test
-	# declare -p HTTP_PROXY
-	#$(PYTHON) -m pytest --continue-on-collection-errors test $(PYTEST_ARGS)
-	# workaround for missing module-init separation: run separately
+	@# declare -p HTTP_PROXY
+	#$(PYTHON) -m pytest -n auto --continue-on-collection-errors test $(PYTEST_ARGS)
+	# workaround for pytest-xdist not isolating setenv calls in click.CliRunner from each other:
 	$(PYTHON) -m pytest --continue-on-collection-errors test/test_cli.py $(PYTEST_ARGS)
-	$(PYTHON) -m pytest --continue-on-collection-errors test/test_{recognize,segment_{region,line,word}}.py $(PYTEST_ARGS)
+	$(PYTHON) -m pytest -n auto --continue-on-collection-errors test/test_{segment_{region,line,word},recognize}.py $(PYTEST_ARGS)
 
 # Run unit tests and determine test coverage
 coverage: deps-test

@@ -2,8 +2,6 @@ from click.testing import CliRunner
 
 from test.base import main
 from pathlib import Path
-from ocrd_utils import pushd_popd
-from ocrd_utils import disableLogging
 
 runner = CliRunner()
 

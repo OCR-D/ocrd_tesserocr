@@ -1,38 +1,34 @@
 import os
-import shutil
-
 from test.base import TestCase, main, assets
 
-from ocrd.resolver import Resolver
 from ocrd_tesserocr import TesserocrSegmentRegion
 from ocrd_tesserocr import TesserocrSegmentLine
-
-METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/data/mets_one_file.xml')
-
-WORKSPACE_DIR = '/tmp/pyocrd-test-segment-line-tesserocr'
+from ocrd_tesserocr import TesserocrSegment
 
 class TestProcessorSegmentLineTesseract(TestCase):
+    METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/data/mets_one_file.xml')
 
-    def setUp(self):
-        if os.path.exists(WORKSPACE_DIR):
-            shutil.rmtree(WORKSPACE_DIR)
-        os.makedirs(WORKSPACE_DIR)
-
-    def runTest(self):
-        resolver = Resolver()
-        workspace = resolver.workspace_from_url(METS_HEROLD_SMALL, dst_dir=WORKSPACE_DIR)
+    def test_run_modular(self):
         TesserocrSegmentRegion(
-            workspace,
+            self.workspace,
             input_file_grp="OCR-D-IMG",
             output_file_grp="OCR-D-SEG-BLOCK"
         ).process()
-        #  workspace.save_mets()
+        #  self.workspace.save_mets()
         TesserocrSegmentLine(
-            workspace,
+            self.workspace,
             input_file_grp="OCR-D-SEG-BLOCK",
             output_file_grp="OCR-D-SEG-LINE"
         ).process()
-        workspace.save_mets()
+        self.workspace.save_mets()
+
+    def test_run_allinone(self):
+        TesserocrSegment(
+            self.workspace,
+            input_file_grp="OCR-D-IMG",
+            output_file_grp="OCR-D-SEG"
+        ).process()
+        self.workspace.save_mets()
 
 if __name__ == '__main__':
-    main()
+    main(__file__)
