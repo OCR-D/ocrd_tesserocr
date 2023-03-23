@@ -416,6 +416,8 @@ class TesserocrRecognize(Processor):
                         # disable table detection here, so tables will be
                         # analysed as independent text/line blocks:
                         tessapi.SetVariable("textord_tabfind_find_tables", "0")
+                    if not segment_only:
+                        self._reinit(tessapi, page, pcgts_mapping)
                     tessapi.SetImage(page_image) # is already cropped to Border
                     tessapi.SetPageSegMode(PSM.SPARSE_TEXT
                                            if self.parameter['sparse_text']
@@ -424,7 +426,6 @@ class TesserocrRecognize(Processor):
                         self.logger.debug("Detecting regions in page '%s'", page_id)
                         tessapi.AnalyseLayout()
                     else:
-                        self._reinit(tessapi, page, pcgts_mapping)
                         self.logger.debug("Recognizing text in page '%s'", page_id)
                         tessapi.Recognize()
                     page_image_bin = tessapi.GetThresholdedImage()
@@ -874,6 +875,8 @@ class TesserocrRecognize(Processor):
             if not table_image.width or not table_image.height:
                 self.logger.warning("Skipping table region '%s' with zero size", table.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, table, mapping)
             if self.parameter['padding']:
                 tessapi.SetImage(pad_image(table_image, self.parameter['padding']))
                 table_coords['transform'] = shift_coordinates(
@@ -886,7 +889,6 @@ class TesserocrRecognize(Processor):
                 self.logger.debug("Detecting cells in table '%s'", table.id)
                 tessapi.AnalyseLayout()
             else:
-                self._reinit(tessapi, table, mapping)
                 self.logger.debug("Recognizing text in table '%s'", table.id)
                 tessapi.Recognize()
             self._process_cells_in_table(tessapi.GetIterator(), table, roelem, table_coords, mapping)
@@ -901,6 +903,8 @@ class TesserocrRecognize(Processor):
             if not region_image.width or not region_image.height:
                 self.logger.warning("Skipping text region '%s' with zero size", region.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, region, mapping)
             if (region.get_TextEquiv() and not self.parameter['overwrite_text']
                 if self.parameter['textequiv_level'] in ['region', 'cell']
                 else self.parameter['segmentation_level'] != 'line'):
@@ -913,8 +917,6 @@ class TesserocrRecognize(Processor):
             else:
                 tessapi.SetImage(region_image)
             tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
-            if not segment_only:
-                self._reinit(tessapi, region, mapping)
             # cell (region in table): we could enter from existing_tables or top-level existing regions
             if self.parameter['textequiv_level'] in ['region', 'cell']:
                 #if region.get_primaryScript() not in tessapi.GetLoadedLanguages()...
@@ -960,6 +962,8 @@ class TesserocrRecognize(Processor):
             if not line_image.width or not line_image.height:
                 self.logger.warning("Skipping text line '%s' with zero size", line.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, line, mapping)
             if (line.get_TextEquiv() and not self.parameter['overwrite_text']
                 if self.parameter['textequiv_level'] == 'line'
                 else self.parameter['segmentation_level'] != 'word'):
@@ -975,8 +979,6 @@ class TesserocrRecognize(Processor):
                 tessapi.SetPageSegMode(PSM.RAW_LINE)
             else:
                 tessapi.SetPageSegMode(PSM.SINGLE_LINE)
-            if not segment_only:
-                self._reinit(tessapi, line, mapping)
             #if line.get_primaryScript() not in tessapi.GetLoadedLanguages()...
             if self.parameter['textequiv_level'] == 'line':
                 if line.get_TextEquiv():
@@ -1024,6 +1026,8 @@ class TesserocrRecognize(Processor):
             if not word_image.width or not word_image.height:
                 self.logger.warning("Skipping word '%s' with zero size", word.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, word, mapping)
             if (word.get_TextEquiv() and not self.parameter['overwrite_text']
                 if self.parameter['textequiv_level'] == 'word'
                 else self.parameter['segmentation_level'] != 'glyph'):
@@ -1036,8 +1040,6 @@ class TesserocrRecognize(Processor):
             else:
                 tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
-            if not segment_only:
-                self._reinit(tessapi, word, mapping)
             if self.parameter['textequiv_level'] == 'word':
                 if word.get_TextEquiv():
                     if not self.parameter['overwrite_text']:
@@ -1082,6 +1084,7 @@ class TesserocrRecognize(Processor):
             if not glyph_image.width or not glyph_image.height:
                 self.logger.warning("Skipping glyph '%s' with zero size", glyph.id)
                 continue
+            self._reinit(tessapi, glyph, mapping)
             if glyph.get_TextEquiv() and not self.parameter['overwrite_text']:
                 pass # image not used here
             elif self.parameter['padding']:
@@ -1089,7 +1092,6 @@ class TesserocrRecognize(Processor):
             else:
                 tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
-            self._reinit(tessapi, glyph, mapping)
             if glyph.get_TextEquiv():
                 if not self.parameter['overwrite_text']:
                     continue
