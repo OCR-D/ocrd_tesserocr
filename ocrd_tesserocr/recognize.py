@@ -1444,6 +1444,10 @@ def join_segments(segments):
 
 def join_polygons(polygons, scale=20):
     """construct concave hull (alpha shape) from input polygons by connecting their pairwise nearest points"""
+    return make_join([Polygon(poly) for poly in polygons], scale=scale).exterior.coords[:-1]
+
+def make_join(polygons, scale=20):
+    """construct concave hull (alpha shape) from input polygons by connecting their pairwise nearest points"""
     # ensure input polygons are simply typed
     polygons = list(itertools.chain.from_iterable([
         poly.geoms if poly.geom_type in ['MultiPolygon', 'GeometryCollection']
@@ -1538,7 +1542,7 @@ def make_intersection(poly1, poly2):
         interp = unary_union([geom for geom in interp.geoms if geom.area > 0])
     if interp.geom_type == 'MultiPolygon':
         # homogeneous result: construct convex hull to connect
-        interp = join_polygons(interp.geoms)
+        interp = make_join(interp.geoms)
     if interp.minimum_clearance < 1.0:
         # follow-up calculations will necessarily be integer;
         # so anticipate rounding here and then ensure validity
