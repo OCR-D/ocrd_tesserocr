@@ -1,36 +1,28 @@
 from __future__ import absolute_import
 
 from ocrd_utils import getLogger
-from ocrd import Processor
+from ocrd_validators import ParameterValidator
 
 from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
 
 TOOL = 'ocrd-tesserocr-segment-word'
+BASE_TOOL = 'ocrd-tesserocr-recognize'
 
-class TesserocrSegmentWord(Processor):
-
+class TesserocrSegmentWord(TesserocrRecognize):
     def __init__(self, *args, **kwargs):
-        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
-        kwargs['version'] = OCRD_TOOL['version']
+        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
         super().__init__(*args, **kwargs)
-        
-        if hasattr(self, 'workspace'):
-            recognize_kwargs = {**kwargs}
-            recognize_kwargs.pop('dump_json', None)
-            recognize_kwargs.pop('dump_module_dir', None)
-            recognize_kwargs.pop('show_help', None)
-            recognize_kwargs.pop('show_version', None)
-            recognize_kwargs['parameter'] = self.parameter
-            recognize_kwargs['parameter']['overwrite_segments'] = self.parameter['overwrite_words']
-            del recognize_kwargs['parameter']['overwrite_words']
-            recognize_kwargs['parameter']['segmentation_level'] = "word"
-            recognize_kwargs['parameter']['textequiv_level'] = "word"
-            self.recognizer = TesserocrRecognize(self.workspace, **recognize_kwargs)
-            self.recognizer.logger = getLogger('processor.TesserocrSegmentWord')
+        if hasattr(self, 'parameter'):
+            self.parameter['overwrite_segments'] = self.parameter['overwrite_words']
+            del self.parameter['overwrite_words']
+            self.parameter['segmentation_level'] = "word"
+            self.parameter['textequiv_level'] = "word"
+            # add default params
+            assert ParameterValidator(OCRD_TOOL['tools'][BASE_TOOL]).validate(self.parameter).is_valid
+            self.logger = getLogger('processor.TesserocrSegmentWord')
 
-    def process(self):
-        """Performs word segmentation with Tesseract on the workspace.
+TesserocrSegmentWord.process.__doc__ = """Performs word segmentation with Tesseract on the workspace.
         
         Open and deserialize PAGE input files and their respective images,
         then iterate over the element hierarchy down to the textline level,
@@ -47,4 +39,3 @@ class TesserocrSegmentWord(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
-        return self.recognizer.process()

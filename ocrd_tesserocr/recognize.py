@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 from os.path import join
-from sys import exit, stdout
-from os import scandir
+from pathlib import Path
 import math
 import itertools
 from PIL import Image, ImageStat
@@ -9,8 +8,6 @@ import numpy as np
 from scipy.sparse.csgraph import minimum_spanning_tree
 from shapely.geometry import Polygon, LineString
 from shapely.ops import unary_union, nearest_points
-from shutil import copyfileobj
-from pathlib import Path
 
 from tesserocr import (
     RIL, PSM, PT, OEM,
@@ -24,7 +21,6 @@ from tesserocr import (
 from ocrd_utils import (
     getLogger,
     make_file_id,
-    initLogging,
     assert_file_grp_cardinality,
     shift_coordinates,
     coordinates_for_segment,
@@ -94,6 +90,7 @@ class TessBaseAPI(PyTessBaseAPI):
         self.path = path or self.path
         self.lang = lang or self.lang
         self.oem = oem or self.oem
+        self.psm = psm or self.psm
         self.parameters = variables or self.parameters
         super().InitFull(path=self.path, lang=self.lang, oem=self.oem, variables=self.parameters)
 
@@ -127,14 +124,11 @@ class TessBaseAPI(PyTessBaseAPI):
         return None
 
 class TesserocrRecognize(Processor):
-
     def __init__(self, *args, **kwargs):
-        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
-        kwargs['version'] = OCRD_TOOL['version'] + ' (' + tesseract_version().split('\n')[0] + ')'
-
-        super(TesserocrRecognize, self).__init__(*args, **kwargs)
-        
-        if hasattr(self, 'workspace'):
+        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
+        kwargs.setdefault('version', OCRD_TOOL['version'] + ' (' + tesseract_version().split('\n')[0] + ')')
+        super().__init__(*args, **kwargs)
+        if hasattr(self, 'parameter'):
             self.logger = getLogger('processor.TesserocrRecognize')
 
     @property
@@ -277,7 +271,6 @@ class TesserocrRecognize(Processor):
         segment_only = outlevel == 'none' or not self.parameter.get('model', '')
         
         model = "eng"
-        self.languages = get_languages()[1]
         if 'model' in self.parameter:
             model = self.parameter['model']
             for sub_model in model.split('+'):
@@ -357,8 +350,8 @@ class TesserocrRecognize(Processor):
                 file_id = make_file_id(input_file, self.output_file_grp)
                 page_id = input_file.pageId or input_file.ID
                 self.logger.info("INPUT FILE %i / %s", n, page_id)
-                pcgts, pcgts_tree, pcgts_mapping, pcgts_invmap = page_from_file(self.workspace.download_file(input_file),
-                                                                                with_tree=True)
+                pcgts, _, pcgts_mapping, _ = page_from_file(self.workspace.download_file(input_file),
+                                                            with_tree=True)
                 pcgts.set_pcGtsId(file_id)
                 self.add_metadata(pcgts)
                 page = pcgts.get_Page()
@@ -423,6 +416,8 @@ class TesserocrRecognize(Processor):
                         # disable table detection here, so tables will be
                         # analysed as independent text/line blocks:
                         tessapi.SetVariable("textord_tabfind_find_tables", "0")
+                    if not segment_only:
+                        self._reinit(tessapi, page, pcgts_mapping)
                     tessapi.SetImage(page_image) # is already cropped to Border
                     tessapi.SetPageSegMode(PSM.SPARSE_TEXT
                                            if self.parameter['sparse_text']
@@ -431,7 +426,6 @@ class TesserocrRecognize(Processor):
                         self.logger.debug("Detecting regions in page '%s'", page_id)
                         tessapi.AnalyseLayout()
                     else:
-                        self._reinit(tessapi, page, pcgts_mapping)
                         self.logger.debug("Recognizing text in page '%s'", page_id)
                         tessapi.Recognize()
                     page_image_bin = tessapi.GetThresholdedImage()
@@ -465,8 +459,8 @@ class TesserocrRecognize(Processor):
                     self._process_existing_regions(tessapi, regions, page_image, page_coords, pcgts_mapping)
                 else:
                     self.logger.warning("Page '%s' contains no text regions (but segmentation is off)",
-                                            page_id)
-                
+                                        page_id)
+
                 # post-processing
                 # bottom-up text concatenation
                 if outlevel != 'none' and self.parameter.get('model', ''):
@@ -474,14 +468,14 @@ class TesserocrRecognize(Processor):
                 # bottom-up polygonal outline projection
                 # if inlevel != 'none' and self.parameter['shrink_polygons']:
                 #     page_shrink_higher_coordinate_levels(inlevel, outlevel, pcgts)
-                
+
                 self.workspace.add_file(
-                    ID=file_id,
+                    file_id=file_id,
                     file_grp=self.output_file_grp,
-                    pageId=input_file.pageId,
+                    page_id=input_file.pageId,
                     mimetype=MIMETYPE_PAGE,
                     local_filename=join(self.output_file_grp,
-                                                file_id + '.xml'),
+                                        file_id + '.xml'),
                     content=to_xml(pcgts))
 
     def _process_regions_in_page(self, result_it, page, page_coords, mapping, dpi):
@@ -881,6 +875,8 @@ class TesserocrRecognize(Processor):
             if not table_image.width or not table_image.height:
                 self.logger.warning("Skipping table region '%s' with zero size", table.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, table, mapping)
             if self.parameter['padding']:
                 tessapi.SetImage(pad_image(table_image, self.parameter['padding']))
                 table_coords['transform'] = shift_coordinates(
@@ -893,7 +889,6 @@ class TesserocrRecognize(Processor):
                 self.logger.debug("Detecting cells in table '%s'", table.id)
                 tessapi.AnalyseLayout()
             else:
-                self._reinit(tessapi, table, mapping)
                 self.logger.debug("Recognizing text in table '%s'", table.id)
                 tessapi.Recognize()
             self._process_cells_in_table(tessapi.GetIterator(), table, roelem, table_coords, mapping)
@@ -908,6 +903,8 @@ class TesserocrRecognize(Processor):
             if not region_image.width or not region_image.height:
                 self.logger.warning("Skipping text region '%s' with zero size", region.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, region, mapping)
             if (region.get_TextEquiv() and not self.parameter['overwrite_text']
                 if self.parameter['textequiv_level'] in ['region', 'cell']
                 else self.parameter['segmentation_level'] != 'line'):
@@ -920,8 +917,6 @@ class TesserocrRecognize(Processor):
             else:
                 tessapi.SetImage(region_image)
             tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
-            if not segment_only:
-                self._reinit(tessapi, region, mapping)
             # cell (region in table): we could enter from existing_tables or top-level existing regions
             if self.parameter['textequiv_level'] in ['region', 'cell']:
                 #if region.get_primaryScript() not in tessapi.GetLoadedLanguages()...
@@ -967,6 +962,8 @@ class TesserocrRecognize(Processor):
             if not line_image.width or not line_image.height:
                 self.logger.warning("Skipping text line '%s' with zero size", line.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, line, mapping)
             if (line.get_TextEquiv() and not self.parameter['overwrite_text']
                 if self.parameter['textequiv_level'] == 'line'
                 else self.parameter['segmentation_level'] != 'word'):
@@ -982,8 +979,6 @@ class TesserocrRecognize(Processor):
                 tessapi.SetPageSegMode(PSM.RAW_LINE)
             else:
                 tessapi.SetPageSegMode(PSM.SINGLE_LINE)
-            if not segment_only:
-                self._reinit(tessapi, line, mapping)
             #if line.get_primaryScript() not in tessapi.GetLoadedLanguages()...
             if self.parameter['textequiv_level'] == 'line':
                 if line.get_TextEquiv():
@@ -1031,6 +1026,8 @@ class TesserocrRecognize(Processor):
             if not word_image.width or not word_image.height:
                 self.logger.warning("Skipping word '%s' with zero size", word.id)
                 continue
+            if not segment_only:
+                self._reinit(tessapi, word, mapping)
             if (word.get_TextEquiv() and not self.parameter['overwrite_text']
                 if self.parameter['textequiv_level'] == 'word'
                 else self.parameter['segmentation_level'] != 'glyph'):
@@ -1043,8 +1040,6 @@ class TesserocrRecognize(Processor):
             else:
                 tessapi.SetImage(word_image)
             tessapi.SetPageSegMode(PSM.SINGLE_WORD)
-            if not segment_only:
-                self._reinit(tessapi, word, mapping)
             if self.parameter['textequiv_level'] == 'word':
                 if word.get_TextEquiv():
                     if not self.parameter['overwrite_text']:
@@ -1089,6 +1084,7 @@ class TesserocrRecognize(Processor):
             if not glyph_image.width or not glyph_image.height:
                 self.logger.warning("Skipping glyph '%s' with zero size", glyph.id)
                 continue
+            self._reinit(tessapi, glyph, mapping)
             if glyph.get_TextEquiv() and not self.parameter['overwrite_text']:
                 pass # image not used here
             elif self.parameter['padding']:
@@ -1096,7 +1092,6 @@ class TesserocrRecognize(Processor):
             else:
                 tessapi.SetImage(glyph_image)
             tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
-            self._reinit(tessapi, glyph, mapping)
             if glyph.get_TextEquiv():
                 if not self.parameter['overwrite_text']:
                     continue
@@ -1220,7 +1215,7 @@ class TesserocrRecognize(Processor):
                             for name, val in params.items():
                                 tessapi.SetVariable(name, val)
                 else:
-                    self.logger.error("Cannot find segment '%s' in etree mapping, " \
+                    self.logger.error("Cannot find segment '%s' in etree mapping, "
                                       "ignoring xpath_parameters", ident)
             if self.parameter['xpath_model']:
                 if node is not None and node.attrib.get(at_ident, None) == ident:
@@ -1239,7 +1234,7 @@ class TesserocrRecognize(Processor):
                         tessapi.Reset(lang=model)
                         return
                 else:
-                    self.logger.error("Cannot find segment '%s' in etree mapping, " \
+                    self.logger.error("Cannot find segment '%s' in etree mapping, "
                                       "ignoring xpath_model", ident)
             if self.parameter['auto_model']:
                 models = self.parameter['model'].split('+')
@@ -1397,7 +1392,7 @@ def page_update_higher_textequiv_levels(level, pcgts, overwrite=True):
                     for line, next_line in zip(lines, lines[1:]):
                         words = line.get_Word()
                         next_words = next_line.get_Word()
-                        if not(words and next_words and (words[-1].id, next_words[0].id) in joins):
+                        if not (words and next_words and (words[-1].id, next_words[0].id) in joins):
                             region_unicode += '\n'
                         region_unicode += page_element_unicode0(next_line)
                     region_conf = sum(page_element_conf0(line) for line in lines)
@@ -1449,9 +1444,13 @@ def join_segments(segments):
 
 def join_polygons(polygons, scale=20):
     """construct concave hull (alpha shape) from input polygons by connecting their pairwise nearest points"""
+    return make_join([Polygon(poly) for poly in polygons], scale=scale).exterior.coords[:-1]
+
+def make_join(polygons, scale=20):
+    """construct concave hull (alpha shape) from input polygons by connecting their pairwise nearest points"""
     # ensure input polygons are simply typed
     polygons = list(itertools.chain.from_iterable([
-        poly.geoms if poly.type in ['MultiPolygon', 'GeometryCollection']
+        poly.geoms if poly.geom_type in ['MultiPolygon', 'GeometryCollection']
         else [poly]
         for poly in polygons]))
     npoly = len(polygons)
@@ -1475,7 +1474,7 @@ def join_polygons(polygons, scale=20):
         bridgep = LineString(nearest).buffer(max(1, scale/5), resolution=1)
         polygons.append(bridgep)
     jointp = unary_union(polygons)
-    assert jointp.type == 'Polygon', jointp.wkt
+    assert jointp.geom_type == 'Polygon', jointp.wkt
     if jointp.minimum_clearance < 1.0:
         # follow-up calculations will necessarily be integer;
         # so anticipate rounding here and then ensure validity
@@ -1538,12 +1537,12 @@ def make_intersection(poly1, poly2):
         # outside of the valid Border of a deskewed/cropped page
         # (empty corners created by masking); will be ignored
         return None
-    if interp.type == 'GeometryCollection':
+    if interp.geom_type == 'GeometryCollection':
         # heterogeneous result: filter zero-area shapes (LineString, Point)
         interp = unary_union([geom for geom in interp.geoms if geom.area > 0])
-    if interp.type == 'MultiPolygon':
+    if interp.geom_type == 'MultiPolygon':
         # homogeneous result: construct convex hull to connect
-        interp = join_polygons(interp.geoms)
+        interp = make_join(interp.geoms)
     if interp.minimum_clearance < 1.0:
         # follow-up calculations will necessarily be integer;
         # so anticipate rounding here and then ensure validity

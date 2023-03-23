@@ -25,6 +25,7 @@ jobs:
       # PPA tessdata prefix (= ocrd_tesserocr moduledir) is owned by root
       - run: sudo chmod go+w `dpkg-query -L tesseract-ocr-eng | sed -n s,/eng.traineddata,,p`
       - run: ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
+      - run: ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata
       - run: make test-cli
       - run: make coverage
       - codecov/upload

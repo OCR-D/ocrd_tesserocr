@@ -1,38 +1,30 @@
 from __future__ import absolute_import
 
 from ocrd_utils import getLogger
-from ocrd import Processor
+from ocrd_validators import ParameterValidator
 
 from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
 
 TOOL = 'ocrd-tesserocr-segment-region'
+BASE_TOOL = 'ocrd-tesserocr-recognize'
 
-class TesserocrSegmentRegion(Processor):
-
+class TesserocrSegmentRegion(TesserocrRecognize):
     def __init__(self, *args, **kwargs):
-        kwargs['ocrd_tool'] = OCRD_TOOL['tools'][TOOL]
-        kwargs['version'] = OCRD_TOOL['version']
+        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
         super().__init__(*args, **kwargs)
-        
-        if hasattr(self, 'workspace'):
-            recognize_kwargs = {**kwargs}
-            recognize_kwargs.pop('dump_json', None)
-            recognize_kwargs.pop('dump_module_dir', None)
-            recognize_kwargs.pop('show_help', None)
-            recognize_kwargs.pop('show_version', None)
-            recognize_kwargs['parameter'] = self.parameter
-            recognize_kwargs['parameter']['overwrite_segments'] = self.parameter['overwrite_regions']
-            del recognize_kwargs['parameter']['overwrite_regions']
-            recognize_kwargs['parameter']['segmentation_level'] = "region"
-            recognize_kwargs['parameter']['textequiv_level'] = "region"
-            recognize_kwargs['parameter']['block_polygons'] = self.parameter['crop_polygons']
-            del recognize_kwargs['parameter']['crop_polygons']
-            self.recognizer = TesserocrRecognize(self.workspace, **recognize_kwargs)
-            self.recognizer.logger = getLogger('processor.TesserocrSegmentRegion')
+        if hasattr(self, 'parameter'):
+            self.parameter['overwrite_segments'] = self.parameter['overwrite_regions']
+            del self.parameter['overwrite_regions']
+            self.parameter['segmentation_level'] = "region"
+            self.parameter['textequiv_level'] = "region"
+            self.parameter['block_polygons'] = self.parameter['crop_polygons']
+            del self.parameter['crop_polygons']
+            # add default params
+            assert ParameterValidator(OCRD_TOOL['tools'][BASE_TOOL]).validate(self.parameter).is_valid
+            self.logger = getLogger('processor.TesserocrSegmentRegion')
 
-    def process(self):
-        """Performs region segmentation with Tesseract on the workspace.
+TesserocrSegmentRegion.process.__doc__ = """Performs region segmentation with Tesseract on the workspace.
         
         Open and deserialize PAGE input files and their respective images,
         and remove any existing Region and ReadingOrder elements
@@ -56,4 +48,3 @@ class TesserocrSegmentRegion(Processor):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
-        return self.recognizer.process()
