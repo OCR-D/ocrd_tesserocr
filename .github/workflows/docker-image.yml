@@ -5,7 +5,7 @@ on:
     branches: [ "master" ]
 
 env:
-  IMAGE_NAME: ghcr.io/OCR-D/tesserocr
+  IMAGE_NAME: ghcr.io/ocr-d/tesserocr
 
 jobs:
 
