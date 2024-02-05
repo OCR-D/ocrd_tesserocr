@@ -1,0 +1,6 @@
+[submodule "repo/tesserocr"]
+	path = repo/tesserocr
+	url = https://github.com/sirfz/tesserocr/
+[submodule "repo/tesseract"]
+	path = repo/tesseract
+	url = https://github.com/tesseract-ocr/tesseract
