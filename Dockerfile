@@ -82,6 +82,7 @@ RUN apt-get install -y --no-install-recommends \
 # RUN sudo chmod go+w `dpkg-query -L tesseract-ocr-eng | sed -n s,/eng.traineddata,,p`
 RUN ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata
 RUN ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
+RUN ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
 
 WORKDIR /data
 VOLUME /data
