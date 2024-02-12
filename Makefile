@@ -62,24 +62,32 @@ help:
 
 # Dependencies for deployment in an ubuntu/debian linux
 # (lib*-dev merely for building tesserocr with pip)
-# (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0,
-#  which is unsupported. Add the tesseract-ocr PPA
-#  from Alexander Pozdnyakov which provides 4.1.0.
-#  See https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr
-#  for details.)
 deps-ubuntu:
-	apt-get install -y --no-install-recommends software-properties-common
-	-add-apt-repository -u -y ppa:alex-p/tesseract-ocr
-	apt-get install -y \
+	apt-get update && apt-get install -y --no-install-recommends \
+		apt-utils \
+		build-essential \
 		g++ \
 		git \
 		python3 \
 		python3-pip \
-		libtesseract-dev \
+		libjpeg-dev \
+		libgif-dev \
+		libwebp-dev \
+		libopenjp2-7-dev \
+		libpng-dev \
+		libtiff-dev \
+		libtool \
+		pkg-config \
+		tzdata \
+		xzgv \
+		zlib1g-dev \
 		libleptonica-dev \
-		tesseract-ocr-eng \
-		tesseract-ocr-script-frak \
-		tesseract-ocr
+		libpango1.0-dev \
+		libicu-dev \
+		autotools-dev \
+		automake \
+		libcurl4-nss-dev \
+		libarchive-dev
 
 # Install Python deps for install via pip
 deps:
