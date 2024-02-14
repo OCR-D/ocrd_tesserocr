@@ -14,7 +14,7 @@ jobs:
       - image: cimg/python:<< parameters.python-version >>
     environment:
       # cimg/python uses pyenv instead of venv
-      VIRTUAL_ENV: $PYENV_ROOT
+      VIRTUAL_ENV: ${PYENV_ROOT}
     steps:
       - checkout
       - run: git submodule sync && git submodule update --init
