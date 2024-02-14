@@ -14,6 +14,7 @@ jobs:
       - image: cimg/python:<< parameters.python-version >>
     steps:
       - checkout
+      - run: git submodule sync && git submodule update --init
       - run: sudo make deps-ubuntu
       - run: make install-tesseract install-tesserocr
       - run: make install
