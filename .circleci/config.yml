@@ -16,7 +16,8 @@ jobs:
       - checkout
       - run: git submodule sync && git submodule update --init
       - run: sudo make deps-ubuntu
-      - run: make install-tesseract install-tesserocr
+      - run: sudo make install-tesseract
+      - run: make install-tesserocr
       - run: make install
       - run: ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
       - run: ocrd resmgr download ocrd-tesserocr-recognize osd.traineddata
