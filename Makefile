@@ -105,19 +105,23 @@ docker:
 	--build-arg BUILD_DATE=$$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
 	-t $(DOCKER_TAG) .
 
-install-tesserocr:
-	cd repo/tesserocr; $(PIP) install .
+install-tesserocr: repo/tesserocr
+	$(PIP) install ./$<
 
-install-tesseract:
-	cd repo/tesseract; ./autogen.sh
-	mkdir -p $(CURDIR)/build_tesseract
-	cd $(CURDIR)/build_tesseract && $(CURDIR)/repo/tesseract/configure \
+install-tesseract: repo/tesseract
+	cd $<; ./autogen.sh
+	mkdir -p build_tesseract
+	cd build_tesseract && $(CURDIR)/repo/tesseract/configure \
 				--prefix=$(TESSERACT_PREFIX) \
 				--disable-openmp \
 				--disable-shared \
-				'CXXFLAGS=-g -O2 -fno-math-errno -Wall -Wextra -Wpedantic -fPIC' ;\
-	cd $(CURDIR)/build_tesseract && $(MAKE) install
+				'CXXFLAGS=-g -O2 -fno-math-errno -Wall -Wextra -Wpedantic -fPIC' && \
+				$(MAKE) install
 	if [[ "$(TESSERACT_PREFIX)" = "/usr"* ]];then ldconfig ;fi
+
+repo/tesserocr repo/tesseract:
+	git submodule sync $@
+	git submodule update --init $@
 
 # Install this package
 install: deps
