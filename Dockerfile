@@ -13,9 +13,6 @@ LABEL \
 
 ENV PYTHONIOENCODING utf8
 
-# set TESSDATA_PREFIX
-ENV TESSDATA_PREFIX /usr/local/share/tessdata
-
 # set frontend non-interactive to silence interactive tzdata config
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -31,6 +28,8 @@ RUN dpkg-reconfigure -f noninteractive tzdata
 # so let XDG_DATA_HOME coincide with fixed system location
 # (can still be overridden by derived stages)
 ENV XDG_DATA_HOME /usr/local/share
+ENV XDG_CONFIG_HOME /usr/local/share/ocrd-resources
+ENV TESSDATA_PREFIX $XDG_DATA_HOME/tessdata
 
 WORKDIR /build
 COPY setup.py .
@@ -42,18 +41,28 @@ COPY ocrd_tesserocr ./ocrd_tesserocr
 COPY repo/tesserocr ./repo/tesserocr
 COPY repo/tesseract ./repo/tesseract
 COPY Makefile .
-RUN make deps-ubuntu deps install-tesseract install-tesserocr install \
+RUN make deps-ubuntu deps install-tesseract install-tesseract-training install-tesserocr install \
     && rm -rf /build \
     && apt-get -y remove --auto-remove g++ libtesseract-dev make
 
-# PPA tessdata prefix (= ocrd_tesserocr moduledir) is owned by root
-# next line causes failure because tesseract-ocr-eng not existing. Not sure if needed, so skipping
-# RUN sudo chmod go+w `dpkg-query -L tesseract-ocr-eng | sed -n s,/eng.traineddata,,p`
 RUN ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata
 RUN ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
 RUN ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
 RUN ocrd resmgr download ocrd-tesserocr-recognize equ.traineddata
 RUN ocrd resmgr download ocrd-tesserocr-recognize osd.traineddata
 
+# as discussed in ocrd_all#378, we do not want to manage more than one resource location
+# to mount for model persistence; 
+# with named volumes, the preinstalled models will be copied to the host and complemented
+# by downloaded models; 
+# tessdata is the only problematic module location
+RUN mkdir -p $XDG_CONFIG_HOME
+RUN mv $TESSDATA_PREFIX $XDG_CONFIG_HOME/ocrd-tesserocr-recognize
+RUN ln -s $XDG_CONFIG_HOME/ocrd-tesserocr-recognize $TESSDATA_PREFIX
+# finally, alias/symlink all ocrd-resources to /models for shorter mount commands
+RUN mv $XDG_CONFIG_HOME /models && ln -s /models $XDG_CONFIG_HOME
+
+
+# finally, alias/symlink all ocrd-resources to /models for shorter mount commands
 WORKDIR /data
 VOLUME /data
