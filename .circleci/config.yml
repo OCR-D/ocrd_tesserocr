@@ -12,11 +12,14 @@ jobs:
         type: string
     docker:
       - image: cimg/python:<< parameters.python-version >>
+    environment:
+      # cimg/python uses pyenv instead of venv
+      VIRTUAL_ENV: $PYENV_ROOT
     steps:
       - checkout
       - run: git submodule sync && git submodule update --init
       - run: sudo make deps-ubuntu
-      - run: sudo make install-tesseract
+      - run: make install-tesseract
       - run: make install-tesserocr
       - run: make install
       - run: ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
