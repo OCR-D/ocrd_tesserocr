@@ -7,8 +7,20 @@ LOG_LEVEL = INFO
 PYTHONIOENCODING=utf8
 LC_ALL = C.UTF-8
 LANG = C.UTF-8
-export
+ifdef VIRTUAL_ENV
+	TESSERACT_PREFIX = $(VIRTUAL_ENV)
+else
+	TESSERACT_PREFIX = /usr/local
+endif
 
+ifeq ($(PKG_CONFIG_PATH),)
+PKG_CONFIG_PATH := $(TESSERACT_PREFIX)/lib/pkgconfig
+else
+PKG_CONFIG_PATH := $(TESSERACT_PREFIX)/lib/pkgconfig:$(PKG_CONFIG_PATH)
+endif
+export PKG_CONFIG_PATH
+
+export
 
 # pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. Default: '$(PYTEST_ARGS)'
 PYTEST_ARGS =
@@ -16,58 +28,61 @@ PYTEST_ARGS =
 # Docker container tag
 DOCKER_TAG = 'ocrd/tesserocr'
 
-# BEGIN-EVAL makefile-parser --make-help Makefile
-
 help:
 	@echo ""
 	@echo "  Targets"
 	@echo ""
-	@echo "    deps-ubuntu   Dependencies for deployment in an ubuntu/debian linux"
-	@echo "                  (lib*-dev merely for building tesserocr with pip)"
-	@echo "                  (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0,"
-	@echo "                   which is unsupported. Add the tesseract-ocr PPA"
-	@echo "                   from Alexander Pozdnyakov which provides 4.1.0."
-	@echo "                   See https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr"
-	@echo "                   for details.)"
-	@echo "    deps          Install Python deps for install via pip"
-	@echo "    deps-test     Install Python deps for test via pip"
-	@echo "    docker        Build docker image"
-	@echo "    install       Install this package"
-	@echo "    test          Run unit tests"
-	@echo "    coverage      Run unit tests and determine test coverage"
-	@echo "    test-cli      Test the command line tools"
-	@echo "    test/assets   Setup test assets"
-	@echo "    repo/assets   Clone OCR-D/assets to ./repo/assets"
-	@echo "    assets-clean  Remove symlinks in test/assets"
+	@echo "    deps-ubuntu       Install system dependencies in an Ubuntu/Debian Linux"
+	@echo "    install-tesseract Compile and install Tesseract"
+	@echo "    install-tesseract-training Compile and install training utilities for Tesseract"
+	@echo "    install-tesserocr Compile and install Tesserocr"
+	@echo "    deps              Install Python dependencies for install via pip"
+	@echo "    install           Install this package via pip"
+	@echo "    deps-test         Install Python deps for test via pip"
+	@echo "    test              Run unit tests"
+	@echo "    coverage          Run unit tests and determine test coverage"
+	@echo "    test-cli          Test the command line tools"
+	@echo "    test/assets       Setup test assets"
+	@echo "    repo/assets       Clone OCR-D/assets to ./repo/assets"
+	@echo "    repo/tesseract    Checkout Tesseract ./repo/tesseract"
+	@echo "    repo/tesserocr    Checkout Tesserocr to ./repo/tesserocr"
+	@echo "    docker            Build docker image"
+	@echo "    assets-clean      Remove symlinks in test/assets"
 	@echo ""
 	@echo "  Variables"
 	@echo ""
-	@echo "    PYTEST_ARGS     pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. Default: '$(PYTEST_ARGS)'"
-	@echo "    DOCKER_TAG      Docker container tag"
-	@echo "    TESSDATA_PREFIX search path for recognition models (overriding Tesseract compile-time default)"
+	@echo "    PYTEST_ARGS     pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. [$(PYTEST_ARGS)]"
+	@echo "    DOCKER_TAG      Docker container tag [$(DOCKER_TAG)]"
+	@echo "    TESSDATA_PREFIX search path for recognition models (overriding Tesseract compile-time default) [$(TESSDATA_PREFIX)]"
 
-# END-EVAL
-
-# Dependencies for deployment in an ubuntu/debian linux
-# (lib*-dev merely for building tesserocr with pip)
-# (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0,
-#  which is unsupported. Add the tesseract-ocr PPA
-#  from Alexander Pozdnyakov which provides 4.1.0.
-#  See https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr
-#  for details.)
+# Dependencies for deployment in an Ubuntu/Debian Linux
+# (lib*-dev merely for building Tesseract and tesserocr from sources)
 deps-ubuntu:
-	apt-get install -y --no-install-recommends software-properties-common
-	-add-apt-repository -u -y ppa:alex-p/tesseract-ocr
-	apt-get install -y \
+	apt-get update && apt-get install -y --no-install-recommends \
+		apt-utils \
+		build-essential \
 		g++ \
 		git \
 		python3 \
 		python3-pip \
-		libtesseract-dev \
+		libjpeg-dev \
+		libgif-dev \
+		libwebp-dev \
+		libopenjp2-7-dev \
+		libpng-dev \
+		libtiff-dev \
+		libtool \
+		pkg-config \
+		tzdata \
+		xzgv \
+		zlib1g-dev \
 		libleptonica-dev \
-		tesseract-ocr-eng \
-		tesseract-ocr-script-frak \
-		tesseract-ocr
+		libpango1.0-dev \
+		libicu-dev \
+		autotools-dev \
+		automake \
+		libcurl4-nss-dev \
+		libarchive-dev
 
 # Install Python deps for install via pip
 deps:
@@ -84,6 +99,35 @@ docker:
 	--build-arg VCS_REF=$$(git rev-parse --short HEAD) \
 	--build-arg BUILD_DATE=$$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
 	-t $(DOCKER_TAG) .
+
+install-tesserocr: repo/tesserocr
+	$(PIP) install ./$<
+
+install-tesseract: $(TESSERACT_PREFIX)/bin/tesseract
+
+install-tesseract-training: $(TESSERACT_PREFIX)/bin/lstmtraining
+
+$(TESSERACT_PREFIX)/bin/tesseract: build_tesseract/Makefile
+	$(MAKE) -C build_tesseract install
+	if [[ "$(TESSERACT_PREFIX)" = "/usr"* ]]; then ldconfig; fi
+
+$(TESSERACT_PREFIX)/bin/lstmtraining: build_tesseract/Makefile
+	$(MAKE) -C build_tesseract training-install
+
+build_tesseract/Makefile: repo/tesseract/Makefile.in
+	mkdir -p $(@D)
+	cd $(@D) && $(CURDIR)/repo/tesseract/configure \
+				--prefix=$(TESSERACT_PREFIX) \
+				--disable-openmp \
+				--disable-shared \
+				'CXXFLAGS=-g -O2 -fno-math-errno -Wall -Wextra -Wpedantic -fPIC'
+
+repo/tesseract/Makefile.in: repo/tesseract
+	cd $<; ./autogen.sh
+
+repo/tesserocr repo/tesseract:
+	git submodule sync $@
+	git submodule update --init $@
 
 # Install this package
 install: deps
@@ -135,6 +179,12 @@ repo/assets:
 	mkdir -p $(dir $@)
 	git clone https://github.com/OCR-D/assets "$@"
 
+.PHONY: clean
+clean: assets-clean tesseract-clean
+
+tesseract-clean:
+	rm -rf $(CURDIR)/build_tesseract
+	cd repo/tesseract; make distclean
 
 .PHONY: assets-clean
 # Remove symlinks in test/assets
