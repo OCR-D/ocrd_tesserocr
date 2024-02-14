@@ -28,40 +28,35 @@ PYTEST_ARGS =
 # Docker container tag
 DOCKER_TAG = 'ocrd/tesserocr'
 
-# BEGIN-EVAL makefile-parser --make-help Makefile
-
 help:
 	@echo ""
 	@echo "  Targets"
 	@echo ""
-	@echo "    deps-ubuntu   Dependencies for deployment in an ubuntu/debian linux"
-	@echo "                  (lib*-dev merely for building tesserocr with pip)"
-	@echo "                  (tesseract-ocr: Ubuntu 18.04 now ships 4.0.0,"
-	@echo "                   which is unsupported. Add the tesseract-ocr PPA"
-	@echo "                   from Alexander Pozdnyakov which provides 4.1.0."
-	@echo "                   See https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr"
-	@echo "                   for details.)"
-	@echo "    deps          Install Python deps for install via pip"
-	@echo "    deps-test     Install Python deps for test via pip"
-	@echo "    docker        Build docker image"
-	@echo "    install       Install this package"
-	@echo "    test          Run unit tests"
-	@echo "    coverage      Run unit tests and determine test coverage"
-	@echo "    test-cli      Test the command line tools"
-	@echo "    test/assets   Setup test assets"
-	@echo "    repo/assets   Clone OCR-D/assets to ./repo/assets"
-	@echo "    assets-clean  Remove symlinks in test/assets"
+	@echo "    deps-ubuntu       Install system dependencies in an Ubuntu/Debian Linux"
+	@echo "    install-tesseract Compile and install Tesseract"
+	@echo "    install-tesseract-training Compile and install training utilities for Tesseract"
+	@echo "    install-tesserocr Compile and install Tesserocr"
+	@echo "    deps              Install Python dependencies for install via pip"
+	@echo "    install           Install this package via pip"
+	@echo "    deps-test         Install Python deps for test via pip"
+	@echo "    test              Run unit tests"
+	@echo "    coverage          Run unit tests and determine test coverage"
+	@echo "    test-cli          Test the command line tools"
+	@echo "    test/assets       Setup test assets"
+	@echo "    repo/assets       Clone OCR-D/assets to ./repo/assets"
+	@echo "    repo/tesseract    Checkout Tesseract ./repo/tesseract"
+	@echo "    repo/tesserocr    Checkout Tesserocr to ./repo/tesserocr"
+	@echo "    docker            Build docker image"
+	@echo "    assets-clean      Remove symlinks in test/assets"
 	@echo ""
 	@echo "  Variables"
 	@echo ""
-	@echo "    PYTEST_ARGS     pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. Default: '$(PYTEST_ARGS)'"
-	@echo "    DOCKER_TAG      Docker container tag"
-	@echo "    TESSDATA_PREFIX search path for recognition models (overriding Tesseract compile-time default)"
+	@echo "    PYTEST_ARGS     pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. [$(PYTEST_ARGS)]"
+	@echo "    DOCKER_TAG      Docker container tag [$(DOCKER_TAG)]"
+	@echo "    TESSDATA_PREFIX search path for recognition models (overriding Tesseract compile-time default) [$(TESSDATA_PREFIX)]"
 
-# END-EVAL
-
-# Dependencies for deployment in an ubuntu/debian linux
-# (lib*-dev merely for building tesserocr with pip)
+# Dependencies for deployment in an Ubuntu/Debian Linux
+# (lib*-dev merely for building Tesseract and tesserocr from sources)
 deps-ubuntu:
 	apt-get update && apt-get install -y --no-install-recommends \
 		apt-utils \
@@ -108,16 +103,27 @@ docker:
 install-tesserocr: repo/tesserocr
 	$(PIP) install ./$<
 
-install-tesseract: repo/tesseract
-	cd $<; ./autogen.sh
-	mkdir -p build_tesseract
-	cd build_tesseract && $(CURDIR)/repo/tesseract/configure \
+install-tesseract: $(TESSERACT_PREFIX)/bin/tesseract
+
+install-tesseract-training: $(TESSERACT_PREFIX)/bin/lstmtraining
+
+$(TESSERACT_PREFIX)/bin/tesseract: build_tesseract/Makefile
+	$(MAKE) -C build_tesseract install
+	if [[ "$(TESSERACT_PREFIX)" = "/usr"* ]]; then ldconfig; fi
+
+$(TESSERACT_PREFIX)/bin/lstmtraining: build_tesseract/Makefile
+	$(MAKE) -C build_tesseract training-install
+
+build_tesseract/Makefile: repo/tesseract/Makefile.in
+	mkdir -p $(@D)
+	cd $(@D) && $(CURDIR)/repo/tesseract/configure \
 				--prefix=$(TESSERACT_PREFIX) \
 				--disable-openmp \
 				--disable-shared \
-				'CXXFLAGS=-g -O2 -fno-math-errno -Wall -Wextra -Wpedantic -fPIC' && \
-				$(MAKE) install
-	if [[ "$(TESSERACT_PREFIX)" = "/usr"* ]];then ldconfig ;fi
+				'CXXFLAGS=-g -O2 -fno-math-errno -Wall -Wextra -Wpedantic -fPIC'
+
+repo/tesseract/Makefile.in: repo/tesseract
+	cd $<; ./autogen.sh
 
 repo/tesserocr repo/tesseract:
 	git submodule sync $@
