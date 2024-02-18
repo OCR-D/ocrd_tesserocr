@@ -27,7 +27,7 @@ jobs:
       - run: ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
       - run: ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata
       - run: make test-cli
-      - run: make coverage
+      - run: make deps-test coverage
       - codecov/upload
 
   deploy-docker:
