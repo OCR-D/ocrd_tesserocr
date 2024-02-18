@@ -1,6 +1,5 @@
 from click.testing import CliRunner
 
-from test.base import main
 from pathlib import Path
 
 runner = CliRunner()
@@ -31,6 +30,3 @@ def test_list_all_resources(tmpdir, monkeypatch):
     assert not r.exit_code
     # XXX same problem
     # assert r.output == str(samplefile) + '\n'
-
-if __name__ == '__main__':
-    main(__file__)
