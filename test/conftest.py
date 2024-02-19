@@ -1,7 +1,5 @@
-#METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/data/mets_one_file.xml')
-# as long as #96 remains, we cannot use workspaces which have local relative files:
-from tempfile import mkdtemp
 from ocrd.resolver import Resolver
+from ocrd_utils import pushd_popd
 from pytest import fixture
 
 from test.assets import assets as assets
@@ -11,9 +9,11 @@ METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/data/mets_one_file.xml')
 
 @fixture
 def workspace_kant_binarized():
-    return Resolver().workspace_from_url(METS_KANT_BINARIZED, download=True, dst_dir=mkdtemp(prefix='pytest_ocrd_tesserocr'))
+    with pushd_popd(tempdir=True) as tempdir:
+        yield Resolver().workspace_from_url(METS_KANT_BINARIZED, dst_dir=tempdir)
 
 @fixture
 def workspace_herold_small():
-    return Resolver().workspace_from_url(METS_HEROLD_SMALL, download=True, dst_dir=mkdtemp(prefix='pytest_ocrd_tesserocr'))
+    with pushd_popd(tempdir=True) as tempdir:
+        yield Resolver().workspace_from_url(METS_HEROLD_SMALL, dst_dir=tempdir)
 
