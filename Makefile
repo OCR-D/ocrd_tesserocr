@@ -128,7 +128,7 @@ build_tesseract/Makefile: repo/tesseract/Makefile.in
 repo/tesseract/Makefile.in: repo/tesseract
 	cd $<; ./autogen.sh
 
-repo/tesserocr repo/tesseract:
+repo/tesserocr repo/tesseract repo/assets:
 	git submodule sync $@
 	git submodule update --init $@
 
@@ -176,21 +176,13 @@ test/assets: repo/assets
 	mkdir -p $@
 	cp -r -t $@ repo/assets/data/*
 
-# Clone OCR-D/assets to ./repo/assets
-# FIXME does not work if already checked out
-# FIXME should be a proper (VCed) submodule
-repo/assets:
-	mkdir -p $(dir $@)
-	git clone https://github.com/OCR-D/assets "$@"
-
 .PHONY: clean
-clean: assets-clean tesseract-clean
+clean: clean-assets clean-tesseract
 
-tesseract-clean:
-	rm -rf $(CURDIR)/build_tesseract
+clean-tesseract:
+	$(RM) -rf $(CURDIR)/build_tesseract
 	cd repo/tesseract; make distclean
 
-.PHONY: assets-clean
-# Remove symlinks in test/assets
-assets-clean:
-	rm -rf test/assets
+.PHONY: clean-assets
+clean-assets:
+	$(RM) -rf test/assets

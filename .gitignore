@@ -3,7 +3,6 @@ venv3
 __pycache__
 *.pyc
 *.egg-info
-repo/assets
 test/assets
 .tox
 /build
