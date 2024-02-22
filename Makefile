@@ -118,13 +118,12 @@ $(TESSERACT_PREFIX)/bin/tesseract: build_tesseract/Makefile
 $(TESSERACT_PREFIX)/bin/lstmtraining: build_tesseract/Makefile
 	$(MAKE) -C build_tesseract training-install
 
+TESSERACT_CONFIG ?= --disable-openmp --disable-shared CXXFLAGS="-g -O2 -fPIC -fno-math-errno -Wall -Wextra -Wpedantic"
 build_tesseract/Makefile: repo/tesseract/Makefile.in
 	mkdir -p $(@D)
 	cd $(@D) && $(CURDIR)/repo/tesseract/configure \
 				--prefix=$(TESSERACT_PREFIX) \
-				--disable-openmp \
-				--disable-shared \
-				'CXXFLAGS=-g -O2 -fno-math-errno -Wall -Wextra -Wpedantic -fPIC'
+				$(TESSERACT_CONFIG)
 
 repo/tesseract/Makefile.in: repo/tesseract
 	cd $<; ./autogen.sh
