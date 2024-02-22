@@ -36,8 +36,8 @@ help:
 	@echo "    install-tesseract Compile and install Tesseract"
 	@echo "    install-tesseract-training Compile and install training utilities for Tesseract"
 	@echo "    install-tesserocr Compile and install Tesserocr"
-	@echo "    deps              Install Python dependencies for install via pip"
-	@echo "    install           Install this package via pip"
+	@echo "    deps              Install Tesseract/Tesserocr and all Python dependencies"
+	@echo "    install           Install this package with all dependencies and download minimal models"
 	@echo "    deps-test         Install Python deps for test via pip"
 	@echo "    test              Run unit tests"
 	@echo "    coverage          Run unit tests and determine test coverage"
@@ -47,13 +47,16 @@ help:
 	@echo "    repo/tesseract    Checkout Tesseract ./repo/tesseract"
 	@echo "    repo/tesserocr    Checkout Tesserocr to ./repo/tesserocr"
 	@echo "    docker            Build docker image"
-	@echo "    assets-clean      Remove symlinks in test/assets"
+	@echo "    clean             Remove temporary files"
+	@echo "    clean-assets      Remove only test/assets"
+	@echo "    clean-tesseract   Remove only build_tesseract"
 	@echo ""
 	@echo "  Variables"
 	@echo ""
-	@echo "    PYTEST_ARGS     pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. [$(PYTEST_ARGS)]"
-	@echo "    DOCKER_TAG      Docker container tag [$(DOCKER_TAG)]"
-	@echo "    TESSDATA_PREFIX search path for recognition models (overriding Tesseract compile-time default) [$(TESSDATA_PREFIX)]"
+	@echo "    PYTEST_ARGS       pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. [$(PYTEST_ARGS)]"
+	@echo "    DOCKER_TAG        Docker container tag [$(DOCKER_TAG)]"
+	@echo '    TESSERACT_CONFIG  command line options for Tesseract `configure` [$(TESSERACT_CONFIG)]'
+	@echo "    TESSDATA_PREFIX   search path for recognition models (overriding Tesseract compile-time default) [$(TESSDATA_PREFIX)]"
 
 # Dependencies for deployment in an Ubuntu/Debian Linux
 # (lib*-dev merely for building Tesseract and tesserocr from sources)
@@ -85,8 +88,7 @@ deps-ubuntu:
 		libarchive-dev
 
 # Install Python deps for install via pip
-deps:
-	$(PIP) install -U pip
+deps: install-tesserocr
 	$(PIP) install -r requirements.txt
 
 # Install Python deps for test via pip
@@ -100,7 +102,7 @@ docker: repo/tesseract repo/tesserocr
 	--build-arg BUILD_DATE=$$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
 	-t $(DOCKER_TAG) .
 
-install-tesserocr: repo/tesserocr
+install-tesserocr: repo/tesserocr install-tesseract
 	$(PIP) install ./$<
 
 install-tesseract: $(TESSERACT_PREFIX)/bin/tesseract
@@ -149,18 +151,16 @@ coverage:
 	coverage html
 
 # Test the command line tools
-test-cli: test/assets
-	$(PIP) install -e .
+test-cli: test/assets deps-test
 	rm -rfv test/workspace
 	cp -rv test/assets/kant_aufklaerung_1784 test/workspace
-	ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
-	ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
 	cd test/workspace/data && \
 		ocrd-tesserocr-segment-region -l DEBUG -I OCR-D-IMG -O OCR-D-SEG-REGION && \
 		ocrd-tesserocr-segment-line   -l DEBUG -I OCR-D-SEG-REGION -O OCR-D-SEG-LINE && \
 		ocrd-tesserocr-recognize      -l DEBUG -I OCR-D-SEG-LINE -O OCR-D-TESS-OCR -P model deu
 
 .PHONY: test test-cli install deps deps-ubuntu deps-test help
+.PHONY: install-tesseract install-tesserocr install-tesseract-training 
 
 #
 # Assets
