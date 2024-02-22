@@ -11,11 +11,11 @@ METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/data/mets_one_file.xml')
 def workspace_kant_binarized():
     initLogging()
     with pushd_popd(tempdir=True) as tempdir:
-        yield Resolver().workspace_from_url(METS_KANT_BINARIZED, dst_dir=tempdir)
+        yield Resolver().workspace_from_url(METS_KANT_BINARIZED, dst_dir=tempdir, download=True)
 
 @fixture
 def workspace_herold_small():
     initLogging()
     with pushd_popd(tempdir=True) as tempdir:
-        yield Resolver().workspace_from_url(METS_HEROLD_SMALL, dst_dir=tempdir)
+        yield Resolver().workspace_from_url(METS_HEROLD_SMALL, dst_dir=tempdir, download=True)
 
