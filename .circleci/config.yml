@@ -19,15 +19,11 @@ jobs:
       - checkout
       - run: git submodule sync && git submodule update --init
       - run: sudo make deps-ubuntu
-      - run: make install-tesseract
-      - run: make install-tesserocr
       - run: make install
-      - run: ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
-      - run: ocrd resmgr download ocrd-tesserocr-recognize osd.traineddata
-      - run: ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
-      - run: ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata
+      - run: make deps-test
+      - run: make test
       - run: make test-cli
-      - run: make deps-test coverage
+      - run: make coverage
       - codecov/upload
 
   deploy-docker:
