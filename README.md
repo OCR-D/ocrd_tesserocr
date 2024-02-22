@@ -33,50 +33,55 @@ To run with docker:
     docker run -v path/to/workspaces:/data ocrd/tesserocr ocrd-tesserocrd-crop ...
 
 
-### From PyPI and PPA
+### From PyPI and Tesseract provided by system
 
-This is the best option if you want to use the stable, released version.
+If your operating system / distribution already provides Tesseract 4.1
+or newer, then just install its development package:
 
----
+    # on Debian / Ubuntu:
+    sudo apt install libtesseract-dev
 
-**NOTE**
-
-ocrd_tesserocr requires **Tesseract >= 4.1.0**. The Tesseract packages
-bundled with **Ubuntu < 19.10** are too old. If you are on Ubuntu 18.04 LTS,
-please use [Alexander Pozdnyakov's PPA](https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr) repository,
+Otherwise, recent Tesseract packages for Ubuntu are available via PPA
+[alex-p](https://launchpad.net/~alex-p/+archive/ubuntu/tesseract-ocr-devel),
 which has up-to-date builds of Tesseract and its dependencies:
 
-```sh
-sudo add-apt-repository ppa:alex-p/tesseract-ocr
-sudo apt-get update
-```
 
----
+    # on Debian / Ubuntu
+    sudo add-apt-repository ppa:alex-p/tesseract-ocr
+    sudo apt-get update
+    sudo apt install libtesseract-dev
 
-```sh
-sudo apt-get install python3 python3-pip libtesseract-dev libleptonica-dev tesseract-ocr wget
-pip install ocrd_tesserocr
-```
+Once Tesseract is available, just install ocrd_tesserocr from PyPI server:
+
+
+    pip install ocrd_tesserocr
+
+We strongly recommend setting up a
+[venv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) first.
+
 
 ### From git
 
-Use this option if you want to change the source code or install the latest, unpublished changes.
+Use this option if there is no suitable prebuilt version of Tesseract available
+on your system, or you want to change the source code or install the latest, unpublished changes.
 
-We strongly recommend to use [venv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
+    git clone https://github.com/OCR-D/ocrd_tesserocr
+    cd ocrd_tesserocr
+    # install Tesseract:
+    sudo make deps-ubuntu # system dependencies just for the build
+    make deps
+    # install tesserocr and ocrd_tesserocr:
+    make install
 
-```sh
-git clone https://github.com/OCR-D/ocrd_tesserocr
-cd ocrd_tesserocr
-# install Tesseract:
-sudo make deps-ubuntu # or manually from git or via ocrd_all
-# install tesserocr and ocrd_tesserocr:
-make deps        # or pip install -r requirements
-make install     # or pip install .
-```
+We strongly recommend setting up a
+[venv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/) first.
+
 
 ## Models
 
-Tesseract comes with synthetically trained models for languages (`tesseract-ocr-{eng,deu,frk,...}` or scripts (`tesseract-ocr-script-{latn,frak,...}`). In addition, various models [trained](https://github.com/tesseract-ocr/tesstrain) on scan data are available from the community.
+Tesseract comes with synthetically trained models for languages (`tesseract-ocr-{eng,deu,frk,...}` 
+or scripts (`tesseract-ocr-script-{latn,frak,...}`). In addition, various models
+[trained](https://github.com/tesseract-ocr/tesstrain) on scan data are available from the community.
 
 Since all OCR-D processors must resolve file/data resources
 in a [standardized way](https://ocr-d.de/en/spec/cli#processor-resources),
@@ -89,6 +94,10 @@ The `module` location is determined by the underlying Tesseract installation
 Other resource locations (data/system/cwd) will be ignored, and should not be used
 when installing models with the **Resource Manager** (`ocrd resmgr download`).
 
+To see the `module` resource location of your installation:
+
+    ocrd-tesserocr-recognize -D
+
 For a full description of available commands for resource management, see:
 
     ocrd resmgr --help
@@ -96,18 +105,24 @@ For a full description of available commands for resource management, see:
     ocrd resmgr download --help
     ocrd resmgr list-installed --help
 
-(In previous versions, the resource locations of standalone Tesseract and the OCR-D wrapper were different.
- If you already have models under `$XDG_DATA_HOME/ocrd-resources/ocrd-tesserocr-recognize`,
- usually `~/.local/share/ocrd-resources/ocrd-tesserocr-recognize`, then consider moving them
- to the new default under `ocrd-tesserocr-recognize -D`,
- usually `/usr/share/tesseract-ocr/4.00/tessdata`, _or_ alternatively overriding the module directory
- by setting `TESSDATA_PREFIX=$XDG_DATA_HOME/ocrd-resources/ocrd-tesserocr-recognize` in the environment.)
+> **Note**: 
+> (In previous versions, the resource locations of standalone Tesseract and the OCR-D wrapper were different.
+> If you already have models under `$XDG_DATA_HOME/ocrd-resources/ocrd-tesserocr-recognize`,
+> usually `~/.local/share/ocrd-resources/ocrd-tesserocr-recognize`, then consider moving them
+> to the new default under `ocrd-tesserocr-recognize -D`,
+> usually `/usr/share/tesseract-ocr/4.00/tessdata`, _or_ alternatively overriding the module directory
+> by setting `TESSDATA_PREFIX=$XDG_DATA_HOME/ocrd-resources/ocrd-tesserocr-recognize` in the environment.)
 
 Cf. [OCR-D model guide](https://ocr-d.de/en/models).
 
 Models always use the filename suffix `.traineddata`, but are just loaded by their basename.
 You will need **at least** `eng` and `osd` installed (even for segmentation and deskewing),
-probably also `Latin` and `Fraktur` etc.
+probably also `Latin` and `Fraktur` etc. So to get minimal models, do:
+
+	ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
+	ocrd resmgr download ocrd-tesserocr-recognize osd.traineddata
+
+(This will already be installed if using the Docker or git installation option.)
 
 As of v0.13.1, you can configure `ocrd-tesserocr-recognize` to select models **dynamically** segment by segment,
 either via custom conditions on the PAGE-XML annotation (presented as XPath rules),
@@ -202,9 +217,9 @@ shrinking to the convex hull of all its symbol outlines.
 
 ## Testing
 
-```sh
-make test
-```
+
+    make test
+
 
 This downloads some test data from https://github.com/OCR-D/assets under `repo/assets`,
 and runs some basic test of the Python API as well as the CLIs.
