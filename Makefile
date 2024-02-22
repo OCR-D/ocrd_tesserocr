@@ -94,6 +94,8 @@ deps: install-tesserocr
 # Install Python deps for test via pip
 deps-test:
 	$(PIP) install -r requirements_test.txt
+	ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
+	ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata
 
 # Build docker image
 docker: repo/tesseract repo/tesserocr
@@ -133,7 +135,10 @@ repo/tesserocr repo/tesseract:
 
 # Install this package
 install: deps
-	$(PIP) install .
+	$(PIP) install $(PIP_OPTIONS) .
+	ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
+	ocrd resmgr download ocrd-tesserocr-recognize osd.traineddata
+	ocrd resmgr download ocrd-tesserocr-recognize equ.traineddata
 
 # Run unit tests
 test: test/assets deps-test
