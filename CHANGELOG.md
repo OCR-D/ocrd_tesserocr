@@ -5,6 +5,10 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Fixed:
+
+  * Build, tests and documentation related to `make install-{tesserocr,tesseract}`, #200
+
 ## [0.18.0] - 2024-02-19
 
 Changed:
