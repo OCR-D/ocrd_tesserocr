@@ -5,6 +5,8 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.18.1] - 2024-03-07
+
 Fixed:
 
   * Build, tests and documentation related to `make install-{tesserocr,tesseract}`, #200
@@ -408,6 +410,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.18.1]: ../../compare/v0.18.1...v0.18.0
 [0.18.0]: ../../compare/v0.18.0...v0.17.0
 [0.17.0]: ../../compare/v0.17.0...v0.16.0
 [0.16.0]: ../../compare/v0.16.0...v0.15.0
