@@ -1,8 +1,8 @@
-from ocrd.resolver import Resolver
-from ocrd_utils import pushd_popd, initLogging
-from pytest import fixture
-
 from test.assets import assets as assets
+
+from ocrd.resolver import Resolver
+from ocrd_utils import initLogging, pushd_popd
+from pytest import fixture
 
 METS_KANT_BINARIZED = assets.url_of('kant_aufklaerung_1784-binarized/data/mets.xml')
 METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/data/mets_one_file.xml')
