@@ -1,23 +1,13 @@
 from __future__ import absolute_import
+
 import os.path
-from PIL import Image, ImageStat
 
-from tesserocr import (
-    RIL, PSM, OEM,
-    PyTessBaseAPI, 
-    get_languages
-)
-
-from ocrd_utils import (
-    getLogger,
-    make_file_id,
-    assert_file_grp_cardinality,
-    MIMETYPE_PAGE
-)
-from ocrd_models.ocrd_page import (
-    TextStyleType,
-    to_xml)
 from ocrd_modelfactory import page_from_file
+from ocrd_models.ocrd_page import TextStyleType, to_xml
+from ocrd_utils import (MIMETYPE_PAGE, assert_file_grp_cardinality, getLogger,
+                        make_file_id)
+from PIL import Image, ImageStat
+from tesserocr import OEM, PSM, RIL, PyTessBaseAPI, get_languages
 
 from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
