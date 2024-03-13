@@ -49,7 +49,7 @@ help:
 	@echo "    docker            Build docker image"
 	@echo "    clean             Remove temporary files"
 	@echo "    clean-assets      Remove only test/assets"
-	@echo "    clean-tesseract   Remove only build_tesseract"
+	@echo "    clean-tesseract   Remove only build/tesseract"
 	@echo ""
 	@echo "  Variables"
 	@echo ""
@@ -111,15 +111,15 @@ install-tesseract: $(TESSERACT_PREFIX)/bin/tesseract
 
 install-tesseract-training: $(TESSERACT_PREFIX)/bin/lstmtraining
 
-$(TESSERACT_PREFIX)/bin/tesseract: build_tesseract/Makefile
-	$(MAKE) -C build_tesseract install
+$(TESSERACT_PREFIX)/bin/tesseract: build/tesseract/Makefile
+	$(MAKE) -C build/tesseract install
 	if [[ "$(TESSERACT_PREFIX)" = "/usr"* ]]; then ldconfig; fi
 
-$(TESSERACT_PREFIX)/bin/lstmtraining: build_tesseract/Makefile
-	$(MAKE) -C build_tesseract training-install
+$(TESSERACT_PREFIX)/bin/lstmtraining: build/tesseract/Makefile
+	$(MAKE) -C build/tesseract training-install
 
 TESSERACT_CONFIG ?= --disable-openmp --disable-shared CXXFLAGS="-g -O2 -fPIC -fno-math-errno -Wall -Wextra -Wpedantic"
-build_tesseract/Makefile: repo/tesseract/Makefile.in
+build/tesseract/Makefile: repo/tesseract/Makefile.in
 	mkdir -p $(@D)
 	cd $(@D) && $(CURDIR)/repo/tesseract/configure \
 				--prefix=$(TESSERACT_PREFIX) \
@@ -180,7 +180,7 @@ test/assets: repo/assets
 clean: clean-assets clean-tesseract
 
 clean-tesseract:
-	$(RM) -rf $(CURDIR)/build_tesseract
+	$(RM) -rf $(CURDIR)/build/tesseract
 	cd repo/tesseract; make distclean
 
 .PHONY: clean-assets

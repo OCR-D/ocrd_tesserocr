@@ -12,4 +12,3 @@ test-workspace
 /.coverage
 /htmlcov
 /.cache
-build_tesseract
