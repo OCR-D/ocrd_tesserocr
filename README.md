@@ -79,7 +79,7 @@ We strongly recommend setting up a
 
 ## Models
 
-Tesseract comes with synthetically trained models for languages (`tesseract-ocr-{eng,deu,frk,...}` 
+Tesseract comes with synthetically trained models for languages (`tesseract-ocr-{eng,deu,deu_latf,...}`
 or scripts (`tesseract-ocr-script-{latn,frak,...}`). In addition, various models
 [trained](https://github.com/tesseract-ocr/tesstrain) on scan data are available from the community.
 
