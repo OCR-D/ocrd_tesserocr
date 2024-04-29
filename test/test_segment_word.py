@@ -1,6 +1,6 @@
-from ocrd_tesserocr import TesserocrSegmentRegion
-from ocrd_tesserocr import TesserocrSegmentLine
-from ocrd_tesserocr import TesserocrSegmentWord
+from ocrd_tesserocr import (TesserocrSegmentLine, TesserocrSegmentRegion,
+                            TesserocrSegmentWord)
+
 
 def test_run_modular(workspace_kant_binarized):
     TesserocrSegmentRegion(

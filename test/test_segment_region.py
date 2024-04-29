@@ -1,5 +1,6 @@
 from ocrd_tesserocr import TesserocrSegmentRegion
 
+
 def test_run(workspace_herold_small):
     TesserocrSegmentRegion(
         workspace_herold_small,
