@@ -259,10 +259,17 @@
           "size": 1525436
         },
         {
-          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/frk.traineddata",
-          "name": "frk.traineddata",
+          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/deu_latf.traineddata",
+          "name": "deu_latf.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model for historical (Fraktur typesetting and letterpress printing) German",
+          "size": 6423052
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/deu_latf.traineddata",
+          "name": "frk.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for historical German (deprecated, replaced by deu_latf)",
           "size": 6423052
         },
         {
