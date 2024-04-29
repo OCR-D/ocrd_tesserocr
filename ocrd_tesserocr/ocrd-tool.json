@@ -266,6 +266,13 @@
           "size": 6423052
         },
         {
+          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/deu_latf.traineddata",
+          "name": "frk.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for historical German (deprecated, replaced by deu_latf)",
+          "size": 6423052
+        },
+        {
           "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/script/Fraktur.traineddata",
           "name": "Fraktur.traineddata",
           "parameter_usage": "without-extension",
