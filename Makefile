@@ -145,7 +145,7 @@ test: test/assets deps-test
 	#$(PYTHON) -m pytest -n auto --continue-on-collection-errors test $(PYTEST_ARGS)
 	# workaround for pytest-xdist not isolating setenv calls in click.CliRunner from each other:
 	$(PYTHON) -m pytest --continue-on-collection-errors test/test_cli.py $(PYTEST_ARGS)
-	$(PYTHON) -m pytest --continue-on-collection-errors test/test_{segment_{region,line,word},recognize}.py $(PYTEST_ARGS)
+	$(PYTHON) -m pytest --continue-on-collection-errors test/test_{segment_{region,table,line,word},recognize}.py $(PYTEST_ARGS)
 
 # Run unit tests and determine test coverage
 coverage:
