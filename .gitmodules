@@ -4,3 +4,6 @@
 [submodule "repo/tesseract"]
 	path = repo/tesseract
 	url = https://github.com/tesseract-ocr/tesseract
+[submodule "repo/assets"]
+	path = repo/assets
+	url = https://github.com/OCR-D/assets

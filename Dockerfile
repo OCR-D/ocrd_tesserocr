@@ -41,15 +41,12 @@ COPY ocrd_tesserocr ./ocrd_tesserocr
 COPY repo/tesserocr ./repo/tesserocr
 COPY repo/tesseract ./repo/tesseract
 COPY Makefile .
-RUN make deps-ubuntu deps install-tesseract install-tesseract-training install-tesserocr install \
+RUN make deps-ubuntu deps install install-tesseract-training \
     && rm -rf /build \
     && apt-get -y remove --auto-remove g++ libtesseract-dev make
 
 RUN ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata
 RUN ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
-RUN ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
-RUN ocrd resmgr download ocrd-tesserocr-recognize equ.traineddata
-RUN ocrd resmgr download ocrd-tesserocr-recognize osd.traineddata
 
 # as discussed in ocrd_all#378, we do not want to manage more than one resource location
 # to mount for model persistence; 

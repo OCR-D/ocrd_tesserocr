@@ -36,8 +36,8 @@ help:
 	@echo "    install-tesseract Compile and install Tesseract"
 	@echo "    install-tesseract-training Compile and install training utilities for Tesseract"
 	@echo "    install-tesserocr Compile and install Tesserocr"
-	@echo "    deps              Install Python dependencies for install via pip"
-	@echo "    install           Install this package via pip"
+	@echo "    deps              Install Tesseract/Tesserocr and all Python dependencies"
+	@echo "    install           Install this package with all dependencies and download minimal models"
 	@echo "    deps-test         Install Python deps for test via pip"
 	@echo "    test              Run unit tests"
 	@echo "    coverage          Run unit tests and determine test coverage"
@@ -47,13 +47,16 @@ help:
 	@echo "    repo/tesseract    Checkout Tesseract ./repo/tesseract"
 	@echo "    repo/tesserocr    Checkout Tesserocr to ./repo/tesserocr"
 	@echo "    docker            Build docker image"
-	@echo "    assets-clean      Remove symlinks in test/assets"
+	@echo "    clean             Remove temporary files"
+	@echo "    clean-assets      Remove only test/assets"
+	@echo "    clean-tesseract   Remove only build/tesseract"
 	@echo ""
 	@echo "  Variables"
 	@echo ""
-	@echo "    PYTEST_ARGS     pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. [$(PYTEST_ARGS)]"
-	@echo "    DOCKER_TAG      Docker container tag [$(DOCKER_TAG)]"
-	@echo "    TESSDATA_PREFIX search path for recognition models (overriding Tesseract compile-time default) [$(TESSDATA_PREFIX)]"
+	@echo "    PYTEST_ARGS       pytest args. Set to '-s' to see log output during test execution, '--verbose' to see individual tests. [$(PYTEST_ARGS)]"
+	@echo "    DOCKER_TAG        Docker container tag [$(DOCKER_TAG)]"
+	@echo '    TESSERACT_CONFIG  command line options for Tesseract `configure` [$(TESSERACT_CONFIG)]'
+	@echo "    TESSDATA_PREFIX   search path for recognition models (overriding Tesseract compile-time default) [$(TESSDATA_PREFIX)]"
 
 # Dependencies for deployment in an Ubuntu/Debian Linux
 # (lib*-dev merely for building Tesseract and tesserocr from sources)
@@ -85,13 +88,14 @@ deps-ubuntu:
 		libarchive-dev
 
 # Install Python deps for install via pip
-deps:
-	$(PIP) install -U pip
+deps: install-tesserocr
 	$(PIP) install -r requirements.txt
 
 # Install Python deps for test via pip
 deps-test:
 	$(PIP) install -r requirements_test.txt
+	ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
+	ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata
 
 # Build docker image
 docker: repo/tesseract repo/tesserocr
@@ -100,38 +104,40 @@ docker: repo/tesseract repo/tesserocr
 	--build-arg BUILD_DATE=$$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
 	-t $(DOCKER_TAG) .
 
-install-tesserocr: repo/tesserocr
+install-tesserocr: repo/tesserocr install-tesseract
 	$(PIP) install ./$<
 
 install-tesseract: $(TESSERACT_PREFIX)/bin/tesseract
 
 install-tesseract-training: $(TESSERACT_PREFIX)/bin/lstmtraining
 
-$(TESSERACT_PREFIX)/bin/tesseract: build_tesseract/Makefile
-	$(MAKE) -C build_tesseract install
+$(TESSERACT_PREFIX)/bin/tesseract: build/tesseract/Makefile
+	$(MAKE) -C build/tesseract install
 	if [[ "$(TESSERACT_PREFIX)" = "/usr"* ]]; then ldconfig; fi
 
-$(TESSERACT_PREFIX)/bin/lstmtraining: build_tesseract/Makefile
-	$(MAKE) -C build_tesseract training-install
+$(TESSERACT_PREFIX)/bin/lstmtraining: build/tesseract/Makefile
+	$(MAKE) -C build/tesseract training-install
 
-build_tesseract/Makefile: repo/tesseract/Makefile.in
+TESSERACT_CONFIG ?= --disable-openmp --disable-shared CXXFLAGS="-g -O2 -fPIC -fno-math-errno -Wall -Wextra -Wpedantic"
+build/tesseract/Makefile: repo/tesseract/Makefile.in
 	mkdir -p $(@D)
 	cd $(@D) && $(CURDIR)/repo/tesseract/configure \
 				--prefix=$(TESSERACT_PREFIX) \
-				--disable-openmp \
-				--disable-shared \
-				'CXXFLAGS=-g -O2 -fno-math-errno -Wall -Wextra -Wpedantic -fPIC'
+				$(TESSERACT_CONFIG)
 
 repo/tesseract/Makefile.in: repo/tesseract
 	cd $<; ./autogen.sh
 
-repo/tesserocr repo/tesseract:
+repo/tesserocr repo/tesseract repo/assets:
 	git submodule sync $@
 	git submodule update --init $@
 
 # Install this package
 install: deps
-	$(PIP) install .
+	$(PIP) install $(PIP_OPTIONS) .
+	ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
+	ocrd resmgr download ocrd-tesserocr-recognize osd.traineddata
+	ocrd resmgr download ocrd-tesserocr-recognize equ.traineddata
 
 # Run unit tests
 test: test/assets deps-test
@@ -149,18 +155,16 @@ coverage:
 	coverage html
 
 # Test the command line tools
-test-cli: test/assets
-	$(PIP) install -e .
+test-cli: test/assets deps-test
 	rm -rfv test/workspace
 	cp -rv test/assets/kant_aufklaerung_1784 test/workspace
-	ocrd resmgr download ocrd-tesserocr-recognize eng.traineddata
-	ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
 	cd test/workspace/data && \
 		ocrd-tesserocr-segment-region -l DEBUG -I OCR-D-IMG -O OCR-D-SEG-REGION && \
 		ocrd-tesserocr-segment-line   -l DEBUG -I OCR-D-SEG-REGION -O OCR-D-SEG-LINE && \
 		ocrd-tesserocr-recognize      -l DEBUG -I OCR-D-SEG-LINE -O OCR-D-TESS-OCR -P model deu
 
 .PHONY: test test-cli install deps deps-ubuntu deps-test help
+.PHONY: install-tesseract install-tesserocr install-tesseract-training 
 
 #
 # Assets
@@ -172,21 +176,13 @@ test/assets: repo/assets
 	mkdir -p $@
 	cp -r -t $@ repo/assets/data/*
 
-# Clone OCR-D/assets to ./repo/assets
-# FIXME does not work if already checked out
-# FIXME should be a proper (VCed) submodule
-repo/assets:
-	mkdir -p $(dir $@)
-	git clone https://github.com/OCR-D/assets "$@"
-
 .PHONY: clean
-clean: assets-clean tesseract-clean
+clean: clean-assets clean-tesseract
 
-tesseract-clean:
-	rm -rf $(CURDIR)/build_tesseract
+clean-tesseract:
+	$(RM) -rf $(CURDIR)/build/tesseract
 	cd repo/tesseract; make distclean
 
-.PHONY: assets-clean
-# Remove symlinks in test/assets
-assets-clean:
-	rm -rf test/assets
+.PHONY: clean-assets
+clean-assets:
+	$(RM) -rf test/assets
