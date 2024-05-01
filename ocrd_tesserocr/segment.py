@@ -21,7 +21,8 @@ class TesserocrSegment(TesserocrRecognize):
             assert ParameterValidator(OCRD_TOOL['tools'][BASE_TOOL]).validate(self.parameter).is_valid
             self.logger = getLogger('processor.TesserocrSegment')
 
-TesserocrSegment.process.__doc__ = """Performs region and line segmentation with Tesseract on the workspace.
+    def process(self):
+        """Performs region and line segmentation with Tesseract on the workspace.
         
         Open and deserialize PAGE input files and their respective images,
         and remove any existing Region and ReadingOrder elements.
@@ -58,3 +59,4 @@ TesserocrSegment.process.__doc__ = """Performs region and line segmentation with
         
         Produce a new output file by serialising the resulting hierarchy.
         """
+        super(TesserocrSegment, self).process()
