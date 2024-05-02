@@ -5,6 +5,16 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Fixed:
+
+ * segment*/recognize: delegate `process` instead of overwrite for docstring
+ * segment*/recognize: more robust polygon handling
+
+Changed:
+
+ * more and more concrete tests
+ * :fire: require Shapely v2
+
 ## [0.18.1] - 2024-03-07
 
 Fixed:
