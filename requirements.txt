@@ -1,5 +1,5 @@
 ocrd >= 2.53
 click
 tesserocr >= 2.5.2
-shapely >= 1.7.1
+shapely >= 2.0
 scipy

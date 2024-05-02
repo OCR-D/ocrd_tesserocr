@@ -7,7 +7,8 @@ from PIL import Image, ImageStat
 import numpy as np
 from scipy.sparse.csgraph import minimum_spanning_tree
 from shapely.geometry import Polygon, LineString
-from shapely.ops import unary_union, nearest_points
+from shapely.ops import unary_union, nearest_points, orient
+from shapely import set_precision
 
 from tesserocr import (
     RIL, PSM, PT, OEM,
@@ -1444,15 +1445,17 @@ def join_segments(segments):
 
 def join_polygons(polygons, scale=20):
     """construct concave hull (alpha shape) from input polygons by connecting their pairwise nearest points"""
-    return make_join([Polygon(poly) for poly in polygons], scale=scale).exterior.coords[:-1]
+    return make_join([make_valid(Polygon(poly)) for poly in polygons], scale=scale).exterior.coords[:-1]
 
 def make_join(polygons, scale=20):
     """construct concave hull (alpha shape) from input polygons by connecting their pairwise nearest points"""
-    # ensure input polygons are simply typed
-    polygons = list(itertools.chain.from_iterable([
-        poly.geoms if poly.geom_type in ['MultiPolygon', 'GeometryCollection']
-        else [poly]
-        for poly in polygons]))
+    # ensure input polygons are simply typed and all oriented equally
+    polygons = [orient(poly)
+                for poly in itertools.chain.from_iterable(
+                        [poly.geoms
+                         if poly.geom_type in ['MultiPolygon', 'GeometryCollection']
+                         else [poly]
+                         for poly in polygons])]
     npoly = len(polygons)
     if npoly == 1:
         return polygons[0]
@@ -1461,7 +1464,7 @@ def make_join(polygons, scale=20):
     dists = np.zeros((npoly, npoly), dtype=float)
     for i, j in pairs:
         dist = polygons[i].distance(polygons[j])
-        if dist == 0:
+        if dist < 1e-5:
             dist = 1e-5 # if pair merely touches, we still need to get an edge
         dists[i, j] = dist
         dists[j, i] = dist
@@ -1475,12 +1478,14 @@ def make_join(polygons, scale=20):
         polygons.append(bridgep)
     jointp = unary_union(polygons)
     assert jointp.geom_type == 'Polygon', jointp.wkt
-    if jointp.minimum_clearance < 1.0:
-        # follow-up calculations will necessarily be integer;
-        # so anticipate rounding here and then ensure validity
-        jointp = Polygon(np.round(jointp.exterior.coords))
-        jointp = make_valid(jointp)
-    return jointp
+    # follow-up calculations will necessarily be integer;
+    # so anticipate rounding here and then ensure validity
+    jointp2 = set_precision(jointp, 1.0)
+    if jointp2.geom_type != 'Polygon' or not jointp2.is_valid:
+        jointp2 = Polygon(np.round(jointp.exterior.coords))
+        jointp2 = make_valid(jointp2)
+    assert jointp2.geom_type == 'Polygon', jointp2.wkt
+    return jointp2
 
 def pad_image(image, padding):
     # TODO: input padding can create extra edges if not binarized; at least try to smooth
@@ -1558,11 +1563,19 @@ def make_valid(polygon):
         # simplification may not be possible (at all) due to ordering
         # in that case, try another starting point
         polygon = Polygon(points[-split:]+points[:-split])
-    for tolerance in range(int(polygon.area)):
+    # try by simplification
+    for tolerance in range(int(polygon.area + 1.5)):
         if polygon.is_valid:
             break
         # simplification may require a larger tolerance
         polygon = polygon.simplify(tolerance + 1)
+    # try by enlarging
+    for tolerance in range(1, int(polygon.area + 2.5)):
+        if polygon.is_valid:
+            break
+        # enlargement may require a larger tolerance
+        polygon = polygon.buffer(tolerance)
+    assert polygon.is_valid, polygon.wkt
     return polygon
 
 def iterate_level(it, ril, parent=None):
