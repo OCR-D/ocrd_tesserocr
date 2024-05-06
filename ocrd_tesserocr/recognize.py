@@ -534,7 +534,7 @@ class TesserocrRecognize(Processor):
             coords = CoordsType(points=points)
             # plausibilise candidate
             if polygon2 is None:
-                self.logger.info('Ignoring extant region: %s', points)
+                self.logger.warning('Ignoring extant region: %s', points)
                 continue
             block_type = it.BlockType()
             if block_type in [
@@ -548,11 +548,11 @@ class TesserocrRecognize(Processor):
                     PT.TABLE] and (
                         xywh['w'] < 20 / 300.0*(dpi or 300) or
                         xywh['h'] < 10 / 300.0*(dpi or 300)):
-                self.logger.info('Ignoring too small region: %s', points)
+                self.logger.warning('Ignoring too small region: %s', points)
                 continue
             region_image_bin = it.GetBinaryImage(RIL.BLOCK)
             if not region_image_bin or not region_image_bin.getbbox():
-                self.logger.info('Ignoring binary-empty region: %s', points)
+                self.logger.warning('Ignoring binary-empty region: %s', points)
                 continue
             #
             # keep and annotate new region
@@ -560,8 +560,7 @@ class TesserocrRecognize(Processor):
             #
             # region type switch
             block_type = it.BlockType()
-            self.logger.info("Detected region '%s': %s (%s)",
-                             ID, points, membername(PT, block_type))
+            self.logger.info("Detected region '%s' (%s)", ID, membername(PT, block_type))
             if block_type in [PT.FLOWING_TEXT,
                               PT.HEADING_TEXT,
                               PT.PULLOUT_TEXT,
@@ -671,10 +670,10 @@ class TesserocrRecognize(Processor):
             points = points_from_polygon(polygon)
             coords = CoordsType(points=points)
             if polygon2 is None:
-                self.logger.info('Ignoring extant cell: %s', points)
+                self.logger.warning('Ignoring extant cell: %s', points)
                 continue
             ID = region.id + "_cell%04d" % index
-            self.logger.info("Detected cell '%s': %s", ID, points)
+            self.logger.info("Detected cell '%s'", ID)
             cell = TextRegionType(id=ID, Coords=coords)
             region.add_TextRegion(cell)
             self._add_orientation(it, cell, page_coords)
@@ -720,10 +719,10 @@ class TesserocrRecognize(Processor):
             points = points_from_polygon(polygon)
             coords = CoordsType(points=points)
             if polygon2 is None:
-                self.logger.info('Ignoring extant line: %s', points)
+                self.logger.warning('Ignoring extant line: %s', points)
                 continue
             ID = region.id + "_line%04d" % index
-            self.logger.info("Detected line '%s': %s", ID, points)
+            self.logger.info("Detected line '%s'", ID)
             line = TextLineType(id=ID, Coords=coords)
             region.add_TextLine(line)
             if self.parameter['textequiv_level'] != 'line':
@@ -755,7 +754,7 @@ class TesserocrRecognize(Processor):
                 polygon = polygon2
             points = points_from_polygon(polygon)
             if polygon2 is None:
-                self.logger.info('Ignoring extant word: %s', points)
+                self.logger.warning('Ignoring extant word: %s', points)
                 continue
             ID = line.id + "_word%04d" % index
             self.logger.debug("Detected word '%s': %s", ID, points)
@@ -779,7 +778,7 @@ class TesserocrRecognize(Processor):
                 polygon = polygon2
             points = points_from_polygon(polygon)
             if polygon2 is None:
-                self.logger.info('Ignoring extant glyph: %s', points)
+                self.logger.warning('Ignoring extant glyph: %s', points)
                 continue
             ID = word.id + '_glyph%04d' % index
             #self.logger.debug("Detected glyph '%s': %s", ID, points)
@@ -1142,7 +1141,7 @@ class TesserocrRecognize(Processor):
         # defined as 'how many radians does one have to rotate the block anti-clockwise'
         # i.e. positive amount to be applied counter-clockwise for deskewing:
         deskew_angle *= 180 / math.pi
-        self.logger.debug('orientation/deskewing for %s: %s / %s / %s / %.3f°', region.id,
+        self.logger.info('orientation/deskewing for %s: %s / %s / %s / %.3f°', region.id,
                           membername(Orientation, orientation),
                           membername(WritingDirection, writing_direction),
                           membername(TextlineOrder, textline_order),

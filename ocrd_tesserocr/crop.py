@@ -140,17 +140,17 @@ class TesserocrCrop(TesserocrRecognize):
             bin_bbox = image.getbbox()
             if not bin_bbox:
                 # this does happen!
-                self.logger.info("Ignoring region '%s' because its binarization is empty", ID)
+                self.logger.warning("Ignoring region '%s' because its binarization is empty", ID)
                 continue
             width = bin_bbox[2]-bin_bbox[0]
             if width < 25 / zoom:
                 # we must be conservative here: page numbers are tiny regions, too!
-                self.logger.info("Ignoring region '%s' because its width is too small (%d)", ID, width)
+                self.logger.warning("Ignoring region '%s' because its width is too small (%d)", ID, width)
                 continue
             height = bin_bbox[3]-bin_bbox[1]
             if height < 25 / zoom:
                 # we must be conservative here: page numbers are tiny regions, too!
-                self.logger.debug("Ignoring region '%s' because its height is too small (%d)", ID, height)
+                self.logger.warning("Ignoring region '%s' because its height is too small (%d)", ID, height)
                 continue
             all_left = min(all_left, left)
             all_top = min(all_top, top)
