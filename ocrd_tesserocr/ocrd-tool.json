@@ -210,7 +210,7 @@
       "resource_locations": ["module"],
       "resources": [
         {
-          "url": "https://ub-backup.bib.uni-mannheim.de/~stweil/ocrd-train/data/Fraktur_5000000/tessdata_fast/Fraktur_50000000.334_450937.traineddata",
+          "url": "https://ub-backup.bib.uni-mannheim.de/~stweil/ocrd-train/data/Fraktur_5000000/tessdata_best/Fraktur_50000000.334_450937.traineddata",
           "name": "Fraktur_GT4HistOCR.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model trained on GT4HistOCR",
@@ -231,56 +231,56 @@
           "size": 3421140
         },
         {
-          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/equ.traineddata",
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/equ.traineddata",
           "name": "equ.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract legacy model for mathematical equations",
           "size": 2251950
         },
         {
-          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/osd.traineddata",
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/osd.traineddata",
           "name": "osd.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract legacy model for orientation and script detection",
           "size": 10562727
         },
         {
-          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata",
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/eng.traineddata",
           "name": "eng.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model for contemporary (computer typesetting and offset printing) English",
           "size": 4113088
         },
         {
-          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/deu.traineddata",
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/deu.traineddata",
           "name": "deu.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model for contemporary (computer typesetting and offset printing) German",
           "size": 1525436
         },
         {
-          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/deu_latf.traineddata",
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/deu_latf.traineddata",
           "name": "deu_latf.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model for historical (Fraktur typesetting and letterpress printing) German",
           "size": 6423052
         },
         {
-          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/deu_latf.traineddata",
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/deu_latf.traineddata",
           "name": "frk.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model for historical German (deprecated, replaced by deu_latf)",
           "size": 6423052
         },
         {
-          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/script/Fraktur.traineddata",
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Fraktur.traineddata",
           "name": "Fraktur.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model for historical Latin script with Fraktur typesetting",
           "size": 10915632
         },
         {
-          "url": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/script/Latin.traineddata",
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Latin.traineddata",
           "name": "Latin.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model for contemporary and historical Latin script",
