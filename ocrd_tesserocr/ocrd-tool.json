@@ -227,7 +227,7 @@
         "url": "https://ub-backup.bib.uni-mannheim.de/~stweil/tesstrain/frak2021/tessdata_best/frak2021-0.905.traineddata",
           "name": "frak2021.traineddata",
           "parameter_usage": "without-extension",
-          "description": "Tesseract LSTM model based on Austrian National Library newspaper data",
+          "description": "Tesseract LSTM model based on a mix of mostly German and Latin ground truth data",
           "size": 3421140
         },
         {
