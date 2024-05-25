@@ -84,7 +84,7 @@ deps-ubuntu:
 		libicu-dev \
 		autotools-dev \
 		automake \
-		libcurl4-nss-dev \
+		libcurl4-openssl-dev \
 		libarchive-dev
 
 # Install Python deps for install via pip
