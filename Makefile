@@ -174,7 +174,7 @@ test-cli: test/assets deps-test
 # FIXME remove/update if already present
 test/assets: repo/assets
 	mkdir -p $@
-	cp -r -t $@ repo/assets/data/*
+	cp -r repo/assets/data/* $@
 
 .PHONY: clean
 clean: clean-assets clean-tesseract
