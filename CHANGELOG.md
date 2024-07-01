@@ -5,6 +5,12 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.19.1] - 2024-07-01
+
+Fixed:
+
+  * Correct version in `ocrd-tool.json`
+
 ## [0.19.0] - 2024-07-01
 
 Fixed:
@@ -423,6 +429,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.19.1]: ../../compare/v0.19.1...v0.19.0
 [0.19.0]: ../../compare/v0.19.0...v0.18.1
 [0.18.1]: ../../compare/v0.18.1...v0.18.0
 [0.18.0]: ../../compare/v0.18.0...v0.17.0
