@@ -5,6 +5,8 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.19.0] - 2024-07-01
+
 Fixed:
 
  * segment*/recognize: delegate `process` instead of overwrite for docstring
@@ -14,6 +16,7 @@ Changed:
 
  * more and more concrete tests
  * :fire: require Shapely v2
+ * Update tesseract to 5.4.1, #214
 
 ## [0.18.1] - 2024-03-07
 
@@ -420,6 +423,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.19.0]: ../../compare/v0.19.0...v0.18.1
 [0.18.1]: ../../compare/v0.18.1...v0.18.0
 [0.18.0]: ../../compare/v0.18.0...v0.17.0
 [0.17.0]: ../../compare/v0.17.0...v0.16.0
