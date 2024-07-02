@@ -67,7 +67,7 @@ workflows:
               only: master
       - deploy-pypi:
           requires:
-	    - deploy-docker
+            - deploy-docker
           filters:
             branches:
               only: master
