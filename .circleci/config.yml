@@ -60,6 +60,9 @@ workflows:
             parameters:
               python-version: ['3.7', '3.8', '3.9', '3.10']
   deploy:
+    when:
+      condition:
+        equal: [ OCR-D/ocrd_tesserocr, << pipeline.trigger_parameters.github_app.repo_name >>]
     jobs:
       - deploy-docker:
           filters:
