@@ -62,7 +62,7 @@ workflows:
   deploy:
     when:
       condition:
-        equal: [ OCR-D/ocrd_tesserocr, << pipeline.trigger_parameters.github_app.repo_name >>]
+        equal: [ https://github.com/OCR-D/ocrd_tesserocr, << pipeline.project.git_url >>]
     jobs:
       - deploy-docker:
           filters:
