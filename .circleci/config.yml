@@ -42,6 +42,15 @@ jobs:
           command: echo "$DOCKERHUB_PASS" | docker login --username "$DOCKERHUB_USER" --password-stdin
       - run: docker push $DOCKER_TAG
 
+  deploy-pypi:
+    docker:
+      - image: ocrd/tesserocr
+    steps:
+      - checkout
+      - run: pip install twine build
+      - run: python -m build .
+      - run: twine upload dist/*
+
 
 workflows:
   build:
@@ -53,6 +62,12 @@ workflows:
   deploy:
     jobs:
       - deploy-docker:
+          filters:
+            branches:
+              only: master
+      - deploy-pypi:
+          requires:
+	    - deploy-docker
           filters:
             branches:
               only: master
