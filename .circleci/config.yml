@@ -21,7 +21,10 @@ jobs:
       - run: sudo make deps-ubuntu
       - run: make install
       - run: make deps-test
-      - run: make test
+      - run: mkdir test-results
+      - run: make test PYTEST_ARGS=--junitxml=test-results/test.xml
+      - store_test_results:
+          path: test-results
       - run: make test-cli
       - run: make coverage
       - codecov/upload
