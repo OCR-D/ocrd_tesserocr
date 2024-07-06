@@ -24,17 +24,12 @@ from ocrd_models.ocrd_page import (
     to_xml
 )
 
-from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize, polygon_for_parent
 
-TOOL = 'ocrd-tesserocr-crop'
-
 class TesserocrCrop(TesserocrRecognize):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
-        super().__init__(*args, **kwargs)
-        if hasattr(self, 'parameter'):
-            self.logger = getLogger('processor.TesserocrCrop')
+    @property
+    def executable(self):
+        return 'ocrd-tesserocr-crop'
 
     def process(self):
         """Performs page cropping with Tesseract on the workspace.

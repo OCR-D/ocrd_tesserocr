@@ -24,17 +24,12 @@ from ocrd_models.ocrd_page import (
     to_xml
 )
 
-from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
 
-TOOL = 'ocrd-tesserocr-deskew'
-
 class TesserocrDeskew(TesserocrRecognize):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
-        super().__init__(*args, **kwargs)
-        if hasattr(self, 'parameter'):
-            self.logger = getLogger('processor.TesserocrDeskew')
+    @property
+    def executable(self):
+        return 'ocrd-tesserocr-deskew'
 
     def process(self):
         """Performs deskewing of the page / region with Tesseract on the workspace.

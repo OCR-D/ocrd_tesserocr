@@ -19,17 +19,12 @@ from ocrd_models.ocrd_page import (
     to_xml
 )
 
-from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
 
-TOOL = 'ocrd-tesserocr-binarize'
-
 class TesserocrBinarize(TesserocrRecognize):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
-        super().__init__(*args, **kwargs)
-        if hasattr(self, 'parameter'):
-            self.logger = getLogger('processor.TesserocrBinarize')
+    @property
+    def executable(self):
+        return 'ocrd-tesserocr-binarize'
 
     def process(self):
         """Performs binarization of the region / line with Tesseract on the workspace.

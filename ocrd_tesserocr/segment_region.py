@@ -3,15 +3,14 @@ from __future__ import absolute_import
 from ocrd_utils import getLogger
 from ocrd_validators import ParameterValidator
 
-from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
 
-TOOL = 'ocrd-tesserocr-segment-region'
-BASE_TOOL = 'ocrd-tesserocr-recognize'
-
 class TesserocrSegmentRegion(TesserocrRecognize):
+    @property
+    def executable(self):
+        return 'ocrd-tesserocr-segment-region'
+
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
         super().__init__(*args, **kwargs)
         if hasattr(self, 'parameter'):
             self.parameter['overwrite_segments'] = self.parameter['overwrite_regions']
@@ -21,8 +20,7 @@ class TesserocrSegmentRegion(TesserocrRecognize):
             self.parameter['block_polygons'] = self.parameter['crop_polygons']
             del self.parameter['crop_polygons']
             # add default params
-            assert ParameterValidator(OCRD_TOOL['tools'][BASE_TOOL]).validate(self.parameter).is_valid
-            self.logger = getLogger('processor.TesserocrSegmentRegion')
+            assert ParameterValidator(self.metadata['tools']['ocrd-tesserocr-recognize']).validate(self.parameter).is_valid
 
     def process(self):
         """Performs region segmentation with Tesseract on the workspace.

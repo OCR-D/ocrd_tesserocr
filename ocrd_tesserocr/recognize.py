@@ -30,6 +30,7 @@ from ocrd_utils import (
     points_from_polygon,
     xywh_from_polygon,
     MIMETYPE_PAGE,
+    VERSION as OCRD_VERSION,
     membername
 )
 from ocrd_models.ocrd_page import (
@@ -61,10 +62,6 @@ from ocrd_models.ocrd_page_generateds import (
 )
 from ocrd_modelfactory import page_from_file
 from ocrd import Processor
-
-from .config import OCRD_TOOL
-
-TOOL = 'ocrd-tesserocr-recognize'
 
 CHOICE_THRESHOLD_NUM = 10 # maximum number of choices to query and annotate
 CHOICE_THRESHOLD_CONF = 1 # maximum score drop from best choice to query and annotate
@@ -125,16 +122,23 @@ class TessBaseAPI(PyTessBaseAPI):
         return None
 
 class TesserocrRecognize(Processor):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
-        kwargs.setdefault('version', OCRD_TOOL['version'] + ' (' + tesseract_version().split('\n')[0] + ')')
-        super().__init__(*args, **kwargs)
-        if hasattr(self, 'parameter'):
-            self.logger = getLogger('processor.TesserocrRecognize')
+    @property
+    def executable(self):
+        return 'ocrd-tesserocr-recognize'
+
+    def show_version(self):
+        tess_version = tesseract_version().split('\n')[0]
+        print(f"Version {self.version}, {tess_version}, ocrd/core {OCRD_VERSION}")
 
     @property
     def moduledir(self):
         return get_languages()[0]
+
+    def setup(self):
+        self.logger = getLogger('processor.' + self.__class__.__name__)
+        self.logger.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
+        assert_file_grp_cardinality(self.input_file_grp, 1)
+        assert_file_grp_cardinality(self.output_file_grp, 1)
 
     def process(self):
         """Perform layout segmentation and/or text recognition with Tesseract.
@@ -262,10 +266,6 @@ class TesserocrRecognize(Processor):
         model (among the models given in ``model``), enable ``auto_model``. To constrain
         models by type (called OCR engine mode), use ``oem``.
         """
-        self.logger.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
-
-        assert_file_grp_cardinality(self.input_file_grp, 1)
-        assert_file_grp_cardinality(self.output_file_grp, 1)
 
         inlevel = self.parameter['segmentation_level']
         outlevel = self.parameter['textequiv_level']

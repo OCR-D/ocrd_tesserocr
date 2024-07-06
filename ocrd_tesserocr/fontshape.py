@@ -19,17 +19,12 @@ from ocrd_models.ocrd_page import (
     to_xml)
 from ocrd_modelfactory import page_from_file
 
-from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
 
-TOOL = 'ocrd-tesserocr-fontshape'
-
 class TesserocrFontShape(TesserocrRecognize):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
-        super().__init__(*args, **kwargs)
-        if hasattr(self, 'parameter'):
-            self.logger = getLogger('processor.TesserocrFontShape')
+    @property
+    def executable(self):
+        return 'ocrd-tesserocr-fontshape'
 
     def process(self):
         """Detect font shapes via rule-based OCR with Tesseract on the workspace.
