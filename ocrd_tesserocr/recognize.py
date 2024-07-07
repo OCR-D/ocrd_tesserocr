@@ -1,14 +1,8 @@
 from __future__ import absolute_import
+
 from os.path import join
-from pathlib import Path
 import math
-import itertools
-from PIL import Image, ImageStat
 import numpy as np
-from scipy.sparse.csgraph import minimum_spanning_tree
-from shapely.geometry import Polygon, LineString
-from shapely.ops import unary_union, nearest_points, orient
-from shapely import set_precision
 
 from tesserocr import (
     RIL, PSM, PT, OEM,
@@ -21,15 +15,12 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger,
-    make_file_id,
     assert_file_grp_cardinality,
     shift_coordinates,
     coordinates_for_segment,
     polygon_from_x0y0x1y1,
-    polygon_from_points,
     points_from_polygon,
     xywh_from_polygon,
-    MIMETYPE_PAGE,
     VERSION as OCRD_VERSION,
     membername
 )
@@ -54,21 +45,19 @@ from ocrd_models.ocrd_page import (
     GlyphType,
     TextEquivType,
     AlternativeImageType,
-    to_xml)
-from ocrd_models.ocrd_page_generateds import (
-    ReadingDirectionSimpleType,
-    TextLineOrderSimpleType,
-    TextTypeSimpleType
 )
-from ocrd_modelfactory import page_from_file
+from ocrd_models.ocrd_page_generateds import TextTypeSimpleType
 from ocrd import Processor
+
+from .common import *
+
 
 CHOICE_THRESHOLD_NUM = 10 # maximum number of choices to query and annotate
 CHOICE_THRESHOLD_CONF = 1 # maximum score drop from best choice to query and annotate
 # (ChoiceIterator usually rounds to 0.0 for non-best, so this better be maximum)
 
-# monkey-patch the tesserocr base class so have at least some state
 class TessBaseAPI(PyTessBaseAPI):
+    """wraps the tesserocr base class so have some state (for parameter/model switching)"""
     parameters = {}
     psm = PSM.AUTO
     image = None
@@ -139,11 +128,163 @@ class TesserocrRecognize(Processor):
         self.logger.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
         assert_file_grp_cardinality(self.input_file_grp, 1)
         assert_file_grp_cardinality(self.output_file_grp, 1)
+        self._init()
 
-    def process(self):
+    def _init(self):
+        model = "eng"
+        if 'model' in self.parameter:
+            model = self.parameter['model']
+            for sub_model in model.split('+'):
+                if sub_model.endswith('.traineddata'):
+                    self.logger.warning("Model '%s' has a  .traineddata extension, removing. Please use model names without .traineddata extension" % sub_model)
+                    sub_model = sub_model.replace('.traineddata', '')
+                if sub_model not in get_languages()[1]:
+                    raise Exception("configured model " + sub_model + " is not installed")
+            self.logger.info("Using model '%s' in %s for recognition at the %s level",
+                             model, get_languages()[0], self.parameter['textequiv_level'])
+        self.tessapi = TessBaseAPI(init=False)
+        # Set init-time parameters
+        # self.SetVariable("debug_file", "") # show debug output (default: /dev/null)
+        if self.parameter['textequiv_level'] == 'glyph':
+            # populate GetChoiceIterator() with LSTM models, too:
+            self.tessapi.SetVariable("lstm_choice_mode", "2") # aggregate symbols
+            self.tessapi.SetVariable("lstm_choice_iterations", "15") # squeeze out more best paths
+        self.tessapi.SetVariable("pageseg_apply_music_mask", "1" if self.parameter['find_staves'] else "0")
+        # TODO: maybe warn/raise when illegal combinations or characters not in the model unicharset?
+        if self.parameter['char_whitelist']:
+            self.tessapi.SetVariable("tessedit_char_whitelist", self.parameter['char_whitelist'])
+        if self.parameter['char_blacklist']:
+            self.tessapi.SetVariable("tessedit_char_blacklist", self.parameter['char_blacklist'])
+        if self.parameter['char_unblacklist']:
+            self.tessapi.SetVariable("tessedit_char_unblacklist", self.parameter['char_unblacklist'])
+        # todo: determine relevancy of these variables:
+        # tessedit_preserve_min_wd_len 2
+        # tessedit_prefer_joined_punct 0
+        # tessedit_write_rep_codes 0
+        # tessedit_parallelize 0
+        # tessedit_zero_rejection 0
+        # tessedit_zero_kelvin_rejection 0
+        # tessedit_reject_mode 0
+        # tessedit_use_reject_spaces 1
+        # tessedit_fix_fuzzy_spaces 1
+        # tessedit_char_blacklist
+        # tessedit_char_whitelist
+        # chs_leading_punct ('`"
+        # chs_trailing_punct1 ).,;:?!
+        # chs_trailing_punct2 )'`"
+        # numeric_punctuation .,
+        # unrecognised_char |
+        # ok_repeated_ch_non_alphanum_wds -?*=
+        # conflict_set_I_l_1 Il1[]
+        # preserve_interword_spaces 0
+        # tessedit_enable_dict_correction 0
+        # tessedit_enable_bigram_correction 1
+        # stopper_smallword_size 2
+        # wordrec_max_join_chunks 4
+        # suspect_space_level 100
+        # suspect_short_words 2
+        # language_model_ngram_on 0
+        # language_model_ngram_order 8
+        # language_model_min_compound_length 3
+        # language_model_penalty_non_freq_dict_word 0.1
+        # language_model_penalty_non_dict_word 0.15
+        # language_model_penalty_punc 0.2
+        # language_model_penalty_case 0.1
+        # language_model_penalty_script 0.5
+        # language_model_penalty_chartype 0.3
+        # language_model_penalty_spacing 0.05
+        # textord_max_noise_size 7
+        # enable_noise_removal 1
+        # classify_bln_numeric_mode 0
+        # lstm_use_matrix 1
+        # user_words_file
+        # user_patterns_file
+        for variable, value in self.parameter['tesseract_parameters'].items():
+            self.tessapi.SetVariable(variable, value)
+        # Initialize Tesseract (loading model)
+        self.tessapi.InitFull(lang=model, oem=getattr(OEM, self.parameter['oem']))
+
+    def _reinit(self, segment, mapping):
+        """Reset Tesseract API to initial state, and apply API-level settings for the given segment.
+
+        If ``xpath_parameters`` is used, try each XPath expression against ``segment``,
+        and in case of a match, apply given parameters, respectively.
+
+        If ``xpath_model`` is used, try each XPath expression against ``segment``,
+        and in case of a match, load the given language/model, respectively.
+
+        If ``auto_model`` is used, and no ``xpath_model`` was applied yet,
+        try each given language/model individually on ``segment``, compare
+        their confidences, and load the best-scoring language/model.
+
+        Before returning, store all previous settings (to catch by the next call).
+        """
+        # Tesseract API is stateful but does not allow copy constructors
+        # for segment-by-segment configuration we therefore need to
+        # re-initialize the API with the currently loaded settings,
+        # and add some custom choices
+        node = mapping.get(id(segment), None)
+        tag = segment.__class__.__name__[:-4]
+        if hasattr(segment, 'id'):
+            at_ident = 'id'
+        else:
+            at_ident = 'imageFilename'
+        ident = getattr(segment, at_ident)
+        with self.tessapi:
+            # apply temporary changes
+            if self.parameter['xpath_parameters']:
+                if node is not None and node.attrib.get(at_ident, None) == ident:
+                    ns = {'re': 'http://exslt.org/regular-expressions',
+                          'pc': node.nsmap[node.prefix],
+                          node.prefix: node.nsmap[node.prefix]}
+                    for xpath, params in self.parameter['xpath_parameters'].items():
+                        if node.xpath(xpath, namespaces=ns):
+                            self.logger.info("Found '%s' in '%s', setting '%s'",
+                                             xpath, ident, params)
+                            for name, val in params.items():
+                                self.tessapi.SetVariable(name, val)
+                else:
+                    self.logger.error("Cannot find segment '%s' in etree mapping, "
+                                      "ignoring xpath_parameters", ident)
+            if self.parameter['xpath_model']:
+                if node is not None and node.attrib.get(at_ident, None) == ident:
+                    ns = {'re': 'http://exslt.org/regular-expressions',
+                          'pc': node.nsmap[node.prefix],
+                          node.prefix: node.nsmap[node.prefix]}
+                    models = []
+                    for xpath, model in self.parameter['xpath_model'].items():
+                        if node.xpath(xpath, namespaces=ns):
+                            self.logger.info("Found '%s' in '%s', reloading with '%s'",
+                                             xpath, ident, model)
+                            models.append(model)
+                    if models:
+                        model = '+'.join(models)
+                        self.logger.debug("Reloading model '%s' for %s '%s'", model, tag, ident)
+                        self.tessapi.Reset(lang=model)
+                        return
+                else:
+                    self.logger.error("Cannot find segment '%s' in etree mapping, "
+                                      "ignoring xpath_model", ident)
+            if self.parameter['auto_model']:
+                models = self.parameter['model'].split('+')
+                if len(models) > 1:
+                    confs = list()
+                    for model in models:
+                        self.tessapi.Reset(lang=model)
+                        self.tessapi.Recognize()
+                        confs.append(self.tessapi.MeanTextConf())
+                    model = models[np.argmax(confs)]
+                    self.logger.debug("Reloading best model '%s' for %s '%s'", model, tag, ident)
+                    self.tessapi.Reset(lang=model)
+                    return
+            if self.parameter['xpath_model'] or self.parameter['auto_model']:
+                # default: undo all settings from previous calls (reset to init-state)
+                self.tessapi.Reset()
+
+    def process_page_pcgts(self, pcgts, output_file_id=None, page_id=None):
         """Perform layout segmentation and/or text recognition with Tesseract.
         
-        Open and deserialise each PAGE input file and its respective images,
+        Open and deserialise PAGE input file and its respective images,
         then iterate over the element hierarchy down to the requested
         ``textequiv_level`` if it exists and if ``segmentation_level``
         is lower (i.e. more granular) or ``none``.
@@ -270,214 +411,125 @@ class TesserocrRecognize(Processor):
         inlevel = self.parameter['segmentation_level']
         outlevel = self.parameter['textequiv_level']
         segment_only = outlevel == 'none' or not self.parameter.get('model', '')
-        
-        model = "eng"
-        if 'model' in self.parameter:
-            model = self.parameter['model']
-            for sub_model in model.split('+'):
-                if sub_model.endswith('.traineddata'):
-                    self.logger.warning("Model '%s' has a  .traineddata extension, removing. Please use model names without .traineddata extension" % sub_model)
-                    sub_model = sub_model.replace('.traineddata', '')
-                if sub_model not in get_languages()[1]:
-                    raise Exception("configured model " + sub_model + " is not installed")
-            self.logger.info("Using model '%s' in %s for recognition at the %s level",
-                             model, get_languages()[0], outlevel)
-        
-        with TessBaseAPI(init=False) as tessapi:
-            # Set init-time parameters
-            # self.SetVariable("debug_file", "") # show debug output (default: /dev/null)
-            if outlevel == 'glyph':
-                # populate GetChoiceIterator() with LSTM models, too:
-                tessapi.SetVariable("lstm_choice_mode", "2") # aggregate symbols
-                tessapi.SetVariable("lstm_choice_iterations", "15") # squeeze out more best paths
-            tessapi.SetVariable("pageseg_apply_music_mask", "1" if self.parameter['find_staves'] else "0")
-            # TODO: maybe warn/raise when illegal combinations or characters not in the model unicharset?
-            if self.parameter['char_whitelist']:
-                tessapi.SetVariable("tessedit_char_whitelist", self.parameter['char_whitelist'])
-            if self.parameter['char_blacklist']:
-                tessapi.SetVariable("tessedit_char_blacklist", self.parameter['char_blacklist'])
-            if self.parameter['char_unblacklist']:
-                tessapi.SetVariable("tessedit_char_unblacklist", self.parameter['char_unblacklist'])
-            # todo: determine relevancy of these variables:
-            # tessedit_preserve_min_wd_len 2
-            # tessedit_prefer_joined_punct 0
-            # tessedit_write_rep_codes 0
-            # tessedit_parallelize 0
-            # tessedit_zero_rejection 0
-            # tessedit_zero_kelvin_rejection 0
-            # tessedit_reject_mode 0
-            # tessedit_use_reject_spaces 1
-            # tessedit_fix_fuzzy_spaces 1
-            # tessedit_char_blacklist
-            # tessedit_char_whitelist
-            # chs_leading_punct ('`"
-            # chs_trailing_punct1 ).,;:?!
-            # chs_trailing_punct2 )'`"
-            # numeric_punctuation .,
-            # unrecognised_char |
-            # ok_repeated_ch_non_alphanum_wds -?*=
-            # conflict_set_I_l_1 Il1[]
-            # preserve_interword_spaces 0
-            # tessedit_enable_dict_correction 0
-            # tessedit_enable_bigram_correction 1
-            # stopper_smallword_size 2
-            # wordrec_max_join_chunks 4
-            # suspect_space_level 100
-            # suspect_short_words 2
-            # language_model_ngram_on 0
-            # language_model_ngram_order 8
-            # language_model_min_compound_length 3
-            # language_model_penalty_non_freq_dict_word 0.1
-            # language_model_penalty_non_dict_word 0.15
-            # language_model_penalty_punc 0.2
-            # language_model_penalty_case 0.1
-            # language_model_penalty_script 0.5
-            # language_model_penalty_chartype 0.3
-            # language_model_penalty_spacing 0.05
-            # textord_max_noise_size 7
-            # enable_noise_removal 1
-            # classify_bln_numeric_mode 0
-            # lstm_use_matrix 1
-            # user_words_file
-            # user_patterns_file
-            tesseract_params = self.parameter['tesseract_parameters']
-            for variable in tesseract_params:
-                tessapi.SetVariable(variable, tesseract_params[variable])
-            # Initialize Tesseract (loading model)
-            tessapi.InitFull(lang=model,
-                             oem=getattr(OEM, self.parameter['oem']))
-            # Iterate input files
-            for (n, input_file) in enumerate(self.input_files):
-                file_id = make_file_id(input_file, self.output_file_grp)
-                page_id = input_file.pageId or input_file.ID
-                self.logger.info("INPUT FILE %i / %s", n, page_id)
-                pcgts, _, pcgts_mapping, _ = page_from_file(self.workspace.download_file(input_file),
-                                                            with_tree=True)
-                pcgts.set_pcGtsId(file_id)
-                self.add_metadata(pcgts)
-                page = pcgts.get_Page()
-                
-                page_image, page_coords, page_image_info = self.workspace.image_from_page(
-                    page, page_id)
-                if self.parameter['dpi'] > 0:
-                    dpi = self.parameter['dpi']
-                    self.logger.info("Page '%s' images will use %d DPI from parameter override",
-                                     page_id, dpi)
-                elif page_image_info.resolution != 1:
-                    dpi = page_image_info.resolution
-                    if page_image_info.resolutionUnit == 'cm':
-                        dpi = round(dpi * 2.54)
-                    self.logger.info("Page '%s' images will use %d DPI from image meta-data",
-                                     page_id, dpi)
-                else:
-                    dpi = 0
-                    self.logger.info("Page '%s' images will use DPI estimated from segmentation",
-                                     page_id)
-                tessapi.SetVariable('user_defined_dpi', str(dpi))
-                
-                self.logger.info("Processing page '%s'", page_id)
-                # FIXME: We should somehow _mask_ existing regions in order to annotate incrementally (not redundantly).
-                #        Currently segmentation_level=region also means removing regions,
-                #        but we could have an independent setting for that, and attempt
-                #        to detect regions only where nothing exists yet (by clipping to
-                #        background before, or by removing clashing predictions after
-                #        detection).
-                regions = page.get_AllRegions(classes=['Text'])
-                if inlevel == 'region' and (
-                        not regions or self.parameter['overwrite_segments']):
-                    for regiontype in [
-                            'AdvertRegion',
-                            'ChartRegion',
-                            'ChemRegion',
-                            'GraphicRegion',
-                            'ImageRegion',
-                            'LineDrawingRegion',
-                            'MathsRegion',
-                            'MusicRegion',
-                            'NoiseRegion',
-                            'SeparatorRegion',
-                            'TableRegion',
-                            'TextRegion',
-                            'UnknownRegion']:
-                        if getattr(page, 'get_' + regiontype)():
-                            self.logger.info('Removing existing %ss on page %s', regiontype, page_id)
-                        getattr(page, 'set_' + regiontype)([])
-                    page.set_ReadingOrder(None)
-                    # prepare Tesseract
-                    if self.parameter['find_tables']:
-                        if outlevel == 'region' and self.parameter.get('model', ''):
-                            raise Exception("When segmentation_level is region and find_tables is enabled, textequiv_level must be at least cell, because text results cannot be annotated on tables directly.")
-                        tessapi.SetVariable("textord_tabfind_find_tables", "1") # (default)
-                        # this should yield additional blocks within the table blocks
-                        # from the page iterator, but does not in fact (yet?):
-                        # (and it can run into assertion errors when the table structure
-                        #  does not meet certain homogeneity expectations)
-                        #tessapi.SetVariable("textord_tablefind_recognize_tables", "1")
-                    else:
-                        # disable table detection here, so tables will be
-                        # analysed as independent text/line blocks:
-                        tessapi.SetVariable("textord_tabfind_find_tables", "0")
-                    if not segment_only:
-                        self._reinit(tessapi, page, pcgts_mapping)
-                    tessapi.SetImage(page_image) # is already cropped to Border
-                    tessapi.SetPageSegMode(PSM.SPARSE_TEXT
-                                           if self.parameter['sparse_text']
-                                           else PSM.AUTO)
-                    if segment_only:
-                        self.logger.debug("Detecting regions in page '%s'", page_id)
-                        tessapi.AnalyseLayout()
-                    else:
-                        self.logger.debug("Recognizing text in page '%s'", page_id)
-                        tessapi.Recognize()
-                    page_image_bin = tessapi.GetThresholdedImage()
-                    file_path = self.workspace.save_image_file(
-                        page_image_bin, file_id + '.IMG-BIN',
-                        page_id=input_file.pageId,
-                        file_grp=self.output_file_grp)
-                    # update PAGE (reference the image file):
-                    page.add_AlternativeImage(AlternativeImageType(
-                        filename=file_path, comments=page_coords['features'] + ',binarized,clipped'))
-                    self._process_regions_in_page(tessapi.GetIterator(), page, page_coords, pcgts_mapping, dpi)
-                elif inlevel == 'cell':
-                    # Tables are obligatorily recursive regions;
-                    # they might have existing text regions (cells),
-                    # which will be processed in the next branch
-                    # (because the iterator is recursive to depth),
-                    # or be empty. This is independent of whether
-                    # or not they should be segmented into cells.
-                    if outlevel == 'region':
-                        raise Exception("When segmentation_level is cell, textequiv_level must be at least cell too, because text results cannot be annotated on tables directly.")
-                    # disable table detection here, so tables will be
-                    # analysed as independent text/line blocks:
-                    tessapi.SetVariable("textord_tabfind_find_tables", "0")
-                    tables = page.get_AllRegions(classes=['Table'])
-                    if not tables:
-                        self.logger.warning("Page '%s' contains no table regions (but segmentation is off)",
-                                            page_id)
-                    else:
-                        self._process_existing_tables(tessapi, tables, page, page_image, page_coords, pcgts_mapping)
-                elif regions:
-                    self._process_existing_regions(tessapi, regions, page_image, page_coords, pcgts_mapping)
-                else:
-                    self.logger.warning("Page '%s' contains no text regions (but segmentation is off)",
-                                        page_id)
 
-                # post-processing
-                # bottom-up text concatenation
-                if outlevel != 'none' and self.parameter.get('model', ''):
-                    page_update_higher_textequiv_levels(outlevel, pcgts, self.parameter['overwrite_text'])
-                # bottom-up polygonal outline projection
-                # if inlevel != 'none' and self.parameter['shrink_polygons']:
-                #     page_shrink_higher_coordinate_levels(inlevel, outlevel, pcgts)
+        pcgts_mapping = dict()
+        _ = pcgts.to_etree(mapping_=pcgts_mapping)
+        page = pcgts.get_Page()
+        page_image, page_coords, page_image_info = self.workspace.image_from_page(
+            page, page_id)
+        if self.parameter['dpi'] > 0:
+            dpi = self.parameter['dpi']
+            self.logger.info("Page '%s' images will use %d DPI from parameter override",
+                             page_id, dpi)
+        elif page_image_info.resolution != 1:
+            dpi = page_image_info.resolution
+            if page_image_info.resolutionUnit == 'cm':
+                dpi = round(dpi * 2.54)
+            self.logger.info("Page '%s' images will use %d DPI from image meta-data",
+                             page_id, dpi)
+        else:
+            dpi = 0
+            self.logger.info("Page '%s' images will use DPI estimated from segmentation",
+                             page_id)
+        self.tessapi.SetVariable('user_defined_dpi', str(dpi))
 
-                self.workspace.add_file(
-                    file_id=file_id,
-                    file_grp=self.output_file_grp,
-                    page_id=input_file.pageId,
-                    mimetype=MIMETYPE_PAGE,
-                    local_filename=join(self.output_file_grp,
-                                        file_id + '.xml'),
-                    content=to_xml(pcgts))
+        self.logger.info("Processing page '%s'", page_id)
+        result = [pcgts]
+        # FIXME: We should somehow _mask_ existing regions in order to annotate incrementally (not redundantly).
+        #        Currently segmentation_level=region also means removing regions,
+        #        but we could have an independent setting for that, and attempt
+        #        to detect regions only where nothing exists yet (by clipping to
+        #        background before, or by removing clashing predictions after
+        #        detection).
+        regions = page.get_AllRegions(classes=['Text'])
+        if inlevel == 'region' and (
+                not regions or self.parameter['overwrite_segments']):
+            for regiontype in [
+                    'AdvertRegion',
+                    'ChartRegion',
+                    'ChemRegion',
+                    'GraphicRegion',
+                    'ImageRegion',
+                    'LineDrawingRegion',
+                    'MathsRegion',
+                    'MusicRegion',
+                    'NoiseRegion',
+                    'SeparatorRegion',
+                    'TableRegion',
+                    'TextRegion',
+                    'UnknownRegion']:
+                if getattr(page, 'get_' + regiontype)():
+                    self.logger.info('Removing existing %ss on page %s', regiontype, page_id)
+                getattr(page, 'set_' + regiontype)([])
+            page.set_ReadingOrder(None)
+            # prepare Tesseract
+            if self.parameter['find_tables']:
+                if outlevel == 'region' and self.parameter.get('model', ''):
+                    raise Exception("When segmentation_level is region and find_tables is enabled, textequiv_level must be at least cell, because text results cannot be annotated on tables directly.")
+                self.tessapi.SetVariable("textord_tabfind_find_tables", "1") # (default)
+                # this should yield additional blocks within the table blocks
+                # from the page iterator, but does not in fact (yet?):
+                # (and it can run into assertion errors when the table structure
+                #  does not meet certain homogeneity expectations)
+                #self.tessapi.SetVariable("textord_tablefind_recognize_tables", "1")
+            else:
+                # disable table detection here, so tables will be
+                # analysed as independent text/line blocks:
+                self.tessapi.SetVariable("textord_tabfind_find_tables", "0")
+            if not segment_only:
+                self._reinit(page, pcgts_mapping)
+            self.tessapi.SetImage(page_image) # is already cropped to Border
+            self.tessapi.SetPageSegMode(PSM.SPARSE_TEXT
+                                   if self.parameter['sparse_text']
+                                   else PSM.AUTO)
+            if segment_only:
+                self.logger.debug("Detecting regions in page '%s'", page_id)
+                self.tessapi.AnalyseLayout()
+            else:
+                self.logger.debug("Recognizing text in page '%s'", page_id)
+                self.tessapi.Recognize()
+            page_image_bin = self.tessapi.GetThresholdedImage()
+            page_image_bin_id = output_file_id + '.IMG-BIN'
+            page_image_bin_path = join(self.output_file_grp, page_image_bin_id + '.png')
+            # update METS (reference the image file) and store image file:
+            result.append((page_image_bin, page_image_bin_id, page_image_bin_path))
+            # update PAGE (reference the image file):
+            page.add_AlternativeImage(AlternativeImageType(
+                filename=page_image_bin_path, comments=page_coords['features'] + ',binarized,clipped'))
+            self._process_regions_in_page(self.tessapi.GetIterator(), page, page_coords, pcgts_mapping, dpi)
+        elif inlevel == 'cell':
+            # Tables are obligatorily recursive regions;
+            # they might have existing text regions (cells),
+            # which will be processed in the next branch
+            # (because the iterator is recursive to depth),
+            # or be empty. This is independent of whether
+            # or not they should be segmented into cells.
+            if outlevel == 'region':
+                raise Exception("When segmentation_level is cell, textequiv_level must be at least cell too, because text results cannot be annotated on tables directly.")
+            # disable table detection here, so tables will be
+            # analysed as independent text/line blocks:
+            self.tessapi.SetVariable("textord_tabfind_find_tables", "0")
+            tables = page.get_AllRegions(classes=['Table'])
+            if not tables:
+                self.logger.warning("Page '%s' contains no table regions (but segmentation is off)",
+                                    page_id)
+            else:
+                self._process_existing_tables(tables, page, page_image, page_coords, pcgts_mapping)
+        elif regions:
+            self._process_existing_regions(regions, page_image, page_coords, pcgts_mapping)
+        else:
+            self.logger.warning("Page '%s' contains no text regions (but segmentation is off)",
+                                page_id)
+
+        # post-processing
+        # bottom-up text concatenation
+        if outlevel != 'none' and self.parameter.get('model', ''):
+            page_update_higher_textequiv_levels(outlevel, pcgts, self.parameter['overwrite_text'])
+        # bottom-up polygonal outline projection
+        # if inlevel != 'none' and self.parameter['shrink_polygons']:
+        #     page_shrink_higher_coordinate_levels(inlevel, outlevel, pcgts)
+
+        return result
 
     def _process_regions_in_page(self, result_it, page, page_coords, mapping, dpi):
         index = 0
@@ -810,7 +862,7 @@ class TesserocrRecognize(Processor):
                         Unicode=alternative_text,
                         conf=alternative_conf))
 
-    def _process_existing_tables(self, tessapi, tables, page, page_image, page_coords, mapping):
+    def _process_existing_tables(self, tables, page, page_image, page_coords, mapping):
         # prepare dict of reading order
         reading_order = dict()
         ro = page.get_ReadingOrder()
@@ -826,7 +878,7 @@ class TesserocrRecognize(Processor):
             cells = table.get_TextRegion()
             if cells:
                 if not self.parameter['overwrite_segments']:
-                    self._process_existing_regions(tessapi, cells, page_image, page_coords, mapping)
+                    self._process_existing_regions(cells, page_image, page_coords, mapping)
                     continue
                 self.logger.info('Removing existing TextRegion cells in table %s', table.id)
                 for cell in table.get_TextRegion():
@@ -876,24 +928,24 @@ class TesserocrRecognize(Processor):
                 self.logger.warning("Skipping table region '%s' with zero size", table.id)
                 continue
             if not segment_only:
-                self._reinit(tessapi, table, mapping)
+                self._reinit(table, mapping)
             if self.parameter['padding']:
-                tessapi.SetImage(pad_image(table_image, self.parameter['padding']))
+                self.tessapi.SetImage(pad_image(table_image, self.parameter['padding']))
                 table_coords['transform'] = shift_coordinates(
                     table_coords['transform'], 2*[self.parameter['padding']])
             else:
-                tessapi.SetImage(table_image)
-            tessapi.SetPageSegMode(PSM.SPARSE_TEXT) # retrieve "cells"
+                self.tessapi.SetImage(table_image)
+            self.tessapi.SetPageSegMode(PSM.SPARSE_TEXT) # retrieve "cells"
             # TODO: we should XY-cut the sparse cells in regroup them into consistent cells
             if segment_only:
                 self.logger.debug("Detecting cells in table '%s'", table.id)
-                tessapi.AnalyseLayout()
+                self.tessapi.AnalyseLayout()
             else:
                 self.logger.debug("Recognizing text in table '%s'", table.id)
-                tessapi.Recognize()
-            self._process_cells_in_table(tessapi.GetIterator(), table, roelem, table_coords, mapping)
+                self.tessapi.Recognize()
+            self._process_cells_in_table(self.tessapi.GetIterator(), table, roelem, table_coords, mapping)
     
-    def _process_existing_regions(self, tessapi, regions, page_image, page_coords, mapping):
+    def _process_existing_regions(self, regions, page_image, page_coords, mapping):
         if self.parameter['textequiv_level'] in ['region', 'cell'] and not self.parameter.get('model', ''):
             return
         segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
@@ -904,22 +956,22 @@ class TesserocrRecognize(Processor):
                 self.logger.warning("Skipping text region '%s' with zero size", region.id)
                 continue
             if not segment_only:
-                self._reinit(tessapi, region, mapping)
+                self._reinit(region, mapping)
             if (region.get_TextEquiv() and not self.parameter['overwrite_text']
                 if self.parameter['textequiv_level'] in ['region', 'cell']
                 else self.parameter['segmentation_level'] != 'line'):
                 pass # image not used here
             elif self.parameter['padding']:
                 region_image = pad_image(region_image, self.parameter['padding'])
-                tessapi.SetImage(region_image)
+                self.tessapi.SetImage(region_image)
                 region_coords['transform'] = shift_coordinates(
                     region_coords['transform'], 2*[self.parameter['padding']])
             else:
-                tessapi.SetImage(region_image)
-            tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
+                self.tessapi.SetImage(region_image)
+            self.tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
             # cell (region in table): we could enter from existing_tables or top-level existing regions
             if self.parameter['textequiv_level'] in ['region', 'cell']:
-                #if region.get_primaryScript() not in tessapi.GetLoadedLanguages()...
+                #if region.get_primaryScript() not in self.tessapi.GetLoadedLanguages()...
                 if region.get_TextEquiv():
                     if not self.parameter['overwrite_text']:
                         continue
@@ -928,9 +980,9 @@ class TesserocrRecognize(Processor):
                 self.logger.debug("Recognizing text in region '%s'", region.id)
                 # todo: consider SetParagraphSeparator
                 region.add_TextEquiv(TextEquivType(
-                    Unicode=tessapi.GetUTF8Text().rstrip("\n\f"),
+                    Unicode=self.tessapi.GetUTF8Text().rstrip("\n\f"),
                     # iterator scores are arithmetic averages, too
-                    conf=tessapi.MeanTextConf()/100.0))
+                    conf=self.tessapi.MeanTextConf()/100.0))
                 continue # next region (to avoid indentation below)
             ## line, word, or glyph level:
             textlines = region.get_TextLine()
@@ -941,18 +993,18 @@ class TesserocrRecognize(Processor):
                 region.set_TextLine([])
                 if segment_only:
                     self.logger.debug("Detecting lines in region '%s'", region.id)
-                    tessapi.AnalyseLayout()
+                    self.tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in region '%s'", region.id)
-                    tessapi.Recognize()
-                self._process_lines_in_region(tessapi.GetIterator(), region, region_coords, mapping)
+                    self.tessapi.Recognize()
+                self._process_lines_in_region(self.tessapi.GetIterator(), region, region_coords, mapping)
             elif textlines:
-                self._process_existing_lines(tessapi, textlines, region_image, region_coords, mapping)
+                self._process_existing_lines(textlines, region_image, region_coords, mapping)
             else:
                 self.logger.warning("Region '%s' contains no text lines (but segmentation is off)",
                                     region.id)
 
-    def _process_existing_lines(self, tessapi, textlines, region_image, region_coords, mapping):
+    def _process_existing_lines(self, textlines, region_image, region_coords, mapping):
         if self.parameter['textequiv_level'] == 'line' and not self.parameter.get('model', ''):
             return
         segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
@@ -963,23 +1015,23 @@ class TesserocrRecognize(Processor):
                 self.logger.warning("Skipping text line '%s' with zero size", line.id)
                 continue
             if not segment_only:
-                self._reinit(tessapi, line, mapping)
+                self._reinit(line, mapping)
             if (line.get_TextEquiv() and not self.parameter['overwrite_text']
                 if self.parameter['textequiv_level'] == 'line'
                 else self.parameter['segmentation_level'] != 'word'):
                 pass # image not used here
             elif self.parameter['padding']:
                 line_image = pad_image(line_image, self.parameter['padding'])
-                tessapi.SetImage(line_image)
+                self.tessapi.SetImage(line_image)
                 line_coords['transform'] = shift_coordinates(
                     line_coords['transform'], 2*[self.parameter['padding']])
             else:
-                tessapi.SetImage(line_image)
+                self.tessapi.SetImage(line_image)
             if self.parameter['raw_lines']:
-                tessapi.SetPageSegMode(PSM.RAW_LINE)
+                self.tessapi.SetPageSegMode(PSM.RAW_LINE)
             else:
-                tessapi.SetPageSegMode(PSM.SINGLE_LINE)
-            #if line.get_primaryScript() not in tessapi.GetLoadedLanguages()...
+                self.tessapi.SetPageSegMode(PSM.SINGLE_LINE)
+            #if line.get_primaryScript() not in self.tessapi.GetLoadedLanguages()...
             if self.parameter['textequiv_level'] == 'line':
                 if line.get_TextEquiv():
                     if not self.parameter['overwrite_text']:
@@ -989,9 +1041,9 @@ class TesserocrRecognize(Processor):
                 self.logger.debug("Recognizing text in line '%s'", line.id)
                 # todo: consider BlankBeforeWord, SetLineSeparator
                 line.add_TextEquiv(TextEquivType(
-                    Unicode=tessapi.GetUTF8Text().rstrip("\n\f"),
+                    Unicode=self.tessapi.GetUTF8Text().rstrip("\n\f"),
                     # iterator scores are arithmetic averages, too
-                    conf=tessapi.MeanTextConf()/100.0))
+                    conf=self.tessapi.MeanTextConf()/100.0))
                 continue # next line (to avoid indentation below)
             ## word, or glyph level:
             words = line.get_Word()
@@ -1002,21 +1054,21 @@ class TesserocrRecognize(Processor):
                 line.set_Word([])
                 if segment_only:
                     self.logger.debug("Detecting words in line '%s'", line.id)
-                    tessapi.AnalyseLayout()
+                    self.tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in line '%s'", line.id)
-                    tessapi.Recognize()
+                    self.tessapi.Recognize()
                 ## internal word and glyph layout:
-                self._process_words_in_line(tessapi.GetIterator(), line, line_coords, mapping)
+                self._process_words_in_line(self.tessapi.GetIterator(), line, line_coords, mapping)
             elif words:
                 ## external word layout:
                 self.logger.warning("Line '%s' contains words already, recognition might be suboptimal", line.id)
-                self._process_existing_words(tessapi, words, line_image, line_coords, mapping)
+                self._process_existing_words(words, line_image, line_coords, mapping)
             else:
                 self.logger.warning("Line '%s' contains no words (but segmentation is off)",
                                     line.id)
 
-    def _process_existing_words(self, tessapi, words, line_image, line_coords, mapping):
+    def _process_existing_words(self, words, line_image, line_coords, mapping):
         if self.parameter['textequiv_level'] == 'word' and not self.parameter.get('model', ''):
             return
         segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
@@ -1027,19 +1079,19 @@ class TesserocrRecognize(Processor):
                 self.logger.warning("Skipping word '%s' with zero size", word.id)
                 continue
             if not segment_only:
-                self._reinit(tessapi, word, mapping)
+                self._reinit(word, mapping)
             if (word.get_TextEquiv() and not self.parameter['overwrite_text']
                 if self.parameter['textequiv_level'] == 'word'
                 else self.parameter['segmentation_level'] != 'glyph'):
                 pass # image not used here
             elif self.parameter['padding']:
                 word_image = pad_image(word_image, self.parameter['padding'])
-                tessapi.SetImage(word_image)
+                self.tessapi.SetImage(word_image)
                 word_coords['transform'] = shift_coordinates(
                     word_coords['transform'], 2*[self.parameter['padding']])
             else:
-                tessapi.SetImage(word_image)
-            tessapi.SetPageSegMode(PSM.SINGLE_WORD)
+                self.tessapi.SetImage(word_image)
+            self.tessapi.SetPageSegMode(PSM.SINGLE_WORD)
             if self.parameter['textequiv_level'] == 'word':
                 if word.get_TextEquiv():
                     if not self.parameter['overwrite_text']:
@@ -1047,9 +1099,9 @@ class TesserocrRecognize(Processor):
                     self.logger.warning("Word '%s' already contained text results", word.id)
                     word.set_TextEquiv([])
                 self.logger.debug("Recognizing text in word '%s'", word.id)
-                word_conf = tessapi.AllWordConfidences()
+                word_conf = self.tessapi.AllWordConfidences()
                 word.add_TextEquiv(TextEquivType(
-                    Unicode=tessapi.GetUTF8Text().rstrip("\n\f"),
+                    Unicode=self.tessapi.GetUTF8Text().rstrip("\n\f"),
                     conf=word_conf[0]/100.0 if word_conf else 0.0))
                 continue # next word (to avoid indentation below)
             ## glyph level:
@@ -1061,21 +1113,21 @@ class TesserocrRecognize(Processor):
                 word.set_Glyph([])
                 if segment_only:
                     self.logger.debug("Detecting glyphs in word '%s'", word.id)
-                    tessapi.AnalyseLayout()
+                    self.tessapi.AnalyseLayout()
                 else:
                     self.logger.debug("Recognizing text in word '%s'", word.id)
-                    tessapi.Recognize()
+                    self.tessapi.Recognize()
                 ## internal glyph layout:
-                self._process_glyphs_in_word(tessapi.GetIterator(), word, word_coords, mapping)
+                self._process_glyphs_in_word(self.tessapi.GetIterator(), word, word_coords, mapping)
             elif glyphs:
                 ## external glyph layout:
                 self.logger.warning("Word '%s' contains glyphs already, recognition might be suboptimal", word.id)
-                self._process_existing_glyphs(tessapi, glyphs, word_image, word_coords, mapping)
+                self._process_existing_glyphs(glyphs, word_image, word_coords, mapping)
             else:
                 self.logger.warning("Word '%s' contains no glyphs (but segmentation is off)",
                                     word.id)
 
-    def _process_existing_glyphs(self, tessapi, glyphs, word_image, word_xywh, mapping):
+    def _process_existing_glyphs(self, glyphs, word_image, word_xywh, mapping):
         if not self.parameter.get('model', ''):
             return
         for glyph in glyphs:
@@ -1084,29 +1136,29 @@ class TesserocrRecognize(Processor):
             if not glyph_image.width or not glyph_image.height:
                 self.logger.warning("Skipping glyph '%s' with zero size", glyph.id)
                 continue
-            self._reinit(tessapi, glyph, mapping)
+            self._reinit(glyph, mapping)
             if glyph.get_TextEquiv() and not self.parameter['overwrite_text']:
                 pass # image not used here
             elif self.parameter['padding']:
-                tessapi.SetImage(pad_image(glyph_image, self.parameter['padding']))
+                self.tessapi.SetImage(pad_image(glyph_image, self.parameter['padding']))
             else:
-                tessapi.SetImage(glyph_image)
-            tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
+                self.tessapi.SetImage(glyph_image)
+            self.tessapi.SetPageSegMode(PSM.SINGLE_CHAR)
             if glyph.get_TextEquiv():
                 if not self.parameter['overwrite_text']:
                     continue
                 self.logger.warning("Glyph '%s' already contained text results", glyph.id)
                 glyph.set_TextEquiv([])
             self.logger.debug("Recognizing text in glyph '%s'", glyph.id)
-            glyph_text = tessapi.GetUTF8Text().rstrip("\n\f")
-            glyph_conf = tessapi.AllWordConfidences()
+            glyph_text = self.tessapi.GetUTF8Text().rstrip("\n\f")
+            glyph_conf = self.tessapi.AllWordConfidences()
             glyph_conf = glyph_conf[0]/100.0 if glyph_conf else 1.0
             #self.logger.debug('best glyph: "%s" [%f]', glyph_text, glyph_conf)
             glyph.add_TextEquiv(TextEquivType(
                 index=0,
                 Unicode=glyph_text,
                 conf=glyph_conf))
-            result_it = tessapi.GetIterator()
+            result_it = self.tessapi.GetIterator()
             if not result_it or result_it.Empty(RIL.SYMBOL):
                 self.logger.error("No text in glyph '%s'", glyph.id)
                 continue
@@ -1175,444 +1227,3 @@ class TesserocrRecognize(Processor):
                 TextlineOrder.TOP_TO_BOTTOM: 'top-to-bottom'
             }.get(textline_order, 'bottom-to-top'))
     
-    def _reinit(self, tessapi, segment, mapping):
-        """Reset Tesseract API to initial state, and apply API-level settings for the given segment.
-        
-        If ``xpath_parameters`` is used, try each XPath expression against ``segment``,
-        and in case of a match, apply given parameters, respectively.
-        
-        If ``xpath_model`` is used, try each XPath expression against ``segment``,
-        and in case of a match, load the given language/model, respectively.
-        
-        If ``auto_model`` is used, and no ``xpath_model`` was applied yet,
-        try each given language/model individually on ``segment``, compare
-        their confidences, and load the best-scoring language/model.
-        
-        Before returning, store all previous settings (to catch by the next call).
-        """
-        # Tesseract API is stateful but does not allow copy constructors
-        # for segment-by-segment configuration we therefore need to
-        # re-initialize the API with the currently loaded settings,
-        # and add some custom choices
-        node = mapping.get(id(segment), None)
-        tag = segment.__class__.__name__[:-4]
-        if hasattr(segment, 'id'):
-            at_ident = 'id'
-        else:
-            at_ident = 'imageFilename'
-        ident = getattr(segment, at_ident)
-        with tessapi:
-            # apply temporary changes
-            if self.parameter['xpath_parameters']:
-                if node is not None and node.attrib.get(at_ident, None) == ident:
-                    ns = {'re': 'http://exslt.org/regular-expressions',
-                          'pc': node.nsmap[node.prefix],
-                          node.prefix: node.nsmap[node.prefix]}
-                    for xpath, params in self.parameter['xpath_parameters'].items():
-                        if node.xpath(xpath, namespaces=ns):
-                            self.logger.info("Found '%s' in '%s', setting '%s'",
-                                             xpath, ident, params)
-                            for name, val in params.items():
-                                tessapi.SetVariable(name, val)
-                else:
-                    self.logger.error("Cannot find segment '%s' in etree mapping, "
-                                      "ignoring xpath_parameters", ident)
-            if self.parameter['xpath_model']:
-                if node is not None and node.attrib.get(at_ident, None) == ident:
-                    ns = {'re': 'http://exslt.org/regular-expressions',
-                          'pc': node.nsmap[node.prefix],
-                          node.prefix: node.nsmap[node.prefix]}
-                    models = []
-                    for xpath, model in self.parameter['xpath_model'].items():
-                        if node.xpath(xpath, namespaces=ns):
-                            self.logger.info("Found '%s' in '%s', reloading with '%s'",
-                                             xpath, ident, model)
-                            models.append(model)
-                    if models:
-                        model = '+'.join(models)
-                        self.logger.debug("Reloading model '%s' for %s '%s'", model, tag, ident)
-                        tessapi.Reset(lang=model)
-                        return
-                else:
-                    self.logger.error("Cannot find segment '%s' in etree mapping, "
-                                      "ignoring xpath_model", ident)
-            if self.parameter['auto_model']:
-                models = self.parameter['model'].split('+')
-                if len(models) > 1:
-                    confs = list()
-                    for model in models:
-                        tessapi.Reset(lang=model)
-                        tessapi.Recognize()
-                        confs.append(tessapi.MeanTextConf())
-                    model = models[np.argmax(confs)]
-                    self.logger.debug("Reloading best model '%s' for %s '%s'", model, tag, ident)
-                    tessapi.Reset(lang=model)
-                    return
-            if self.parameter['xpath_model'] or self.parameter['auto_model']:
-                # default: undo all settings from previous calls (reset to init-state)
-                tessapi.Reset()
-
-def page_element_unicode0(element):
-    """Get Unicode string of the first text result."""
-    if element.get_TextEquiv():
-        return element.get_TextEquiv()[0].Unicode or ''
-    else:
-        return ''
-
-def page_element_conf0(element):
-    """Get confidence (as float value) of the first text result."""
-    if element.get_TextEquiv():
-        # generateDS does not convert simpleType for attributes (yet?)
-        return float(element.get_TextEquiv()[0].conf or "1.0")
-    return 1.0
-
-def page_get_reading_order(ro, rogroup):
-    """Add all elements from the given reading order group to the given dictionary.
-    
-    Given a dict ``ro`` from layout element IDs to ReadingOrder element objects,
-    and an object ``rogroup`` with additional ReadingOrder element objects,
-    add all references to the dict, traversing the group recursively.
-    """
-    regionrefs = list()
-    if isinstance(rogroup, (OrderedGroupType, OrderedGroupIndexedType)):
-        regionrefs = (rogroup.get_RegionRefIndexed() +
-                      rogroup.get_OrderedGroupIndexed() +
-                      rogroup.get_UnorderedGroupIndexed())
-    if isinstance(rogroup, (UnorderedGroupType, UnorderedGroupIndexedType)):
-        regionrefs = (rogroup.get_RegionRef() +
-                      rogroup.get_OrderedGroup() +
-                      rogroup.get_UnorderedGroup())
-    for elem in regionrefs:
-        ro[elem.get_regionRef()] = elem
-        if not isinstance(elem, (RegionRefType, RegionRefIndexedType)):
-            page_get_reading_order(ro, elem)
-        
-def page_update_higher_textequiv_levels(level, pcgts, overwrite=True):
-    """Update the TextEquivs of all PAGE-XML hierarchy levels above ``level`` for consistency.
-    
-    Starting with the lowest hierarchy level chosen for processing,
-    join all first TextEquiv.Unicode (by the rules governing the respective level)
-    into TextEquiv.Unicode of the next higher level, replacing them.
-    If ``overwrite`` is false and the higher level already has text, keep it.
-    
-    When two successive elements appear in a ``Relation`` of type ``join``,
-    then join them directly (without their respective white space).
-    
-    Likewise, average all first TextEquiv.conf into TextEquiv.conf of the next higher level.
-    
-    In the process, traverse the words and lines in their respective ``readingDirection``,
-    the (text) regions which contain lines in their respective ``textLineOrder``, and
-    the (text) regions which contain text regions in their ``ReadingOrder``
-    (if they appear there as an ``OrderedGroup``).
-    Where no direction/order can be found, use XML ordering.
-    
-    Follow regions recursively, but make sure to traverse them in a depth-first strategy.
-    """
-    page = pcgts.get_Page()
-    relations = page.get_Relations() # get RelationsType
-    if relations:
-        relations = relations.get_Relation() # get list of RelationType
-    else:
-        relations = []
-    joins = list() # 
-    for relation in relations:
-        if relation.get_type() == 'join': # ignore 'link' type here
-            joins.append((relation.get_SourceRegionRef().get_regionRef(),
-                          relation.get_TargetRegionRef().get_regionRef()))
-    reading_order = dict()
-    ro = page.get_ReadingOrder()
-    if ro:
-        page_get_reading_order(reading_order, ro.get_OrderedGroup() or ro.get_UnorderedGroup())
-    if level != 'region':
-        for region in page.get_AllRegions(classes=['Text']):
-            # order is important here, because regions can be recursive,
-            # and we want to concatenate by depth first;
-            # typical recursion structures would be:
-            #  - TextRegion/@type=paragraph inside TextRegion
-            #  - TextRegion/@type=drop-capital followed by TextRegion/@type=paragraph inside TextRegion
-            #  - any region (including TableRegion or TextRegion) inside a TextRegion/@type=footnote
-            #  - TextRegion inside TableRegion
-            subregions = region.get_TextRegion()
-            if subregions: # already visited in earlier iterations
-                # do we have a reading order for these?
-                # TODO: what if at least some of the subregions are in reading_order?
-                if (all(subregion.id in reading_order for subregion in subregions) and
-                    isinstance(reading_order[subregions[0].id], # all have .index?
-                               (OrderedGroupType, OrderedGroupIndexedType))):
-                    subregions = sorted(subregions, key=lambda subregion:
-                                        reading_order[subregion.id].index)
-                region_unicode = page_element_unicode0(subregions[0])
-                for subregion, next_subregion in zip(subregions, subregions[1:]):
-                    if (subregion.id, next_subregion.id) not in joins:
-                        region_unicode += '\n' # or '\f'?
-                    region_unicode += page_element_unicode0(next_subregion)
-                region_conf = sum(page_element_conf0(subregion) for subregion in subregions)
-                region_conf /= len(subregions)
-            else: # TODO: what if a TextRegion has both TextLine and TextRegion children?
-                lines = region.get_TextLine()
-                if ((region.get_textLineOrder() or
-                     page.get_textLineOrder()) ==
-                    TextLineOrderSimpleType.BOTTOMTOTOP):
-                    lines = list(reversed(lines))
-                if level != 'line':
-                    for line in lines:
-                        words = line.get_Word()
-                        if ((line.get_readingDirection() or
-                             region.get_readingDirection() or
-                             page.get_readingDirection()) ==
-                            ReadingDirectionSimpleType.RIGHTTOLEFT):
-                            words = list(reversed(words))
-                        if level != 'word':
-                            for word in words:
-                                glyphs = word.get_Glyph()
-                                if ((word.get_readingDirection() or
-                                     line.get_readingDirection() or
-                                     region.get_readingDirection() or
-                                     page.get_readingDirection()) ==
-                                    ReadingDirectionSimpleType.RIGHTTOLEFT):
-                                    glyphs = list(reversed(glyphs))
-                                word_unicode = ''.join(page_element_unicode0(glyph) for glyph in glyphs)
-                                word_conf = sum(page_element_conf0(glyph) for glyph in glyphs)
-                                if glyphs:
-                                    word_conf /= len(glyphs)
-                                if not word.get_TextEquiv() or overwrite:
-                                    word.set_TextEquiv( # replace old, if any
-                                        [TextEquivType(Unicode=word_unicode, conf=word_conf)])
-                        line_unicode = ' '.join(page_element_unicode0(word) for word in words)
-                        line_conf = sum(page_element_conf0(word) for word in words)
-                        if words:
-                            line_conf /= len(words)
-                        if not line.get_TextEquiv() or overwrite:
-                            line.set_TextEquiv( # replace old, if any
-                                [TextEquivType(Unicode=line_unicode, conf=line_conf)])
-                region_unicode = ''
-                region_conf = 0
-                if lines:
-                    region_unicode = page_element_unicode0(lines[0])
-                    for line, next_line in zip(lines, lines[1:]):
-                        words = line.get_Word()
-                        next_words = next_line.get_Word()
-                        if not (words and next_words and (words[-1].id, next_words[0].id) in joins):
-                            region_unicode += '\n'
-                        region_unicode += page_element_unicode0(next_line)
-                    region_conf = sum(page_element_conf0(line) for line in lines)
-                    region_conf /= len(lines)
-            if not region.get_TextEquiv() or overwrite:
-                region.set_TextEquiv( # replace old, if any
-                    [TextEquivType(Unicode=region_unicode, conf=region_conf)])
-
-def page_shrink_higher_coordinate_levels(maxlevel, minlevel, pcgts):
-    """Project the coordinate hull of all PAGE-XML hierarchy levels above ``minlevel`` up to ``maxlevel``.
-    
-    Starting with the lowest hierarchy level chosen for processing,
-    join all segments into a convex hull for the next higher level,
-    replacing the parent coordinates, respectively.
-    
-    Follow regions recursively, but make sure to traverse them in a depth-first strategy.
-    """
-    LOG = getLogger('processor.TesserocrRecognize')
-    page = pcgts.get_Page()
-    regions = page.get_AllRegions(classes=['Text'])
-    if minlevel != 'region':
-        for region in regions:
-            lines = region.get_TextLine()
-            if minlevel != 'line':
-                for line in lines:
-                    words = line.get_Word()
-                    if minlevel != 'word':
-                        for word in words:
-                            glyphs = word.get_Glyph()
-                            if maxlevel in ['region', 'line', 'word', 'glyph'] and glyphs:
-                                joint_polygon = join_segments(glyphs)
-                                LOG.debug("setting hull for word '%s' from %d vertices",
-                                          word.id, len(joint_polygon))
-                                word.get_Coords().set_points(points_from_polygon(joint_polygon))
-                    if maxlevel in ['region', 'line', 'word'] and words:
-                        joint_polygon = join_segments(words)
-                        LOG.debug("setting hull for line '%s' from %d vertices",
-                                  line.id, len(joint_polygon))
-                        line.get_Coords().set_points(points_from_polygon(joint_polygon))
-            if maxlevel in ['region', 'line'] and lines:
-                joint_polygon = join_segments(lines)
-                LOG.debug("setting hull for region '%s' from %d vertices",
-                          region.id, len(joint_polygon))
-                region.get_Coords().set_points(points_from_polygon(joint_polygon))
-
-def join_segments(segments):
-    return join_polygons([polygon_from_points(segment.get_Coords().points)
-                          for segment in segments])
-
-def join_polygons(polygons, scale=20):
-    """construct concave hull (alpha shape) from input polygons by connecting their pairwise nearest points"""
-    return make_join([make_valid(Polygon(poly)) for poly in polygons], scale=scale).exterior.coords[:-1]
-
-def make_join(polygons, scale=20):
-    """construct concave hull (alpha shape) from input polygons by connecting their pairwise nearest points"""
-    # ensure input polygons are simply typed and all oriented equally
-    polygons = [orient(poly)
-                for poly in itertools.chain.from_iterable(
-                        [poly.geoms
-                         if poly.geom_type in ['MultiPolygon', 'GeometryCollection']
-                         else [poly]
-                         for poly in polygons])]
-    npoly = len(polygons)
-    if npoly == 1:
-        return polygons[0]
-    # find min-dist path through all polygons (travelling salesman)
-    pairs = itertools.combinations(range(npoly), 2)
-    dists = np.zeros((npoly, npoly), dtype=float)
-    for i, j in pairs:
-        dist = polygons[i].distance(polygons[j])
-        if dist < 1e-5:
-            dist = 1e-5 # if pair merely touches, we still need to get an edge
-        dists[i, j] = dist
-        dists[j, i] = dist
-    dists = minimum_spanning_tree(dists, overwrite=True)
-    # add bridge polygons (where necessary)
-    for prevp, nextp in zip(*dists.nonzero()):
-        prevp = polygons[prevp]
-        nextp = polygons[nextp]
-        nearest = nearest_points(prevp, nextp)
-        bridgep = LineString(nearest).buffer(max(1, scale/5), resolution=1)
-        polygons.append(bridgep)
-    jointp = unary_union(polygons)
-    assert jointp.geom_type == 'Polygon', jointp.wkt
-    # follow-up calculations will necessarily be integer;
-    # so anticipate rounding here and then ensure validity
-    jointp2 = set_precision(jointp, 1.0)
-    if jointp2.geom_type != 'Polygon' or not jointp2.is_valid:
-        jointp2 = Polygon(np.round(jointp.exterior.coords))
-        jointp2 = make_valid(jointp2)
-    assert jointp2.geom_type == 'Polygon', jointp2.wkt
-    return jointp2
-
-def pad_image(image, padding):
-    # TODO: input padding can create extra edges if not binarized; at least try to smooth
-    stat = ImageStat.Stat(image)
-    # workaround for Pillow#4925
-    if len(stat.bands) > 1:
-        background = tuple(stat.median)
-    else:
-        background = stat.median[0]
-    padded = Image.new(image.mode,
-                       (image.width + 2 * padding,
-                        image.height + 2 * padding),
-                       background)
-    padded.paste(image, (padding, padding))
-    return padded
-
-def polygon_for_parent(polygon, parent):
-    """Clip polygon to parent polygon range.
-    
-    (Should be moved to ocrd_utils.coordinates_for_segment.)
-    """
-    childp = Polygon(polygon)
-    if isinstance(parent, PageType):
-        if parent.get_Border():
-            parentp = Polygon(polygon_from_points(parent.get_Border().get_Coords().points))
-        else:
-            parentp = Polygon([[0, 0], [0, parent.get_imageHeight()],
-                               [parent.get_imageWidth(), parent.get_imageHeight()],
-                               [parent.get_imageWidth(), 0]])
-    else:
-        parentp = Polygon(polygon_from_points(parent.get_Coords().points))
-    # ensure input coords have valid paths (without self-intersection)
-    # (this can happen when shapes valid in floating point are rounded)
-    childp = make_valid(childp)
-    parentp = make_valid(parentp)
-    if not childp.is_valid:
-        return None
-    if not parentp.is_valid:
-        return None
-    # check if clipping is necessary
-    if childp.within(parentp):
-        return childp.exterior.coords[:-1]
-    # clip to parent
-    interp = make_intersection(childp, parentp)
-    if not interp:
-        return None
-    return interp.exterior.coords[:-1] # keep open
-
-def make_intersection(poly1, poly2):
-    interp = poly1.intersection(poly2)
-    # post-process
-    if interp.is_empty or interp.area == 0.0:
-        # this happens if Tesseract "finds" something
-        # outside of the valid Border of a deskewed/cropped page
-        # (empty corners created by masking); will be ignored
-        return None
-    if interp.geom_type == 'GeometryCollection':
-        # heterogeneous result: filter zero-area shapes (LineString, Point)
-        interp = unary_union([geom for geom in interp.geoms if geom.area > 0])
-    if interp.geom_type == 'MultiPolygon':
-        # homogeneous result: construct convex hull to connect
-        interp = make_join(interp.geoms)
-    if interp.minimum_clearance < 1.0:
-        # follow-up calculations will necessarily be integer;
-        # so anticipate rounding here and then ensure validity
-        interp = Polygon(np.round(interp.exterior.coords))
-        interp = make_valid(interp)
-    return interp
-
-def make_valid(polygon):
-    points = list(polygon.exterior.coords)
-    for split in range(1, len(points)):
-        if polygon.is_valid or polygon.simplify(polygon.area).is_valid:
-            break
-        # simplification may not be possible (at all) due to ordering
-        # in that case, try another starting point
-        polygon = Polygon(points[-split:]+points[:-split])
-    # try by simplification
-    for tolerance in range(int(polygon.area + 1.5)):
-        if polygon.is_valid:
-            break
-        # simplification may require a larger tolerance
-        polygon = polygon.simplify(tolerance + 1)
-    # try by enlarging
-    for tolerance in range(1, int(polygon.area + 2.5)):
-        if polygon.is_valid:
-            break
-        # enlargement may require a larger tolerance
-        polygon = polygon.buffer(tolerance)
-    assert polygon.is_valid, polygon.wkt
-    return polygon
-
-def iterate_level(it, ril, parent=None):
-    LOG = getLogger('processor.TesserocrRecognize')
-    # improves over tesserocr.iterate_level by
-    # honouring multi-level semantics so iterators
-    # can be combined across levels
-    if parent is None:
-        parent = ril - 1
-    pos = 0
-    while it and not it.Empty(ril):
-        yield it
-        # With upstream Tesseract, these assertions may fail:
-        # if ril > 0 and it.IsAtFinalElement(parent, ril):
-        #     for level in range(parent, ril):
-        #         assert it.IsAtFinalElement(parent, level), \
-        #             "level %d iterator at %d is final w.r.t. %d but level %d is not" % (
-        #                 ril, pos, parent, level)
-        # Hence the following workaround avails itself:
-        if ril > 0 and all(it.IsAtFinalElement(parent, level)
-                           for level in range(parent, ril + 1)):
-            break
-        if not it.Next(ril):
-            break
-        while it.Empty(ril) and not it.Empty(0):
-            # This happens when
-            # - on RIL.PARA, RIL.TEXTLINE and RIL.WORD,
-            #   empty non-text (pseudo-) blocks intervene
-            # - on RIL.SYMBOL, a word has no cblobs at all
-            #   (because they have all been rejected)
-            # We must _not_ yield these (as they have strange
-            # properties and bboxes). But most importantly,
-            # they will have met IsAtFinalElement prematurely
-            # (hence the similar loop above).
-            # Since this may happen multiple consecutive times,
-            # enclose this in a while loop.
-            LOG.warning("level %d iterator at %d needs to skip empty segment",
-                        ril, pos)
-            if not it.Next(ril):
-                break
-        pos += 1

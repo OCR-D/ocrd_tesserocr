@@ -22,10 +22,10 @@ class TesserocrSegmentRegion(TesserocrRecognize):
             # add default params
             assert ParameterValidator(self.metadata['tools']['ocrd-tesserocr-recognize']).validate(self.parameter).is_valid
 
-    def process(self):
+    def process_page_pcgts(self, pcgts, output_file_id=None, page_id=None):
         """Performs region segmentation with Tesseract on the workspace.
         
-        Open and deserialize PAGE input files and their respective images,
+        Open and deserialize PAGE input file and its respective images,
         and remove any existing Region and ReadingOrder elements
         (unless ``overwrite_regions`` is False).
         
@@ -47,4 +47,4 @@ class TesserocrSegmentRegion(TesserocrRecognize):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
-        super(TesserocrSegmentRegion, self).process()
+        return super().process_page_pcgts(pcgts, output_file_id=output_file_id, page_id=page_id)

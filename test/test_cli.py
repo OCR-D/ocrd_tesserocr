@@ -27,6 +27,6 @@ def test_list_all_resources(tmpdir, monkeypatch):
     # envvars influence tesserocr's module initialization
     from ocrd_tesserocr.cli import ocrd_tesserocr_recognize
     r = runner.invoke(ocrd_tesserocr_recognize, ['-L'])
-    assert not r.exit_code
+    assert not r.exit_code, r.output
     # XXX same problem
     # assert r.output == str(samplefile) + '\n'

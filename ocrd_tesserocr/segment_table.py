@@ -20,10 +20,10 @@ class TesserocrSegmentTable(TesserocrRecognize):
             # add default params
             assert ParameterValidator(self.metadata['tools']['ocrd-tesserocr-recognize']).validate(self.parameter).is_valid
 
-    def process(self):
+    def process_page_pcgts(self, pcgts, output_file_id=None, page_id=None):
         """Performs table cell segmentation with Tesseract on the workspace.
         
-        Open and deserialize PAGE input files and their respective images,
+        Open and deserialize PAGE input file and its respective images,
         then iterate over the element hierarchy down to the region level
         for table regions, and remove any existing TextRegion elements
         (unless ``overwrite_cells`` is False).
@@ -35,4 +35,4 @@ class TesserocrSegmentTable(TesserocrRecognize):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
-        super(TesserocrSegmentTable, self).process()
+        return super().process_page_pcgts(pcgts, output_file_id=output_file_id, page_id=page_id)
