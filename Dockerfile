@@ -1,4 +1,4 @@
-FROM ocrd/core:v2.62.0 AS base
+FROM ocrd/core:v2.67.1 AS base
 # set proper locales
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
@@ -31,7 +31,7 @@ ENV XDG_DATA_HOME /usr/local/share
 ENV XDG_CONFIG_HOME /usr/local/share/ocrd-resources
 ENV TESSDATA_PREFIX $XDG_DATA_HOME/tessdata
 
-WORKDIR /build
+WORKDIR /build/ocrd_tesserocr
 COPY setup.py .
 COPY ocrd_tesserocr/ocrd-tool.json .
 COPY README.md .
@@ -42,11 +42,13 @@ COPY repo/tesserocr ./repo/tesserocr
 COPY repo/tesseract ./repo/tesseract
 COPY Makefile .
 RUN make deps-ubuntu deps install install-tesseract-training \
-    && rm -rf /build \
+    && rm -rf /build/ocrd_tesserocr \
     && apt-get -y remove --auto-remove g++ libtesseract-dev make
 
-RUN ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata
-RUN ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
+RUN ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata && \
+    ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata && \
+    # clean possibly created log-files/dirs of ocrd_network logger to prevent permission problems
+    rm -rf /tmp/ocrd_*
 
 # as discussed in ocrd_all#378, we do not want to manage more than one resource location
 # to mount for model persistence; 
