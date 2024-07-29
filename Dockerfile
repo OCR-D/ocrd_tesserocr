@@ -1,4 +1,4 @@
-FROM ocrd/core:v2.67.1 AS base
+FROM docker.io/ocrd/core:v2.67.1 AS base
 # set proper locales
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
