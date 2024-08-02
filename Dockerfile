@@ -38,6 +38,7 @@ COPY README.md .
 COPY requirements.txt .
 COPY requirements_test.txt .
 COPY .git .
+COPY .gitmodules .
 COPY ocrd_tesserocr .
 COPY repo/tesserocr ./repo
 COPY repo/tesseract ./repo
