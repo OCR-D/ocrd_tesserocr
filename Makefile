@@ -181,7 +181,6 @@ clean: clean-assets clean-tesseract
 
 clean-tesseract:
 	$(RM) -rf $(CURDIR)/build/tesseract
-	cd repo/tesseract; make distclean
 
 .PHONY: clean-assets
 clean-assets:
