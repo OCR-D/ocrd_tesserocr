@@ -128,6 +128,8 @@ build/tesseract/Makefile: repo/tesseract/Makefile.in
 repo/tesseract/Makefile.in: repo/tesseract
 	cd $<; ./autogen.sh
 
+# phony to ensure this recipe is fired (as in empty directory after clone)
+.PHONY: repo/tesserocr repo/tesseract repo/assets
 repo/tesserocr repo/tesseract repo/assets:
 	git submodule sync $@
 	git submodule update --init $@
