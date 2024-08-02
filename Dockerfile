@@ -37,9 +37,10 @@ COPY ocrd_tesserocr/ocrd-tool.json .
 COPY README.md .
 COPY requirements.txt .
 COPY requirements_test.txt .
-COPY ocrd_tesserocr ./ocrd_tesserocr
-COPY repo/tesserocr ./repo/tesserocr
-COPY repo/tesseract ./repo/tesseract
+COPY .git .
+COPY ocrd_tesserocr .
+COPY repo/tesserocr ./repo
+COPY repo/tesseract ./repo
 COPY Makefile .
 RUN make deps-ubuntu deps install install-tesseract-training \
     && rm -rf /build/ocrd_tesserocr \
