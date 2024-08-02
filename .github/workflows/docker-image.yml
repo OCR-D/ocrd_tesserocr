@@ -6,7 +6,7 @@ on:
     branches: [ "master" ]
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
+  REPO_NAME: ${{ github.repository }}
 
 jobs:
 
@@ -30,6 +30,8 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+    - name: define image name from repo name
+      run: echo "IMAGE_NAME=${REPO_NAME,,}" >> $GITHUB_ENV
     - name: Build the Docker image
       run: make docker DOCKER_TAG=${{ env.IMAGE_NAME }}
     - name: Push to Github Container Registry
