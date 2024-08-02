@@ -6,7 +6,7 @@ on:
     branches: [ "master" ]
 
 env:
-  IMAGE_NAME: ghcr.io/ocr-d/tesserocr
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 jobs:
 

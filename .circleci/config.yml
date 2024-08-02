@@ -21,7 +21,10 @@ jobs:
       - run: sudo make deps-ubuntu
       - run: make install
       - run: make deps-test
-      - run: make test
+      - run: mkdir test-results
+      - run: make test PYTEST_ARGS=--junitxml=test-results/test.xml
+      - store_test_results:
+          path: test-results
       - run: make test-cli
       - run: make coverage
       - codecov/upload
@@ -42,6 +45,15 @@ jobs:
           command: echo "$DOCKERHUB_PASS" | docker login --username "$DOCKERHUB_USER" --password-stdin
       - run: docker push $DOCKER_TAG
 
+  deploy-pypi:
+    docker:
+      - image: ocrd/tesserocr
+    steps:
+      - checkout
+      - run: pip install twine build
+      - run: python -m build .
+      - run: twine upload dist/*
+
 
 workflows:
   build:
@@ -51,8 +63,17 @@ workflows:
             parameters:
               python-version: ['3.7', '3.8', '3.9', '3.10']
   deploy:
+    when:
+      condition:
+        equal: [ https://github.com/OCR-D/ocrd_tesserocr, << pipeline.project.git_url >>]
     jobs:
       - deploy-docker:
+          filters:
+            branches:
+              only: master
+      - deploy-pypi:
+          requires:
+            - deploy-docker
           filters:
             branches:
               only: master
