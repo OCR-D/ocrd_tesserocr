@@ -43,7 +43,10 @@ COPY ocrd_tesserocr .
 COPY repo/tesserocr repo/tesserocr
 COPY repo/tesseract repo/tesseract
 COPY Makefile .
-RUN make deps-ubuntu deps install install-tesseract-training \
+RUN make deps-ubuntu \
+    && make -j4 install-tesseract \
+    && make -j4 install-tesseract-training \
+    && make deps install \
     && rm -rf /build/ocrd_tesserocr \
     && apt-get -y remove --auto-remove g++ libtesseract-dev make
 
