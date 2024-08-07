@@ -5,6 +5,10 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Changed:
+
+ * adapt to ocrd 3.0, #216
+
 ## [0.19.1] - 2024-07-01
 
 Fixed:
