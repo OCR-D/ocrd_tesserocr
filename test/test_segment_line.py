@@ -1,8 +1,9 @@
-from ocrd_tesserocr import TesserocrSegmentRegion
-from ocrd_tesserocr import TesserocrSegmentLine
-from ocrd_tesserocr import TesserocrSegment
 from ocrd_modelfactory import page_from_file
 from ocrd_utils import MIMETYPE_PAGE
+
+from ocrd_tesserocr import (TesserocrSegment, TesserocrSegmentLine,
+                            TesserocrSegmentRegion)
+
 
 def test_run_modular(workspace_herold_small):
     TesserocrSegmentRegion(

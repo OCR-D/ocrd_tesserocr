@@ -2,6 +2,7 @@ from ocrd_tesserocr import TesserocrSegmentRegion
 from ocrd_modelfactory import page_from_file
 from ocrd_utils import MIMETYPE_PAGE
 
+
 def test_run(workspace_herold_small):
     TesserocrSegmentRegion(
         workspace_herold_small,

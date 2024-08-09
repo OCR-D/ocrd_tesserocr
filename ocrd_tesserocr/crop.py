@@ -1,28 +1,16 @@
 from __future__ import absolute_import
+
 import os.path
 
 import tesserocr
-from ocrd_utils import (
-    getLogger,
-    crop_image,
-    coordinates_for_segment,
-    coordinates_of_segment,
-    bbox_from_polygon,
-    bbox_from_points,
-    polygon_from_bbox,
-    points_from_polygon,
-    bbox_from_xywh,
-    make_file_id,
-    assert_file_grp_cardinality,
-    MIMETYPE_PAGE
-)
 from ocrd_modelfactory import page_from_file
-from ocrd_models.ocrd_page import (
-    CoordsType,
-    AlternativeImageType,
-    BorderType,
-    to_xml
-)
+from ocrd_models.ocrd_page import (AlternativeImageType, BorderType,
+                                   CoordsType, to_xml)
+from ocrd_utils import (MIMETYPE_PAGE, assert_file_grp_cardinality,
+                        bbox_from_points, bbox_from_polygon, bbox_from_xywh,
+                        coordinates_for_segment, coordinates_of_segment,
+                        crop_image, getLogger, make_file_id,
+                        points_from_polygon, polygon_from_bbox)
 
 from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize, polygon_for_parent

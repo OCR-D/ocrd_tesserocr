@@ -1,28 +1,15 @@
 from __future__ import absolute_import
 
-import os.path
 import math
-from tesserocr import (
-    PyTessBaseAPI,
-    PSM, OEM,
-    Orientation,
-    WritingDirection,
-    TextlineOrder
-)
+import os.path
 
-from ocrd_utils import (
-    getLogger,
-    make_file_id,
-    assert_file_grp_cardinality,
-    membername,
-    MIMETYPE_PAGE
-)
 from ocrd_modelfactory import page_from_file
-from ocrd_models.ocrd_page import (
-    AlternativeImageType,
-    TextLineType, TextRegionType, PageType,
-    to_xml
-)
+from ocrd_models.ocrd_page import (AlternativeImageType, PageType,
+                                   TextLineType, TextRegionType, to_xml)
+from ocrd_utils import (MIMETYPE_PAGE, assert_file_grp_cardinality, getLogger,
+                        make_file_id, membername)
+from tesserocr import (OEM, PSM, Orientation, PyTessBaseAPI, TextlineOrder,
+                       WritingDirection)
 
 from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
