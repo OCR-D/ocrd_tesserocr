@@ -7,13 +7,8 @@
       "executable": "ocrd-tesserocr-deskew",
       "categories": ["Image preprocessing"],
       "description": "Detect script, orientation and skew angle for pages or regions",
-      "input_file_grp": [
-        "OCR-D-IMG",
-        "OCR-D-SEG-BLOCK"
-      ],
-      "output_file_grp": [
-        "OCR-D-DESKEW-BLOCK"
-      ],
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
       "steps": ["preprocessing/optimization/deskewing"],
       "parameters": {
         "dpi": {
@@ -40,13 +35,8 @@
       "executable": "ocrd-tesserocr-fontshape",
       "categories": ["Text recognition and optimization"],
       "description": "Recognize font shapes (family/monospace/bold/italic) and size in segmented words with Tesseract (using annotated derived images, or masking and cropping images from coordinate polygons), annotating TextStyle",
-      "input_file_grp": [
-        "OCR-D-SEG-WORD",
-        "OCR-D-OCR"
-      ],
-      "output_file_grp": [
-        "OCR-D-OCR-FONTSTYLE"
-      ],
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
       "steps": ["recognition/font-identification"],
       "parameters": {
         "dpi": {
@@ -74,21 +64,8 @@
       "executable": "ocrd-tesserocr-recognize",
       "categories": ["Text recognition and optimization"],
       "description": "Segment and/or recognize text with Tesseract (using annotated derived images, or masking and cropping images from coordinate polygons) on any level of the PAGE hierarchy.",
-      "input_file_grp": [
-        "OCR-D-SEG-PAGE",
-        "OCR-D-SEG-REGION",
-        "OCR-D-SEG-TABLE",
-        "OCR-D-SEG-LINE",
-        "OCR-D-SEG-WORD"
-      ],
-      "output_file_grp": [
-        "OCR-D-SEG-REGION",
-        "OCR-D-SEG-TABLE",
-        "OCR-D-SEG-LINE",
-        "OCR-D-SEG-WORD",
-        "OCR-D-SEG-GLYPH",
-        "OCR-D-OCR-TESS"
-      ],
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
       "steps": [
         "layout/segmentation/region",
         "layout/segmentation/line",
@@ -300,14 +277,8 @@
       "executable": "ocrd-tesserocr-segment",
       "categories": ["Layout analysis"],
       "description": "Segment page into regions and lines with Tesseract",
-      "input_file_grp": [
-        "OCR-D-IMG",
-        "OCR-D-SEG-PAGE",
-        "OCR-D-GT-SEG-PAGE"
-      ],
-      "output_file_grp": [
-        "OCR-D-SEG-LINE"
-      ],
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
       "steps": ["layout/segmentation/region", "layout/segmentation/line"],
       "parameters": {
         "dpi": {
@@ -353,14 +324,8 @@
       "executable": "ocrd-tesserocr-segment-region",
       "categories": ["Layout analysis"],
       "description": "Segment page into regions with Tesseract",
-      "input_file_grp": [
-        "OCR-D-IMG",
-        "OCR-D-SEG-PAGE",
-        "OCR-D-GT-SEG-PAGE"
-      ],
-      "output_file_grp": [
-        "OCR-D-SEG-BLOCK"
-      ],
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
       "steps": ["layout/segmentation/region"],
       "parameters": {
         "dpi": {
@@ -411,13 +376,8 @@
       "executable": "ocrd-tesserocr-segment-table",
       "categories": ["Layout analysis"],
       "description": "Segment table regions into cell text regions with Tesseract",
-      "input_file_grp": [
-        "OCR-D-SEG-BLOCK",
-        "OCR-D-GT-SEG-BLOCK"
-      ],
-      "output_file_grp": [
-        "OCR-D-SEG-BLOCK"
-      ],
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
       "steps": ["layout/segmentation/region"],
       "parameters": {
         "dpi": {
@@ -448,13 +408,8 @@
       "executable": "ocrd-tesserocr-segment-line",
       "categories": ["Layout analysis"],
       "description": "Segment regions into lines with Tesseract",
-      "input_file_grp": [
-        "OCR-D-SEG-BLOCK",
-        "OCR-D-GT-SEG-BLOCK"
-      ],
-      "output_file_grp": [
-        "OCR-D-SEG-LINE"
-      ],
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
       "steps": ["layout/segmentation/line"],
       "parameters": {
         "dpi": {
@@ -485,13 +440,8 @@
       "executable": "ocrd-tesserocr-segment-word",
       "categories": ["Layout analysis"],
       "description": "Segment lines into words with Tesseract",
-      "input_file_grp": [
-        "OCR-D-SEG-LINE",
-        "OCR-D-GT-SEG-LINE"
-      ],
-      "output_file_grp": [
-        "OCR-D-SEG-WORD"
-      ],
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
       "steps": ["layout/segmentation/word"],
       "parameters": {
         "dpi": {
@@ -522,12 +472,8 @@
       "executable": "ocrd-tesserocr-crop",
       "categories": ["Image preprocessing"],
       "description": "Poor man's cropping via region segmentation",
-      "input_file_grp": [
-	"OCR-D-IMG"
-      ],
-      "output_file_grp": [
-	"OCR-D-SEG-PAGE"
-      ],
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
       "steps": ["preprocessing/optimization/cropping"],
       "parameters" : {
         "dpi": {
@@ -548,15 +494,8 @@
       "executable": "ocrd-tesserocr-binarize",
       "categories": ["Image preprocessing"],
       "description": "Binarize regions or lines with Tesseract's global Otsu",
-      "input_file_grp": [
-        "OCR-D-IMG",
-        "OCR-D-SEG-BLOCK",
-        "OCR-D-SEG-LINE"
-      ],
-      "output_file_grp": [
-        "OCR-D-BIN-BLOCK",
-        "OCR-D-BIN-LINE"
-      ],
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
       "steps": ["preprocessing/optimization/binarization"],
       "parameters": {
         "dpi": {
