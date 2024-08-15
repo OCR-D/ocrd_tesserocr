@@ -1,5 +1,7 @@
 from __future__ import absolute_import
+
 import os.path
+from typing import Optional
 
 import tesserocr
 
@@ -17,7 +19,9 @@ from ocrd_models.ocrd_page import (
     CoordsType,
     AlternativeImageType,
     BorderType,
+    OcrdPage
 )
+from ocrd.processor import OcrdPageResult, OcrdPageResultImage
 
 from .recognize import TesserocrRecognize
 from .common import polygon_for_parent
@@ -36,7 +40,7 @@ class TesserocrCrop(TesserocrRecognize):
         # page:
         self.tessapi.SetVariable("textord_tabfind_find_tables", "0")
 
-    def process_page_pcgts(self, pcgts, output_file_id=None, page_id=None):
+    def process_page_pcgts(self, *input_pcgts: Optional[OcrdPage], page_id: str = None) -> OcrdPageResult:
         """Performs page cropping with Tesseract on the workspace.
 
         Open and deserialize PAGE input file and its respective images.
@@ -53,6 +57,8 @@ class TesserocrCrop(TesserocrRecognize):
         
         Produce new output files by serialising the resulting hierarchy.
         """
+        pcgts = input_pcgts[0]
+        result = OcrdPageResult(pcgts)
         page = pcgts.get_Page()
                 
         # warn of existing Border:
@@ -85,10 +91,10 @@ class TesserocrCrop(TesserocrRecognize):
             zoom = 1
 
         bounds = self._estimate_bounds(page, page_image, zoom)
-        cropped = self._process_page(page, page_image, page_xywh, bounds, output_file_id)
+        cropped = self._process_page(page, page_image, page_xywh, bounds)
         if cropped:
-            return [pcgts, cropped]
-        return pcgts
+            result.images.append(cropped)
+        return result
         
     def _estimate_bounds(self, page, page_image, zoom=1.0):
         """Get outer bounds of all (existing or detected) regions."""
@@ -148,12 +154,12 @@ class TesserocrCrop(TesserocrRecognize):
                          all_left, all_right, all_top, all_bottom)
         return all_left, all_top, all_right, all_bottom
 
-    def _process_page(self, page, page_image, page_xywh, bounds, file_id):
+    def _process_page(self, page, page_image, page_xywh, bounds) -> Optional[OcrdPageResultImage]:
         """Set the identified page border, if valid."""
         left, top, right, bottom = bounds
         if left >= right or top >= bottom:
             self.logger.error("Cannot find valid extent for page")
-            return False
+            return None
         padding = self.parameter['padding']
         # add padding:
         left = max(left - padding, 0)
@@ -166,7 +172,7 @@ class TesserocrCrop(TesserocrRecognize):
         polygon = polygon_for_parent(polygon, page)
         if polygon is None:
             self.logger.error("Ignoring extant border")
-            return False
+            return None
         border = BorderType(Coords=CoordsType(
             points_from_polygon(polygon)))
         # intersection with parent could have changed bbox,
@@ -177,9 +183,7 @@ class TesserocrCrop(TesserocrRecognize):
         # update METS (add the image file):
         page_image = crop_image(page_image, box=bbox)
         page_xywh['features'] += ',cropped'
-        page_image_id = file_id + '.IMG-CROP'
-        page_image_path = os.path.join(self.output_file_grp, page_image_id + '.png')
         # update PAGE (reference the image file):
-        page.add_AlternativeImage(AlternativeImageType(
-            filename=page_image_path, comments=page_xywh['features']))
-        return page_image, page_image_id, page_image_path
+        alt_image = AlternativeImageType(comments=page_xywh['features'])
+        page.add_AlternativeImage(alt_image)
+        return OcrdPageResultImage(page_image, '.IMG-CROP', alt_image)
