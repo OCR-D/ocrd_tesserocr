@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+from typing import Optional
 import os.path
 import math
+
 from tesserocr import (
     PyTessBaseAPI,
     PSM, OEM,
@@ -13,8 +15,12 @@ from tesserocr import (
 from ocrd_utils import membername
 from ocrd_models.ocrd_page import (
     AlternativeImageType,
-    TextLineType, TextRegionType, PageType,
+    TextLineType, 
+    TextRegionType, 
+    PageType,
+    OcrdPage
 )
+from ocrd.processor import OcrdPageResult, OcrdPageResultImage
 
 from .recognize import TesserocrRecognize
 
@@ -32,7 +38,7 @@ class TesserocrDeskew(TesserocrRecognize):
         if self.parameter['operation_level'] == 'line':
             self.tessapi.SetVariable("min_characters_to_try", "15")
 
-    def process_page_pcgts(self, pcgts, output_file_id=None, page_id=None):
+    def process_page_pcgts(self, *input_pcgts: Optional[OcrdPage], page_id: Optional[str] = None) -> OcrdPageResult:
         """Performs deskewing of the page / region with Tesseract on the workspace.
 
         Open and deserialise PAGE input files and their respective images,
@@ -51,8 +57,9 @@ class TesserocrDeskew(TesserocrRecognize):
         Produce a new output file by serialising the resulting hierarchy.
         """
         oplevel = self.parameter['operation_level']
-        
+        pcgts = input_pcgts[0]
         page = pcgts.get_Page()
+        result = OcrdPageResult(pcgts)
                 
         page_image, page_xywh, page_image_info = self.workspace.image_from_page(
             page, page_id,
@@ -77,14 +84,11 @@ class TesserocrDeskew(TesserocrRecognize):
 
         if oplevel == 'page':
             image = self._process_segment(page, page_image, page_xywh,
-                                          "page '%s'" % page_id,
-                                          output_file_id)
+                                          "page '%s'" % page_id)
             if image:
-                return [pcgts, image]
-            else:
-                return pcgts
+                result.images.append(image)
+            return result
 
-        result = [pcgts]
         regions = page.get_AllRegions(classes=['Text', 'Table'])
         if not regions:
             self.logger.warning("Page '%s' contains no text regions", page_id)
@@ -97,10 +101,9 @@ class TesserocrDeskew(TesserocrRecognize):
                 feature_filter='deskewed')
             if oplevel == 'region':
                 image = self._process_segment(region, region_image, region_xywh,
-                                              "region '%s'" % region.id,
-                                              output_file_id + '_' + region.id)
+                                              "region '%s'" % region.id)
                 if image:
-                    result.append(image)
+                    result.images.append(image)
             elif isinstance(region, TextRegionType):
                 lines = region.get_TextLine()
                 if not lines:
@@ -109,16 +112,15 @@ class TesserocrDeskew(TesserocrRecognize):
                     line_image, line_xywh = self.workspace.image_from_segment(
                         line, region_image, region_xywh)
                     image = self._process_segment(line, line_image, line_xywh,
-                                                  "line '%s'" % line.id,
-                                                  output_file_id + '_' + region.id + '_' + line.id)
+                                                  "line '%s'" % line.id)
                     if image:
-                        result.append(image)
+                        result.images.append(image)
         return result
 
-    def _process_segment(self, segment, image, xywh, where, file_id):
+    def _process_segment(self, segment, image, xywh, where):
         if not image.width or not image.height:
             self.logger.warning("Skipping %s with zero size", where)
-            return False
+            return None
         angle0 = xywh['angle'] # deskewing (w.r.t. top image) already applied to image
         angle = 0. # additional angle to be applied at current level
         self.tessapi.SetImage(image)
@@ -194,14 +196,14 @@ class TesserocrDeskew(TesserocrRecognize):
         else:
             self.logger.warning('no OSD result in %s', where)
         if isinstance(segment, TextLineType):
-            return False
+            return None
         #
         # orientation/skew
         #
         layout = self.tessapi.AnalyseLayout()
         if not layout:
             self.logger.warning('no result iterator in %s', where)
-            return False
+            return None
         orientation, writing_direction, textline_order, deskew_angle = layout.Orientation()
         if isinstance(segment, (TextRegionType, PageType)):
             segment.set_readingDirection({
@@ -269,10 +271,7 @@ class TesserocrDeskew(TesserocrRecognize):
             # workflow had deskewing
             xywh['features'] += ',deskewed'
         features = xywh['features'] # features already applied to image
-        # update METS (add the image file):
-        file_id += '.IMG-DESKEW'
-        file_path = os.path.join(self.output_file_grp, file_id + '.png')
         # update PAGE (reference the image file):
-        segment.add_AlternativeImage(AlternativeImageType(
-            filename=file_path, comments=features))
-        return image, file_id, file_path
+        alternative = AlternativeImageType(comments=features)
+        segment.add_AlternativeImage(alternative)
+        return OcrdPageResultImage(image, segment.id + '.IMG-DESKEW', alternative)
