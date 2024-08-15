@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
+from typing import Optional
 from os.path import join
 import math
-import numpy as np
 
+import numpy as np
 from tesserocr import (
     RIL, PSM, PT, OEM,
     Orientation,
@@ -15,7 +16,6 @@ from tesserocr import (
 
 from ocrd_utils import (
     getLogger,
-    assert_file_grp_cardinality,
     shift_coordinates,
     coordinates_for_segment,
     polygon_from_x0y0x1y1,
@@ -45,9 +45,11 @@ from ocrd_models.ocrd_page import (
     GlyphType,
     TextEquivType,
     AlternativeImageType,
+    OcrdPage
 )
 from ocrd_models.ocrd_page_generateds import TextTypeSimpleType
 from ocrd import Processor
+from ocrd.processor import OcrdPageResult, OcrdPageResultImage
 
 from .common import *
 
@@ -126,8 +128,6 @@ class TesserocrRecognize(Processor):
     def setup(self):
         self.logger = getLogger('processor.' + self.__class__.__name__)
         self.logger.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
-        assert_file_grp_cardinality(self.input_file_grp, 1)
-        assert_file_grp_cardinality(self.output_file_grp, 1)
         self._init()
 
     def _init(self):
@@ -281,7 +281,7 @@ class TesserocrRecognize(Processor):
                 # default: undo all settings from previous calls (reset to init-state)
                 self.tessapi.Reset()
 
-    def process_page_pcgts(self, pcgts, output_file_id=None, page_id=None):
+    def process_page_pcgts(self, *input_pcgts: Optional[OcrdPage], page_id: Optional[str] = None) -> OcrdPageResult:
         """Perform layout segmentation and/or text recognition with Tesseract.
         
         Open and deserialise PAGE input file and its respective images,
@@ -407,7 +407,7 @@ class TesserocrRecognize(Processor):
         model (among the models given in ``model``), enable ``auto_model``. To constrain
         models by type (called OCR engine mode), use ``oem``.
         """
-
+        pcgts = input_pcgts[0]
         inlevel = self.parameter['segmentation_level']
         outlevel = self.parameter['textequiv_level']
         segment_only = outlevel == 'none' or not self.parameter.get('model', '')
@@ -434,7 +434,7 @@ class TesserocrRecognize(Processor):
         self.tessapi.SetVariable('user_defined_dpi', str(dpi))
 
         self.logger.info("Processing page '%s'", page_id)
-        result = [pcgts]
+        result = OcrdPageResult(pcgts)
         # FIXME: We should somehow _mask_ existing regions in order to annotate incrementally (not redundantly).
         #        Currently segmentation_level=region also means removing regions,
         #        but we could have an independent setting for that, and attempt
@@ -489,13 +489,10 @@ class TesserocrRecognize(Processor):
                 self.logger.debug("Recognizing text in page '%s'", page_id)
                 self.tessapi.Recognize()
             page_image_bin = self.tessapi.GetThresholdedImage()
-            page_image_bin_id = output_file_id + '.IMG-BIN'
-            page_image_bin_path = join(self.output_file_grp, page_image_bin_id + '.png')
-            # update METS (reference the image file) and store image file:
-            result.append((page_image_bin, page_image_bin_id, page_image_bin_path))
             # update PAGE (reference the image file):
-            page.add_AlternativeImage(AlternativeImageType(
-                filename=page_image_bin_path, comments=page_coords['features'] + ',binarized,clipped'))
+            page_image_ref = AlternativeImageType(comments=page_coords['features'] + ',binarized,clipped')
+            page.add_AlternativeImage(page_image_ref)
+            result.images.append(OcrdPageResultImage(page_image_bin, '.IMG-BIN', page_image_ref))
             self._process_regions_in_page(self.tessapi.GetIterator(), page, page_coords, pcgts_mapping, dpi)
         elif inlevel == 'cell':
             # Tables are obligatorily recursive regions;
