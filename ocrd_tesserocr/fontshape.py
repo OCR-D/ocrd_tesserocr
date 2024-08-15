@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+
+from typing import Optional
 import os.path
 from PIL import Image, ImageStat
 
@@ -8,7 +10,8 @@ from tesserocr import (
     get_languages
 )
 
-from ocrd_models.ocrd_page import TextStyleType
+from ocrd_models.ocrd_page import TextStyleType, OcrdPage
+from ocrd.processor import OcrdPageResult
 
 from .recognize import TesserocrRecognize
 from .common import pad_image
@@ -29,7 +32,7 @@ class TesserocrFontShape(TesserocrRecognize):
         self.logger.info("Using model '%s' in %s for recognition at the word level",
                          model, get_languages()[0])
 
-    def process_page_pcgts(self, pcgts, output_file_id=None, page_id=None):
+    def process_page_pcgts(self, *input_pcgts: Optional[OcrdPage], page_id: Optional[str] = None) -> OcrdPageResult:
         """Detect font shapes via rule-based OCR with Tesseract on the workspace.
         
         Open and deserialise PAGE input file and its respective images,
@@ -44,8 +47,9 @@ class TesserocrFontShape(TesserocrRecognize):
         
         Produce new output files by serialising the resulting hierarchy.
         """
-
+        pcgts = input_pcgts[0]
         page = pcgts.get_Page()
+        result = OcrdPageResult(pcgts)
 
         page_image, page_coords, page_image_info = self.workspace.image_from_page(
             page, page_id)
@@ -69,7 +73,7 @@ class TesserocrFontShape(TesserocrRecognize):
         else:
             self._process_regions(regions, page_image, page_coords)
 
-        return pcgts
+        return result
 
     def _process_regions(self, regions, page_image, page_coords):
         for region in regions:
