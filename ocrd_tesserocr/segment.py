@@ -1,7 +1,11 @@
 from __future__ import absolute_import
 
+from typing import Optional
+
 from ocrd_utils import getLogger
 from ocrd_validators import ParameterValidator
+from ocrd_models import OcrdPage
+from ocrd.processor import OcrdPageResult
 
 from .recognize import TesserocrRecognize
 
@@ -19,10 +23,10 @@ class TesserocrSegment(TesserocrRecognize):
             # add default params
             assert ParameterValidator(self.metadata['tools']['ocrd-tesserocr-recognize']).validate(self.parameter).is_valid
 
-    def process(self):
+    def process_page_pcgts(self, *input_pcgts: Optional[OcrdPage], page_id: Optional[str] = None) -> OcrdPageResult:
         """Performs region and line segmentation with Tesseract on the workspace.
         
-        Open and deserialize PAGE input files and their respective images,
+        Open and deserialize PAGE input file and its respective images,
         and remove any existing Region and ReadingOrder elements.
         
         Set up Tesseract to detect blocks, and add each one to the page
@@ -57,4 +61,4 @@ class TesserocrSegment(TesserocrRecognize):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
-        super(TesserocrSegment, self).process()
+        return super().process_page_pcgts(*input_pcgts, page_id=page_id)
