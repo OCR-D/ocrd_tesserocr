@@ -1,7 +1,11 @@
 from __future__ import absolute_import
 
+from typing import Optional
+
 from ocrd_utils import getLogger
 from ocrd_validators import ParameterValidator
+from ocrd_models import OcrdPage
+from ocrd.processor import OcrdPageResult
 
 from .recognize import TesserocrRecognize
 
@@ -20,7 +24,7 @@ class TesserocrSegmentTable(TesserocrRecognize):
             # add default params
             assert ParameterValidator(self.metadata['tools']['ocrd-tesserocr-recognize']).validate(self.parameter).is_valid
 
-    def process_page_pcgts(self, pcgts, output_file_id=None, page_id=None):
+    def process_page_pcgts(self, *input_pcgts: Optional[OcrdPage], page_id: Optional[str] = None) -> OcrdPageResult:
         """Performs table cell segmentation with Tesseract on the workspace.
         
         Open and deserialize PAGE input file and its respective images,
@@ -35,4 +39,4 @@ class TesserocrSegmentTable(TesserocrRecognize):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
-        return super().process_page_pcgts(pcgts, output_file_id=output_file_id, page_id=page_id)
+        return super().process_page_pcgts(*input_pcgts, page_id=page_id)
