@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+
+from typing import Optional
 import os.path
 from PIL import Image, ImageStat
 
@@ -8,33 +10,32 @@ from tesserocr import (
     get_languages
 )
 
-from ocrd_utils import (
-    getLogger,
-    make_file_id,
-    assert_file_grp_cardinality,
-    MIMETYPE_PAGE
-)
-from ocrd_models.ocrd_page import (
-    TextStyleType,
-    to_xml)
-from ocrd_modelfactory import page_from_file
+from ocrd_models.ocrd_page import TextStyleType, OcrdPage
+from ocrd.processor import OcrdPageResult
 
-from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
-
-TOOL = 'ocrd-tesserocr-fontshape'
+from .common import pad_image
 
 class TesserocrFontShape(TesserocrRecognize):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
-        super().__init__(*args, **kwargs)
-        if hasattr(self, 'parameter'):
-            self.logger = getLogger('processor.TesserocrFontShape')
+    @property
+    def executable(self):
+        return 'ocrd-tesserocr-fontshape'
 
-    def process(self):
+    def _init(self):
+        model = self.parameter['model']
+        if model not in get_languages()[1]:
+            raise Exception("model " + model + " (needed for font style detection) is not installed")
+        # use vanilla tesserocr API
+        self.tessapi = PyTessBaseAPI(oem=OEM.TESSERACT_ONLY, # legacy required for OSD or WordFontAttributes!
+                                     #oem=OEM.TESSERACT_LSTM_COMBINED,
+                                     lang=model)
+        self.logger.info("Using model '%s' in %s for recognition at the word level",
+                         model, get_languages()[0])
+
+    def process_page_pcgts(self, *input_pcgts: Optional[OcrdPage], page_id: Optional[str] = None) -> OcrdPageResult:
         """Detect font shapes via rule-based OCR with Tesseract on the workspace.
         
-        Open and deserialise PAGE input files and their respective images,
+        Open and deserialise PAGE input file and its respective images,
         then iterate over the element hierarchy down to the line level.
         
         Set up Tesseract to recognise each word's image (either from
@@ -46,61 +47,35 @@ class TesserocrFontShape(TesserocrRecognize):
         
         Produce new output files by serialising the resulting hierarchy.
         """
-        self.logger.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
+        pcgts = input_pcgts[0]
+        page = pcgts.get_Page()
+        result = OcrdPageResult(pcgts)
 
-        assert_file_grp_cardinality(self.input_file_grp, 1)
-        assert_file_grp_cardinality(self.output_file_grp, 1)
+        page_image, page_coords, page_image_info = self.workspace.image_from_page(
+            page, page_id)
+        if self.parameter['dpi'] > 0:
+            dpi = self.parameter['dpi']
+            self.logger.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
+        elif page_image_info.resolution != 1:
+            dpi = page_image_info.resolution
+            if page_image_info.resolutionUnit == 'cm':
+                dpi = round(dpi * 2.54)
+            self.logger.info("Page '%s' images will use %d DPI from image meta-data", page_id, dpi)
+        else:
+            dpi = 0
+            self.logger.info("Page '%s' images will use DPI estimated from segmentation", page_id)
+        self.tessapi.SetVariable('user_defined_dpi', str(dpi))
 
-        model = self.parameter['model']
-        if model not in get_languages()[1]:
-            raise Exception("model " + model + " (needed for font style detection) is not installed")
-        
-        with PyTessBaseAPI(#oem=OEM.TESSERACT_LSTM_COMBINED, # legacy required for OSD or WordFontAttributes!
-                           oem=OEM.TESSERACT_ONLY, # legacy required for OSD or WordFontAttributes!
-                           lang=model) as tessapi:
-            self.logger.info("Using model '%s' in %s for recognition at the word level",
-                             model, get_languages()[0])
-            for (n, input_file) in enumerate(self.input_files):
-                page_id = input_file.pageId or input_file.ID
-                self.logger.info("INPUT FILE %i / %s", n, page_id)
-                pcgts = page_from_file(self.workspace.download_file(input_file))
-                self.add_metadata(pcgts)
-                page = pcgts.get_Page()
-                
-                page_image, page_coords, page_image_info = self.workspace.image_from_page(
-                    page, page_id)
-                if self.parameter['dpi'] > 0:
-                    dpi = self.parameter['dpi']
-                    self.logger.info("Page '%s' images will use %d DPI from parameter override", page_id, dpi)
-                elif page_image_info.resolution != 1:
-                    dpi = page_image_info.resolution
-                    if page_image_info.resolutionUnit == 'cm':
-                        dpi = round(dpi * 2.54)
-                    self.logger.info("Page '%s' images will use %d DPI from image meta-data", page_id, dpi)
-                else:
-                    dpi = 0
-                    self.logger.info("Page '%s' images will use DPI estimated from segmentation", page_id)
-                tessapi.SetVariable('user_defined_dpi', str(dpi))
-                
-                self.logger.info("Processing page '%s'", page_id)
-                regions = page.get_AllRegions(classes=['Text'])
-                if not regions:
-                    self.logger.warning("Page '%s' contains no text regions", page_id)
-                else:
-                    self._process_regions(tessapi, regions, page_image, page_coords)
-                
-                file_id = make_file_id(input_file, self.output_file_grp)
-                pcgts.set_pcGtsId(file_id)
-                self.workspace.add_file(
-                    file_id=file_id,
-                    file_grp=self.output_file_grp,
-                    page_id=input_file.pageId,
-                    mimetype=MIMETYPE_PAGE,
-                    local_filename=os.path.join(self.output_file_grp,
-                                                file_id + '.xml'),
-                    content=to_xml(pcgts))
+        self.logger.info("Processing page '%s'", page_id)
+        regions = page.get_AllRegions(classes=['Text'])
+        if not regions:
+            self.logger.warning("Page '%s' contains no text regions", page_id)
+        else:
+            self._process_regions(regions, page_image, page_coords)
 
-    def _process_regions(self, tessapi, regions, page_image, page_coords):
+        return result
+
+    def _process_regions(self, regions, page_image, page_coords):
         for region in regions:
             region_image, region_coords = self.workspace.image_from_segment(
                 region, page_image, page_coords)
@@ -108,9 +83,9 @@ class TesserocrFontShape(TesserocrRecognize):
             if not textlines:
                 self.logger.warning("Region '%s' contains no text lines", region.id)
             else:
-                self._process_lines(tessapi, textlines, region_image, region_coords)
+                self._process_lines(textlines, region_image, region_coords)
 
-    def _process_lines(self, tessapi, textlines, region_image, region_coords):
+    def _process_lines(self, textlines, region_image, region_coords):
         for line in textlines:
             line_image, line_coords = self.workspace.image_from_segment(
                 line, region_image, region_coords)
@@ -119,20 +94,20 @@ class TesserocrFontShape(TesserocrRecognize):
             if not words:
                 self.logger.warning("Line '%s' contains no words", line.id)
             else:
-                self._process_words(tessapi, words, line_image, line_coords)
+                self._process_words(words, line_image, line_coords)
 
-    def _process_words(self, tessapi, words, line_image, line_coords):
+    def _process_words(self, words, line_image, line_coords):
         for word in words:
             word_image, word_coords = self.workspace.image_from_segment(
                 word, line_image, line_coords)
             if self.parameter['padding']:
-                tessapi.SetImage(pad_image(word_image, self.parameter['padding']))
+                self.tessapi.SetImage(pad_image(word_image, self.parameter['padding']))
             else:
-                tessapi.SetImage(word_image)
-            tessapi.SetPageSegMode(PSM.SINGLE_WORD)
-            #tessapi.SetPageSegMode(PSM.RAW_LINE)
-            tessapi.Recognize()
-            result_it = tessapi.GetIterator()
+                self.tessapi.SetImage(word_image)
+            self.tessapi.SetPageSegMode(PSM.SINGLE_WORD)
+            #self.tessapi.SetPageSegMode(PSM.RAW_LINE)
+            self.tessapi.Recognize()
+            result_it = self.tessapi.GetIterator()
             if not result_it or result_it.Empty(RIL.WORD):
                 self.logger.warning("No text in word '%s'", word.id)
                 continue
@@ -164,16 +139,3 @@ class TesserocrFontShape(TesserocrRecognize):
                     if 'serif' in word_attributes else None)
                 word.set_TextStyle(word_style) # (or somewhere in custom attribute?)
 
-def pad_image(image, padding):
-    stat = ImageStat.Stat(image)
-    # workaround for Pillow#4925
-    if len(stat.bands) > 1:
-        background = tuple(stat.median)
-    else:
-        background = stat.median[0]
-    padded = Image.new(image.mode,
-                       (image.width + 2 * padding,
-                        image.height + 2 * padding),
-                       background)
-    padded.paste(image, (padding, padding))
-    return padded

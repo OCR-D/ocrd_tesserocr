@@ -1,17 +1,20 @@
 from __future__ import absolute_import
 
+from typing import Optional
+
 from ocrd_utils import getLogger
 from ocrd_validators import ParameterValidator
+from ocrd_models import OcrdPage
+from ocrd.processor import OcrdPageResult
 
-from .config import OCRD_TOOL
 from .recognize import TesserocrRecognize
 
-TOOL = 'ocrd-tesserocr-segment-table'
-BASE_TOOL = 'ocrd-tesserocr-recognize'
-
 class TesserocrSegmentTable(TesserocrRecognize):
+    @property
+    def executable(self):
+        return 'ocrd-tesserocr-segment-table'
+
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
         super().__init__(*args, **kwargs)
         if hasattr(self, 'parameter'):
             self.parameter['overwrite_segments'] = self.parameter['overwrite_cells']
@@ -19,13 +22,12 @@ class TesserocrSegmentTable(TesserocrRecognize):
             self.parameter['segmentation_level'] = "cell"
             self.parameter['textequiv_level'] = "cell"
             # add default params
-            assert ParameterValidator(OCRD_TOOL['tools'][BASE_TOOL]).validate(self.parameter).is_valid
-            self.logger = getLogger('processor.TesserocrSegmentTable')
+            assert ParameterValidator(self.metadata['tools']['ocrd-tesserocr-recognize']).validate(self.parameter).is_valid
 
-    def process(self):
+    def process_page_pcgts(self, *input_pcgts: Optional[OcrdPage], page_id: Optional[str] = None) -> OcrdPageResult:
         """Performs table cell segmentation with Tesseract on the workspace.
         
-        Open and deserialize PAGE input files and their respective images,
+        Open and deserialize PAGE input file and its respective images,
         then iterate over the element hierarchy down to the region level
         for table regions, and remove any existing TextRegion elements
         (unless ``overwrite_cells`` is False).
@@ -37,4 +39,4 @@ class TesserocrSegmentTable(TesserocrRecognize):
         
         Produce a new output file by serialising the resulting hierarchy.
         """
-        super(TesserocrSegmentTable, self).process()
+        return super().process_page_pcgts(*input_pcgts, page_id=page_id)
