@@ -261,10 +261,12 @@ class TesserocrDeskew(TesserocrRecognize):
             image, xywh, _ = self.workspace.image_from_page(
                 segment, where,
                 fill='background', transparency=True)
+            suffix = '.IMG-DESKEW'
         else:
             image, xywh = self.workspace.image_from_segment(
                 segment, image, xywh,
                 fill='background', transparency=True)
+            suffix = segment.id + '.IMG-DESKEW'
         if not angle:
             # zero rotation does not change coordinates,
             # but assures consuming processors that the
@@ -274,4 +276,4 @@ class TesserocrDeskew(TesserocrRecognize):
         # update PAGE (reference the image file):
         alternative = AlternativeImageType(comments=features)
         segment.add_AlternativeImage(alternative)
-        return OcrdPageResultImage(image, segment.id + '.IMG-DESKEW', alternative)
+        return OcrdPageResultImage(image, suffix, alternative)
