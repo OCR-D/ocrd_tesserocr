@@ -39,7 +39,7 @@ COPY requirements.txt .
 COPY requirements_test.txt .
 COPY .git .git
 COPY .gitmodules .
-COPY ocrd_tesserocr .
+COPY ocrd_tesserocr ocrd_tesserocr
 COPY repo/tesserocr repo/tesserocr
 COPY repo/tesseract repo/tesseract
 COPY Makefile .
@@ -66,7 +66,5 @@ RUN ln -s $XDG_CONFIG_HOME/ocrd-tesserocr-recognize $TESSDATA_PREFIX
 # finally, alias/symlink all ocrd-resources to /models for shorter mount commands
 RUN mv $XDG_CONFIG_HOME /models && ln -s /models $XDG_CONFIG_HOME
 
-
-# finally, alias/symlink all ocrd-resources to /models for shorter mount commands
 WORKDIR /data
 VOLUME /data
