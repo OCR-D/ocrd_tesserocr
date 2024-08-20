@@ -34,6 +34,8 @@ jobs:
       run: echo "IMAGE_NAME=ghcr.io/${REPO_NAME,,}" >> $GITHUB_ENV
     - name: Build the Docker image
       run: make docker DOCKER_TAG=${{ env.IMAGE_NAME }}
+    - name: Test the Docker image
+      run: docker run --rm ${{ env.IMAGE_NAME }} ocrd-tesserocr-segment -h
     - name: Push to Github Container Registry
       run: docker push ${{ env.IMAGE_NAME }}
     
