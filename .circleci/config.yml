@@ -29,6 +29,19 @@ jobs:
       - run: make coverage
       - codecov/upload
 
+  build-docker:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    environment:
+      DOCKER_TAG: ocrd/tesserocr
+    steps:
+      - checkout
+      - run: git submodule sync && git submodule update --init
+      - setup_remote_docker: # https://circleci.com/docs/2.0/building-docker-images/
+          docker_layer_caching: true
+      - run: make docker DOCKER_TAG=$DOCKER_TAG
+      - run: docker run --rm $DOCKER_TAG ocrd-tesserocr-segment -h
+
   deploy-docker:
     docker:
       - image: circleci/buildpack-deps:stretch
@@ -40,6 +53,7 @@ jobs:
       - setup_remote_docker: # https://circleci.com/docs/2.0/building-docker-images/
           docker_layer_caching: true
       - run: make docker DOCKER_TAG=$DOCKER_TAG
+      - run: docker run --rm $DOCKER_TAG ocrd-tesserocr-segment -h
       - run:
           name: Login to Docker Hub
           command: echo "$DOCKERHUB_PASS" | docker login --username "$DOCKERHUB_USER" --password-stdin
@@ -62,6 +76,8 @@ workflows:
           matrix:
             parameters:
               python-version: ['3.7', '3.8', '3.9', '3.10']
+      - build-docker
+
   deploy:
     when:
       condition:
