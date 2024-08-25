@@ -39,8 +39,8 @@ def test_run_modular(workspace_kant_binarized):
     results = workspace_kant_binarized.find_files(file_grp='OCR-D-OCR-TESS-W2C', mimetype=MIMETYPE_PAGE)
     result0 = next(results, False)
     assert result0
-    _, result0, _, _ = page_from_file(result0, with_tree=True)
-    text0 = result0.xpath('//page:Glyph/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    result0 = page_from_file(result0)
+    text0 = result0.etree.xpath('//page:Glyph/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
     assert len(text0) > 0
 
 def test_run_modular_full(workspace_kant_binarized):
@@ -79,10 +79,10 @@ def test_run_modular_full(workspace_kant_binarized):
     results = workspace_kant_binarized.find_files(file_grp='OCR-D-OCR-STYLE', mimetype=MIMETYPE_PAGE)
     result0 = next(results, False)
     assert result0
-    _, result0, _, _ = page_from_file(result0, with_tree=True)
-    text0 = result0.xpath('//page:Word/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    result0 = page_from_file(result0)
+    text0 = result0.etree.xpath('//page:Word/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
     assert len(text0) > 0
-    style0 = result0.xpath('//page:Word/page:TextStyle', namespaces=NAMESPACES)
+    style0 = result0.etree.xpath('//page:Word/page:TextStyle', namespaces=NAMESPACES)
     assert len(style0) > 0
 
 def test_run_allinone(workspace_kant_binarized):
@@ -96,8 +96,8 @@ def test_run_allinone(workspace_kant_binarized):
     results = workspace_kant_binarized.find_files(file_grp='OCR-D-OCR-TESS-W2C', mimetype=MIMETYPE_PAGE)
     result0 = next(results, False)
     assert result0
-    _, result0, _, _ = page_from_file(result0, with_tree=True)
-    text0 = result0.xpath('//page:Glyph/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    result0 = page_from_file(result0)
+    text0 = result0.etree.xpath('//page:Glyph/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
     assert len(text0) > 0
 
 def test_run_allinone_shrink(workspace_kant_binarized):
