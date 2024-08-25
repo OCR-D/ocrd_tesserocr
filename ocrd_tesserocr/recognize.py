@@ -48,8 +48,7 @@ from ocrd_models.ocrd_page import (
     OcrdPage
 )
 from ocrd_models.ocrd_page_generateds import TextTypeSimpleType
-from ocrd import Processor
-from ocrd.processor import OcrdPageResult, OcrdPageResultImage
+from ocrd import Processor, OcrdPageResult, OcrdPageResultImage
 
 from .common import *
 
@@ -126,7 +125,6 @@ class TesserocrRecognize(Processor):
         return get_languages()[0]
 
     def setup(self):
-        self.logger = getLogger('processor.' + self.__class__.__name__)
         self.logger.debug("TESSDATA: %s, installed Tesseract models: %s", *get_languages())
         self._init()
 
@@ -283,47 +281,47 @@ class TesserocrRecognize(Processor):
 
     def process_page_pcgts(self, *input_pcgts: Optional[OcrdPage], page_id: Optional[str] = None) -> OcrdPageResult:
         """Perform layout segmentation and/or text recognition with Tesseract.
-        
+
         Open and deserialise PAGE input file and its respective images,
         then iterate over the element hierarchy down to the requested
         ``textequiv_level`` if it exists and if ``segmentation_level``
         is lower (i.e. more granular) or ``none``.
-        
+
         Otherwise stop before (i.e. above) ``segmentation_level``. If any
         segmentation exists at that level already, and ``overwrite_segments``
         is false, then descend into these segments, else remove them.
-        
+
         Set up Tesseract to recognise each segment's image (either from
         AlternativeImage or cropping the bounding box rectangle and masking
         it from the polygon outline) with the appropriate segmentation mode
         and recognition ``model``. (If no ``model`` is given, then only
         layout analysis will be performed.)
-        
+
         Next, if there still is a gap between the current level in the PAGE hierarchy
         and the requested ``textequiv_level``, then iterate down the result hierarchy,
         adding new segments at each level (as well as reading order references,
         text line order, reading direction and orientation at the region/table level).
-        
+
         Then, at ``textequiv_level``, remove any existing TextEquiv, unless
         ``overwrite_text`` is false, and add text and confidence results, unless
         ``model`` is empty.
-        
+
         The special value ``textequiv_level=none`` behaves like ``glyph``,
         except that no actual text recognition will be performed, only
         layout analysis (so no ``model`` is needed, and new segmentation
         is created down to the glyph level).
-        
+
         The special value ``segmentation_level=none`` likewise is lowest,
         i.e. no actual layout analysis will be performed, only
         text recognition (so existing segmentation is needed down to
         ``textequiv_level``).
-        
+
         Finally, make all higher levels consistent with these text results
         by concatenation, ordering according to each level's respective
         readingDirection, textLineOrder, and ReadingOrder, and joining
         by whitespace as appropriate for each level and according to its
         Relation/join status.
-        
+
         Produce a new output file by serialising the resulting hierarchy.
 
         \b
@@ -358,7 +356,7 @@ class TesserocrRecognize(Processor):
           recognize text in the glyphs and annotate it. Regardless, continue
           with the next glyph. Otherwise...
         - (i.e. ``none``) annotate no text and be done.
-        
+
         Note that ``cell`` is an _optional_ level that is only relevant for
         table regions, not text or other regions. 
         Also, when segmenting tables in the same run that detects them
@@ -366,42 +364,42 @@ class TesserocrRecognize(Processor):
         just be 'paragraphs'. In contrast, when segmenting tables that already exist
         (via ``segmentation_level=cell``), cells will be detected in ``sparse_text``
         mode, i.e. as single-line text regions.
-        
+
         Thus, ``segmentation_level`` is the entry point level for layout analysis,
         and setting it to ``none`` makes this processor behave as recognition-only.
         Whereas ``textequiv_level`` selects the exit point level for segmentation,
         and setting it to ``none`` makes this processor behave as segmentation-only,
         as does omitting ``model``.
-        
+
         All segments above ``segmentation_level`` must already exist, and
         no segments below ``textequiv_level`` will be newly created.
-        
+
         If ``find_tables``, then during region segmentation, also try to detect
         table blocks and add them as TableRegion, then query the page iterator
         for paragraphs and add them as TextRegion cells.
-        
+
         If ``find_staves``, then during region segmentation, also try to detect
         sheet music blocks and suppress them during page layout analysis.
-        
+
         If ``block_polygons``, then during region segmentation, query Tesseract
         for polygon outlines instead of bounding boxes for each region.
         (This is more precise, but due to some path representation errors does
         not always yield accurate/valid polygons.)
-        
+
         If ``shrink_polygons``, then during segmentation (on any level), query Tesseract
         for all symbols/glyphs of each segment and calculate the convex hull for them.
         Annotate the resulting polygon instead of the coarse bounding box.
         (This is more precise and helps avoid overlaps between neighbours, especially
         when not segmenting all levels at once.)
-        
+
         If ``sparse_text``, then during region segmentation, attempt to find
         single-line text blocks in no particular order (Tesseract's page segmentation
         mode ``SPARSE_TEXT``).
-        
+
         If ``tesseract_parameters`` is given, setup each of its key-value pairs as
         run-time parameters in Tesseract. For local (per-segment) parameter selection
         based on XPath queries into the input PAGE, use ``xpath_parameters``.
-        
+
         Similarly, for local (per-segment) OCR model selection based on XPath queries
         into the input PAGE, use ``xpath_model``. For auto-detection of the best performing
         model (among the models given in ``model``), enable ``auto_model``. To constrain
@@ -412,8 +410,6 @@ class TesserocrRecognize(Processor):
         outlevel = self.parameter['textequiv_level']
         segment_only = outlevel == 'none' or not self.parameter.get('model', '')
 
-        pcgts_mapping = dict()
-        _ = pcgts.to_etree(mapping_=pcgts_mapping)
         page = pcgts.get_Page()
         page_image, page_coords, page_image_info = self.workspace.image_from_page(
             page, page_id)
@@ -477,7 +473,7 @@ class TesserocrRecognize(Processor):
                 # analysed as independent text/line blocks:
                 self.tessapi.SetVariable("textord_tabfind_find_tables", "0")
             if not segment_only:
-                self._reinit(page, pcgts_mapping)
+                self._reinit(page, pcgts.mapping)
             self.tessapi.SetImage(page_image) # is already cropped to Border
             self.tessapi.SetPageSegMode(PSM.SPARSE_TEXT
                                    if self.parameter['sparse_text']
@@ -493,7 +489,7 @@ class TesserocrRecognize(Processor):
             page_image_ref = AlternativeImageType(comments=page_coords['features'] + ',binarized,clipped')
             page.add_AlternativeImage(page_image_ref)
             result.images.append(OcrdPageResultImage(page_image_bin, '.IMG-BIN', page_image_ref))
-            self._process_regions_in_page(self.tessapi.GetIterator(), page, page_coords, pcgts_mapping, dpi)
+            self._process_regions_in_page(self.tessapi.GetIterator(), page, page_coords, pcgts.mapping, dpi)
         elif inlevel == 'cell':
             # Tables are obligatorily recursive regions;
             # they might have existing text regions (cells),
@@ -511,9 +507,9 @@ class TesserocrRecognize(Processor):
                 self.logger.warning("Page '%s' contains no table regions (but segmentation is off)",
                                     page_id)
             else:
-                self._process_existing_tables(tables, page, page_image, page_coords, pcgts_mapping)
+                self._process_existing_tables(tables, page, page_image, page_coords, pcgts.mapping)
         elif regions:
-            self._process_existing_regions(regions, page_image, page_coords, pcgts_mapping)
+            self._process_existing_regions(regions, page_image, page_coords, pcgts.mapping)
         else:
             self.logger.warning("Page '%s' contains no text regions (but segmentation is off)",
                                 page_id)
@@ -690,7 +686,7 @@ class TesserocrRecognize(Processor):
             not og.get_UnorderedGroupIndexed()):
             # schema forbids empty OrderedGroup
             ro.set_OrderedGroup(None)
-    
+
     def _process_cells_in_table(self, result_it, region, rogroup, page_coords, mapping):
         if self.parameter['segmentation_level'] == 'cell':
             ril = RIL.BLOCK # for sparse_text mode
@@ -941,7 +937,7 @@ class TesserocrRecognize(Processor):
                 self.logger.debug("Recognizing text in table '%s'", table.id)
                 self.tessapi.Recognize()
             self._process_cells_in_table(self.tessapi.GetIterator(), table, roelem, table_coords, mapping)
-    
+
     def _process_existing_regions(self, regions, page_image, page_coords, mapping):
         if self.parameter['textequiv_level'] in ['region', 'cell'] and not self.parameter.get('model', ''):
             return
