@@ -3,13 +3,31 @@ from time import sleep
 from pytest import fixture
 
 from ocrd import Resolver, Workspace, OcrdMetsServer
-from ocrd_utils import pushd_popd, initLogging, config
+from ocrd_utils import pushd_popd, initLogging, setOverrideLogLevel, config
 
 from test.assets import assets as assets
 
-METS_KANT_BINARIZED = assets.url_of('kant_aufklaerung_1784-binarized/data/mets.xml')
-METS_HEROLD_SMALL = assets.url_of('SBB0000F29300010000/data/mets_one_file.xml')
-METS_GUTACHTEN = assets.url_of('gutachten/data/mets.xml')
+@fixture
+def workspace(tmpdir, pytestconfig):
+    def _make_workspace(workspace_path):
+        initLogging()
+        if pytestconfig.getoption('verbose') > 0:
+            setOverrideLogLevel('DEBUG')
+        with pushd_popd(tmpdir):
+            yield Resolver().workspace_from_url(workspace_path, dst_dir=tmpdir, download=True)
+    return _make_workspace
+
+@fixture
+def workspace_kant_binarized(workspace):
+    yield from workspace(assets.url_of('kant_aufklaerung_1784-binarized/data/mets.xml'))
+
+@fixture
+def workspace_herold_small(workspace):
+    yield from workspace(assets.url_of('SBB0000F29300010000/data/mets_one_file.xml'))
+
+@fixture
+def workspace_gutachten(workspace):
+    yield from workspace(assets.url_of('gutachten/data/mets.xml'))
 
 CONFIGS = ['', 'pageparallel', 'metscache', 'pageparallel+metscache']
 
@@ -35,22 +53,3 @@ def configsettings(request):
     else:
         yield ()
     config.reset_defaults()
-
-@fixture
-def workspace_kant_binarized(tmpdir):
-    initLogging()
-    with pushd_popd(tmpdir):
-        yield Resolver().workspace_from_url(METS_KANT_BINARIZED, dst_dir=tmpdir, download=True)
-
-@fixture
-def workspace_herold_small(tmpdir):
-    initLogging()
-    with pushd_popd(tmpdir):
-        yield Resolver().workspace_from_url(METS_HEROLD_SMALL, dst_dir=tmpdir, download=True)
-
-@fixture
-def workspace_gutachten(tmpdir):
-    initLogging()
-    with pushd_popd(tmpdir):
-        yield Resolver().workspace_from_url(METS_GUTACHTEN, dst_dir=tmpdir, download=True)
-
