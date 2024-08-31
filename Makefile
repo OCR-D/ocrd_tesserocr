@@ -139,6 +139,8 @@ install: deps
 	ocrd resmgr download ocrd-tesserocr-recognize osd.traineddata
 	ocrd resmgr download ocrd-tesserocr-recognize equ.traineddata
 
+test test-cli coverage: export OCRD_MISSING_OUTPUT := ABORT
+
 # Run unit tests
 test: test/assets deps-test
 	@# declare -p HTTP_PROXY
