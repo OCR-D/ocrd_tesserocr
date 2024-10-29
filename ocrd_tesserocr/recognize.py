@@ -112,9 +112,6 @@ class TessBaseAPI(PyTessBaseAPI):
         return None
 
 class TesserocrRecognize(Processor):
-    # Tesseract API is not thread-safe
-    max_workers = 1
-
     @property
     def executable(self):
         return 'ocrd-tesserocr-recognize'

@@ -1,4 +1,4 @@
-ocrd >= 3.0.0b4
+ocrd >= 3.0.0b6
 click
 tesserocr >= 2.5.2
 shapely >= 2.0
