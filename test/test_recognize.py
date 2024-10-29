@@ -11,37 +11,31 @@ from ocrd_tesserocr import TesserocrSegmentRegion
 from ocrd_tesserocr import TesserocrRecognize
 from ocrd_tesserocr import TesserocrFontShape
 
-def test_run_modular(workspace_kant_binarized, configsettings):
-    ws = workspace_kant_binarized
-    if len(configsettings):
-        print("running with METS server")
-        mets_server_url, ws = configsettings
-        kwargs = {'workspace': ws,
-                  'mets_server_url': mets_server_url}
-    else:
-        kwargs = {'workspace': ws}
+def test_run_modular(workspace_kant_binarized):
     run_processor(TesserocrSegmentRegion,
+                  workspace=workspace_kant_binarized,
                   input_file_grp="OCR-D-IMG",
-                  output_file_grp="OCR-D-SEG-BLOCK",
-                  **kwargs)
+                  output_file_grp="OCR-D-SEG-BLOCK")
     run_processor(TesserocrSegmentLine,
+                  workspace=workspace_kant_binarized,
                   input_file_grp="OCR-D-SEG-BLOCK",
-                  output_file_grp="OCR-D-SEG-LINE",
-                  **kwargs)
+                  output_file_grp="OCR-D-SEG-LINE")
     run_processor(TesserocrRecognize,
+                  workspace=workspace_kant_binarized,
                   input_file_grp="OCR-D-SEG-LINE",
                   output_file_grp="OCR-D-OCR-TESS",
-                  parameter={'textequiv_level': 'line', 'model': 'Fraktur'},
-                  **kwargs)
+                  parameter={'textequiv_level': 'line', 'model': 'Fraktur'})
     run_processor(TesserocrSegmentWord,
+                  workspace=workspace_kant_binarized,
                   input_file_grp="OCR-D-SEG-LINE",
-                  output_file_grp="OCR-D-SEG-WORD",
-                  **kwargs)
+                  output_file_grp="OCR-D-SEG-WORD")
     run_processor(TesserocrRecognize,
+                  workspace=workspace_kant_binarized,
                   input_file_grp="OCR-D-SEG-WORD",
                   output_file_grp="OCR-D-OCR-TESS-W2C",
-                  parameter={'segmentation_level': 'glyph', 'textequiv_level': 'glyph', 'model': 'Fraktur'},
-                  **kwargs)
+                  parameter={'segmentation_level': 'glyph', 'textequiv_level': 'glyph',
+                             'model': 'Fraktur'})
+    ws = workspace_kant_binarized
     ws.save_mets()
     assert os.path.isdir(os.path.join(ws.directory, 'OCR-D-OCR-TESS-W2C'))
     results = ws.find_files(file_grp='OCR-D-OCR-TESS-W2C', mimetype=MIMETYPE_PAGE)
