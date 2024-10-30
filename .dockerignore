@@ -1,4 +1,6 @@
 *
+!.git
+!.gitmodules
 !Makefile
 !setup.py
 !requirements.txt
