@@ -1,16 +1,17 @@
 import click
-
 from ocrd.decorators import ocrd_cli_options, ocrd_cli_wrap_processor
+
+from ocrd_tesserocr.binarize import TesserocrBinarize
+from ocrd_tesserocr.crop import TesserocrCrop
+from ocrd_tesserocr.deskew import TesserocrDeskew
 from ocrd_tesserocr.fontshape import TesserocrFontShape
 from ocrd_tesserocr.recognize import TesserocrRecognize
 from ocrd_tesserocr.segment import TesserocrSegment
+from ocrd_tesserocr.segment_line import TesserocrSegmentLine
 from ocrd_tesserocr.segment_region import TesserocrSegmentRegion
 from ocrd_tesserocr.segment_table import TesserocrSegmentTable
-from ocrd_tesserocr.segment_line import TesserocrSegmentLine
 from ocrd_tesserocr.segment_word import TesserocrSegmentWord
-from ocrd_tesserocr.crop import TesserocrCrop
-from ocrd_tesserocr.deskew import TesserocrDeskew
-from ocrd_tesserocr.binarize import TesserocrBinarize
+
 
 @click.command()
 @ocrd_cli_options

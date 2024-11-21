@@ -1,66 +1,39 @@
 from __future__ import absolute_import
+
+import itertools
+import math
 from os.path import join
 from pathlib import Path
-import math
-import itertools
-from PIL import Image, ImageStat
+
 import numpy as np
-from scipy.sparse.csgraph import minimum_spanning_tree
-from shapely.geometry import Polygon, LineString
-from shapely.ops import unary_union, nearest_points, orient
-from shapely import set_precision
-
-from tesserocr import (
-    RIL, PSM, PT, OEM,
-    Orientation,
-    WritingDirection,
-    TextlineOrder,
-    tesseract_version,
-    PyTessBaseAPI,
-    get_languages)
-
-from ocrd_utils import (
-    getLogger,
-    make_file_id,
-    assert_file_grp_cardinality,
-    shift_coordinates,
-    coordinates_for_segment,
-    polygon_from_x0y0x1y1,
-    polygon_from_points,
-    points_from_polygon,
-    xywh_from_polygon,
-    MIMETYPE_PAGE,
-    membername
-)
-from ocrd_models.ocrd_page import (
-    ReadingOrderType,
-    RegionRefType,
-    RegionRefIndexedType,
-    OrderedGroupType,
-    OrderedGroupIndexedType,
-    UnorderedGroupType,
-    UnorderedGroupIndexedType,
-    PageType,
-    CoordsType,
-    ImageRegionType,
-    MathsRegionType,
-    SeparatorRegionType,
-    NoiseRegionType,
-    TableRegionType,
-    TextRegionType,
-    TextLineType,
-    WordType,
-    GlyphType,
-    TextEquivType,
-    AlternativeImageType,
-    to_xml)
-from ocrd_models.ocrd_page_generateds import (
-    ReadingDirectionSimpleType,
-    TextLineOrderSimpleType,
-    TextTypeSimpleType
-)
-from ocrd_modelfactory import page_from_file
 from ocrd import Processor
+from ocrd_modelfactory import page_from_file
+from ocrd_models.ocrd_page import (AlternativeImageType, CoordsType, GlyphType,
+                                   ImageRegionType, MathsRegionType,
+                                   NoiseRegionType, OrderedGroupIndexedType,
+                                   OrderedGroupType, PageType,
+                                   ReadingOrderType, RegionRefIndexedType,
+                                   RegionRefType, SeparatorRegionType,
+                                   TableRegionType, TextEquivType,
+                                   TextLineType, TextRegionType,
+                                   UnorderedGroupIndexedType,
+                                   UnorderedGroupType, WordType, to_xml)
+from ocrd_models.ocrd_page_generateds import (ReadingDirectionSimpleType,
+                                              TextLineOrderSimpleType,
+                                              TextTypeSimpleType)
+from ocrd_utils import (MIMETYPE_PAGE, assert_file_grp_cardinality,
+                        coordinates_for_segment, getLogger, make_file_id,
+                        membername, points_from_polygon, polygon_from_points,
+                        polygon_from_x0y0x1y1, shift_coordinates,
+                        xywh_from_polygon)
+from PIL import Image, ImageStat
+from scipy.sparse.csgraph import minimum_spanning_tree
+from shapely import set_precision
+from shapely.geometry import LineString, Polygon
+from shapely.ops import nearest_points, orient, unary_union
+from tesserocr import (OEM, PSM, PT, RIL, Orientation, PyTessBaseAPI,
+                       TextlineOrder, WritingDirection, get_languages,
+                       tesseract_version)
 
 from .config import OCRD_TOOL
 

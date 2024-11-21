@@ -1,14 +1,13 @@
 import os
 
-from ocrd_models.constants import NAMESPACES
 from ocrd_modelfactory import page_from_file
+from ocrd_models.constants import NAMESPACES
 from ocrd_utils import MIMETYPE_PAGE
-from ocrd_tesserocr import TesserocrDeskew
-from ocrd_tesserocr import TesserocrSegmentWord
-from ocrd_tesserocr import TesserocrSegmentLine
-from ocrd_tesserocr import TesserocrSegmentRegion
-from ocrd_tesserocr import TesserocrRecognize
-from ocrd_tesserocr import TesserocrFontShape
+
+from ocrd_tesserocr import (TesserocrDeskew, TesserocrFontShape,
+                            TesserocrRecognize, TesserocrSegmentLine,
+                            TesserocrSegmentRegion, TesserocrSegmentWord)
+
 
 def test_run_modular(workspace_kant_binarized):
     TesserocrSegmentRegion(
