@@ -3,7 +3,7 @@ from time import sleep
 from pytest import fixture
 
 from ocrd import Resolver, Workspace, OcrdMetsServer
-from ocrd_utils import pushd_popd, initLogging, setOverrideLogLevel, config
+from ocrd_utils import pushd_popd, initLogging, setOverrideLogLevel, disableLogging, config
 
 from test.assets import assets as assets
 
@@ -39,6 +39,7 @@ def workspace(tmpdir, pytestconfig, request):
             else:
                 yield workspace
         config.reset_defaults()
+        disableLogging() # avoid writing to closed streams
     return _make_workspace
 
 @fixture
