@@ -3,7 +3,7 @@ import os
 from ocrd import run_processor
 from ocrd_models.constants import NAMESPACES
 from ocrd_modelfactory import page_from_file
-from ocrd_utils import MIMETYPE_PAGE
+from ocrd_utils import MIMETYPE_PAGE, config
 from ocrd_tesserocr import TesserocrDeskew
 from ocrd_tesserocr import TesserocrSegmentWord
 from ocrd_tesserocr import TesserocrSegmentLine
@@ -137,3 +137,30 @@ def test_run_allinone_automodel(workspace_kant_binarized):
                   parameter={'segmentation_level': 'region', 'textequiv_level': 'glyph', 'auto_model': True,
                              'model': 'Fraktur+eng+deu'})
     workspace_kant_binarized.save_mets()
+
+def test_run_allinone_cached(workspace_kant_binarized):
+    processor_instance = None
+    for run in range(5):
+        if run >= 4:
+            # default is SKIP
+            config.OCRD_EXISTING_OUTPUT = "OVERWRITE"
+        processor = run_processor(
+            TesserocrRecognize,
+            workspace=workspace_kant_binarized,
+            input_file_grp="OCR-D-IMG",
+            output_file_grp="OCR-D-OCR-TESS-W2C",
+            parameter={'segmentation_level': 'region', 'textequiv_level': 'glyph', 'model': 'Fraktur'},
+            instance_caching=True
+        )
+        if processor_instance is None:
+            processor_instance = processor
+        else:
+            assert processor is processor_instance
+    workspace_kant_binarized.save_mets()
+    assert os.path.isdir(os.path.join(workspace_kant_binarized.directory, 'OCR-D-OCR-TESS-W2C'))
+    results = workspace_kant_binarized.find_files(file_grp='OCR-D-OCR-TESS-W2C', mimetype=MIMETYPE_PAGE)
+    result0 = next(results, False)
+    assert result0
+    result0 = page_from_file(result0)
+    text0 = result0.etree.xpath('//page:Glyph/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0
