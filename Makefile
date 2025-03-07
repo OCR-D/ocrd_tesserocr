@@ -3,6 +3,7 @@ export
 SHELL = /bin/bash
 PYTHON = python3
 PIP = pip3
+GIT_SUBMODULE = git submodule
 LOG_LEVEL = INFO
 PYTHONIOENCODING=utf8
 LC_ALL = C.UTF-8
@@ -27,6 +28,7 @@ PYTEST_ARGS =
 
 # Docker container tag
 DOCKER_TAG = 'ocrd/tesserocr'
+DOCKER_BASE_IMAGE = docker.io/ocrd/core:v3.1.0
 
 help:
 	@echo ""
@@ -38,6 +40,7 @@ help:
 	@echo "    install-tesserocr Compile and install Tesserocr"
 	@echo "    deps              Install Tesseract/Tesserocr and all Python dependencies"
 	@echo "    install           Install this package with all dependencies and download minimal models"
+	@echo "    build             Build source and binary distribution"
 	@echo "    deps-test         Install Python deps for test via pip"
 	@echo "    test              Run unit tests"
 	@echo "    coverage          Run unit tests and determine test coverage"
@@ -100,6 +103,7 @@ deps-test:
 # Build docker image
 docker: repo/tesseract repo/tesserocr
 	docker build \
+	--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) \
 	--build-arg VCS_REF=$$(git rev-parse --short HEAD) \
 	--build-arg BUILD_DATE=$$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
 	-t $(DOCKER_TAG) .
@@ -131,8 +135,8 @@ repo/tesseract/Makefile.in: repo/tesseract
 # phony to ensure this recipe is fired (as in empty directory after clone)
 .PHONY: repo/tesserocr repo/tesseract repo/assets
 repo/tesserocr repo/tesseract repo/assets:
-	git submodule sync $@
-	git submodule update --init $@
+	$(GIT_SUBMODULE) sync $@
+	$(GIT_SUBMODULE) update --init $@
 
 # Install this package
 install: deps
@@ -141,13 +145,16 @@ install: deps
 	ocrd resmgr download ocrd-tesserocr-recognize osd.traineddata
 	ocrd resmgr download ocrd-tesserocr-recognize equ.traineddata
 
+build:
+	$(PIP) install build
+	$(PYTHON) -m build .
+
+test test-cli coverage: export OCRD_MISSING_OUTPUT := ABORT
+
 # Run unit tests
 test: test/assets deps-test
 	@# declare -p HTTP_PROXY
-	#$(PYTHON) -m pytest -n auto --continue-on-collection-errors test $(PYTEST_ARGS)
-	# workaround for pytest-xdist not isolating setenv calls in click.CliRunner from each other:
-	$(PYTHON) -m pytest --continue-on-collection-errors test/test_cli.py $(PYTEST_ARGS)
-	$(PYTHON) -m pytest --continue-on-collection-errors test/test_{segment_{region,table,line,word},recognize}.py $(PYTEST_ARGS)
+	$(PYTHON) -m pytest test --durations=0 --continue-on-collection-errors $(PYTEST_ARGS)
 
 # Run unit tests and determine test coverage
 coverage:
@@ -166,7 +173,7 @@ test-cli: test/assets deps-test
 		ocrd-tesserocr-recognize      -l DEBUG -I OCR-D-SEG-LINE -O OCR-D-TESS-OCR -P model deu
 
 .PHONY: test test-cli install deps deps-ubuntu deps-test help
-.PHONY: install-tesseract install-tesserocr install-tesseract-training 
+.PHONY: install-tesseract install-tesserocr install-tesseract-training build
 
 #
 # Assets

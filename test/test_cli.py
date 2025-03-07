@@ -1,32 +1,24 @@
-from click.testing import CliRunner
-
 from pathlib import Path
+from os import environ
+from subprocess import run
 
-runner = CliRunner()
 
 def test_show_resource(tmpdir, monkeypatch):
     samplefile = Path(tmpdir, 'bar.traineddata')
     samplefile.write_text('bar')
     # simulate a Tesseract compiled with custom tessdata dir
-    monkeypatch.setenv('TESSDATA_PREFIX', str(tmpdir))
-    # does not work (thus, tesserocr must not have been loaded already):
-    #monkeypatch.delitem(sys.modules, 'tesserocr')
-    # envvars influence tesserocr's module initialization
-    from ocrd_tesserocr.cli import ocrd_tesserocr_recognize
-    r = runner.invoke(ocrd_tesserocr_recognize, ['-C', 'bar.traineddata'])
-    assert not r.exit_code, r.output
-    # XXX doesn't work <del>because shutil.copyfileobj to stdout won't be captured
-    # by self.invoke_cli</del> Not sure why it does not work :(
-    # assert r.output == 'bar'
+    env = dict(environ)
+    env.update(TESSDATA_PREFIX=str(tmpdir))
+    r = run(['ocrd-tesserocr-recognize', '-C', 'bar.traineddata'],
+            env=env, text=True, capture_output=True)
+    assert not r.returncode, r.output
 
 def test_list_all_resources(tmpdir, monkeypatch):
     samplefile = Path(tmpdir, 'foo.traineddata')
     samplefile.write_text('foo')
     # simulate a Tesseract compiled with custom tessdata dir
-    monkeypatch.setenv('TESSDATA_PREFIX', str(tmpdir))
-    # envvars influence tesserocr's module initialization
-    from ocrd_tesserocr.cli import ocrd_tesserocr_recognize
-    r = runner.invoke(ocrd_tesserocr_recognize, ['-L'])
-    assert not r.exit_code
-    # XXX same problem
-    # assert r.output == str(samplefile) + '\n'
+    env = dict(environ)
+    env.update(TESSDATA_PREFIX=str(tmpdir))
+    r = run(['ocrd-tesserocr-recognize', '-L'],
+            env=env, text=True, capture_output=True)
+    assert not r.returncode, r.output

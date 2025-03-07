@@ -21,8 +21,5 @@ disable =
     wrong-import-order,
     duplicate-code
 
-# allow indented whitespace (as required by interpreter):
-no-space-check=empty-line
-
 # allow non-snake-case identifiers:
 good-names=n,i

@@ -1,43 +1,50 @@
 from __future__ import absolute_import
 
-from ocrd_utils import getLogger
-from ocrd_validators import ParameterValidator
+from typing import Optional
 
-from .config import OCRD_TOOL
+from ocrd_models import OcrdPage
+from ocrd import OcrdPageResult
+
 from .recognize import TesserocrRecognize
 
-TOOL = 'ocrd-tesserocr-segment-word'
-BASE_TOOL = 'ocrd-tesserocr-recognize'
-
 class TesserocrSegmentWord(TesserocrRecognize):
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('ocrd_tool', OCRD_TOOL['tools'][TOOL])
-        super().__init__(*args, **kwargs)
-        if hasattr(self, 'parameter'):
-            self.parameter['overwrite_segments'] = self.parameter['overwrite_words']
-            del self.parameter['overwrite_words']
-            self.parameter['segmentation_level'] = "word"
-            self.parameter['textequiv_level'] = "word"
-            # add default params
-            assert ParameterValidator(OCRD_TOOL['tools'][BASE_TOOL]).validate(self.parameter).is_valid
-            self.logger = getLogger('processor.TesserocrSegmentWord')
+    @property
+    def executable(self):
+        return 'ocrd-tesserocr-segment-word'
 
-    def process(self):
-        """Performs word segmentation with Tesseract on the workspace.
-        
-        Open and deserialize PAGE input files and their respective images,
+    def setup(self):
+        # don't run super().setup(self) - helper will
+        parameter = dict(self.parameter)
+        # we already did validate and default-expand
+        parameter['overwrite_segments'] = parameter['overwrite_words']
+        del parameter['overwrite_words']
+        parameter['segmentation_level'] = "word"
+        parameter['textequiv_level'] = "word"
+        # this will validate and default-expand, then call helper's setup()
+        self.helper = TesserocrRecognize(None, parameter=parameter)
+        self.helper.logger = self.logger
+
+    def process_page_pcgts(self, *input_pcgts: Optional[OcrdPage], page_id: Optional[str] = None) -> OcrdPageResult:
+        """Performs word segmentation with Tesseract.
+
+        Open and deserialize PAGE input file and its respective images,
         then iterate over the element hierarchy down to the textline level,
         and remove any existing Word elements.
-        
+
         Set up Tesseract to detect words, and add each one to the line
         at the detected coordinates.
-        
+
         If ``shrink_polygons``, then during segmentation (on any level), query Tesseract
         for all symbols/glyphs of each segment and calculate the convex hull for them.
         Annotate the resulting polygon instead of the coarse bounding box.
         (This is more precise and helps avoid overlaps between neighbours, especially
         when not segmenting all levels at once.)
-        
+
         Produce a new output file by serialising the resulting hierarchy.
         """
-        super(TesserocrSegmentWord, self).process()
+        # delegate implementation to helper tool
+        self.helper.workspace = self.workspace
+        self.helper.page_id = self.page_id
+        self.helper.input_file_grp = self.input_file_grp
+        self.helper.output_file_grp = self.output_file_grp
+        return self.helper.process_page_pcgts(*input_pcgts, page_id=page_id)
