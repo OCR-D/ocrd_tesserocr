@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel", "setuptools-ocrd"]
+
+[project]
+name = "ocrd_tesserocr"
+authors = [
+    {name = "Robert Sachunsky", email = "sachunsky@informatik.uni-leipzig.de"},
+    {name = "Konstantin Baierer", email = "unixprog@gmail.com"},
+    {name = "Kay-Michael Würzner", email = "wuerzner@gmail.com"},
+]
+description = "Preprocess, segment and recognize text using Tesseract OCR and the OCR-D framework"
+readme = "README.md"
+license = {text = "Apache License 2.0"}
+requires-python = ">=3.8"
+keywords = ["ocr", "ocr-d", "tesseract-ocr"]
+
+dynamic = ["version", "dependencies", "optional-dependencies"]
+
+# https://pypi.org/classifiers/
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Other Audience",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Text Processing",
+]
+
+[project.scripts]
+ocrd-tesserocr-fontshape = "ocrd_tesserocr.cli:ocrd_tesserocr_fontshape"
+ocrd-tesserocr-recognize = "ocrd_tesserocr.cli:ocrd_tesserocr_recognize"
+ocrd-tesserocr-segment = "ocrd_tesserocr.cli:ocrd_tesserocr_segment"
+ocrd-tesserocr-segment-region = "ocrd_tesserocr.cli:ocrd_tesserocr_segment_region"
+ocrd-tesserocr-segment-table = "ocrd_tesserocr.cli:ocrd_tesserocr_segment_table"
+ocrd-tesserocr-segment-line = "ocrd_tesserocr.cli:ocrd_tesserocr_segment_line"
+ocrd-tesserocr-segment-word = "ocrd_tesserocr.cli:ocrd_tesserocr_segment_word"
+ocrd-tesserocr-crop = "ocrd_tesserocr.cli:ocrd_tesserocr_crop"
+ocrd-tesserocr-deskew = "ocrd_tesserocr.cli:ocrd_tesserocr_deskew"
+ocrd-tesserocr-binarize = "ocrd_tesserocr.cli:ocrd_tesserocr_binarize"
+
+[project.urls]
+Homepage = "https://github.com/OCR-D/ocrd_tesserocr"
+Repository = "https://github.com/OCR-D/ocrd_tesserocr.git"
+
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+#optional-dependencies.dev = {file = ["requirements_dev.txt"]}
+optional-dependencies.test = {file = ["requirements_test.txt"]}
+
+[tool.setuptools]
+packages = ["ocrd_tesserocr"]
+package-data = {"*" = ["ocrd-tool.json"]}
+
+[tool.pytest.ini_options]
+minversion = 6.0
+addopts = "--strict-markers"
+markers = [
+    "integration: integration tests",
+]
+
+
+[tool.mypy]
+plugins = ["numpy.typing.mypy_plugin"]
+
+ignore_missing_imports = true
+
+
+strict = true
+
+disallow_subclassing_any = false
+# ❗ error: Class cannot subclass "Processor" (has type "Any")
+disallow_any_generics = false
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+
+[tool.coverage.run]
+branch = true
+source = [
+    "ocrd_tesserocr"
+]
+concurrency = [
+    "thread",
+    "multiprocessing"
+]
+
+[tool.coverage.report]
+exclude_also = [
+    "if self\\.debug",
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+ignore_errors = true
+omit = [
+    "ocrd_tesserocr/cli.py"
+]
