@@ -29,7 +29,9 @@ jobs:
       - store_test_results:
           path: test-results
       - run: make test-cli
-      - run: make coverage
+      - run: 
+          command: make coverage
+          no_output_timeout: 30m
       - codecov/upload
     resource_class: large
 
