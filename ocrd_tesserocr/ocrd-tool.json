@@ -253,23 +253,260 @@
           "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Fraktur.traineddata",
           "name": "Fraktur.traineddata",
           "parameter_usage": "without-extension",
-          "description": "Tesseract LSTM model for historical Latin script with Fraktur typesetting",
-          "size": 10915632
+          "description": "Tesseract LSTM model for historical Latin script with Fraktur typesetting (~125 characters with precomposed diacritics)",
+          "size": 17613343
         },
         {
           "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Latin.traineddata",
           "name": "Latin.traineddata",
           "parameter_usage": "without-extension",
-          "description": "Tesseract LSTM model for contemporary and historical Latin script",
-          "size": 89384811
+          "description": "Tesseract LSTM model for Latin script (contemporary and historical, ~250 characters with precomposed diacritics)",
+          "size": 101402885
         },
         {
-          "url": "https://github.com/tesseract-ocr/tesseract/archive/main.tar.gz",
-          "name": "configs",
-          "description": "Tesseract configs (parameter sets) for use with the standalone tesseract CLI",
-          "size": 1915529,
-          "type": "archive",
-          "path_in_archive": "tesseract-main/tessdata/configs"
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Arabic.traineddata",
+          "name": "Arabic.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Arabic script",
+          "size": 17095279
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Armenian.traineddata",
+          "name": "Armenian.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Armenian script",
+          "size": 18908681
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Bengali.traineddata",
+          "name": "Bengali.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Bengali script (a Brahmic script)",
+          "size": 16711376
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Canadian_Aboriginal.traineddata",
+          "name": "Canadian_Aboriginal.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Canadian Aboriginal script",
+          "size": 15184388
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Cherokee.traineddata",
+          "name": "Cherokee.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Cherokee script",
+          "size": 7126553
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Cyrillic.traineddata",
+          "name": "Cyrillic.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Cyrillic script",
+          "size": 36730735
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Devanagari.traineddata",
+          "name": "Devanagari.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Devanagari script (a Brahmic script)",
+          "size": 28561664
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Ethiopic.traineddata",
+          "name": "Ethiopic.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Ethiopic script (Geʽez script)",
+          "size": 11211460
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Georgian.traineddata",
+          "name": "Georgian.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Georgian script",
+          "size": 13806109
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Greek.traineddata",
+          "name": "Greek.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Greek script (~210 characters + basic Latin)",
+          "size": 10634749
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Gujarati.traineddata",
+          "name": "Gujarati.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Gujarati script (a Brahmic script)",
+          "size": 7074537
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Gurmukhi.traineddata",
+          "name": "Gurmukhi.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Gurmukhi script (a Brahmic script)",
+          "size": 11642032
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Hangul.traineddata",
+          "name": "Hangul.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Hangul script (horizontal writing)",
+          "size": 12225308
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Hangul_vert.traineddata",
+          "name": "Hangul_vert.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Hangul script (vertical writing)",
+          "size": 16522140
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/HanS.traineddata",
+          "name": "HanS.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Han script (simplified, horizontal writing)",
+          "size": 16633038
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/HanS_vert.traineddata",
+          "name": "HanS_vert.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Han script (simplified, vertical writing)",
+          "size": 12320913
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/HanT.traineddata",
+          "name": "HanT.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Han script (traditional, horizontal writing)",
+          "size": 12344619
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/HanT_vert.traineddata",
+          "name": "HanT_vert.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Han script (traditional, vertical writing)",
+          "size": 12344866
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Hebrew.traineddata",
+          "name": "Hebrew.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Hebrew script",
+          "size": 12218204
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Japanese.traineddata",
+          "name": "Japanese.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Japanese script (Hiragana + Katakana + 2.4k Kanji + basic Latin, horizontal writing)",
+          "size": 17789735
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Japanese_vert.traineddata",
+          "name": "Japanese_vert.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Japanese script (Hiragana + Katakana + 2.4k Kanji + basic Latin, vertical writing)",
+          "size": 17789844
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Kannada.traineddata",
+          "name": "Kannada.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Kannada script (a Brahmic script)",
+          "size": 14163058
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Khmer.traineddata",
+          "name": "Khmer.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Khmer script",
+          "size": 12025463
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Lao.traineddata",
+          "name": "Lao.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Lao script",
+          "size": 17479398
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Malayalam.traineddata",
+          "name": "Malayalam.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Malayalam script (a Brahmic script)",
+          "size": 11073689
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Myanmar.traineddata",
+          "name": "Myanmar.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Myanmar script (Burmese alphabet)",
+          "size": 14664489
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Oriya.traineddata",
+          "name": "Oriya.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Oriya script (or Odia, a Brahmic script)",
+          "size": 16265327
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Sinhala.traineddata",
+          "name": "Sinhala.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Sinhala script (a Brahmic script)",
+          "size": 6842699
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Syriac.traineddata",
+          "name": "Syriac.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Syriac script (Syriac alphabet)",
+          "size": 15352617
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Tamil.traineddata",
+          "name": "Tamil.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Tamil script (a Brahmic script)",
+          "size": 18607472
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Telugu.traineddata",
+          "name": "Telugu.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Telugu script (a Brahmic script)",
+          "size": 13981001
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Thaana.traineddata",
+          "name": "Thaana.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Thaana script",
+          "size": 12783652
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Thai.traineddata",
+          "name": "Thai.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Thai script (a Brahmic script)",
+          "size": 11544984
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Tibetan.traineddata",
+          "name": "Tibetan.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Tibetan script (a Brahmic script)",
+          "size": 12523531
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/script/Vietnamese.traineddata",
+          "name": "Vietnamese.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Vietnamese script (Vietnamese alphabet)",
+          "size": 12435419
         }
       ]
     },
