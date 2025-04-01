@@ -4,7 +4,7 @@ FROM $DOCKER_BASE_IMAGE
 ARG VCS_REF
 ARG BUILD_DATE
 LABEL \
-    maintainer="https://ocr-d.de/kontakt" \
+    maintainer="https://ocr-d.de/en/contact" \
     org.label-schema.vcs-ref=$VCS_REF \
     org.label-schema.vcs-url="https://github.com/OCR-D/ocrd_tesserocr" \
     org.label-schema.build-date=$BUILD_DATE \
@@ -43,8 +43,9 @@ ENV TESSDATA_PREFIX $XDG_DATA_HOME/tessdata
 
 WORKDIR /build/ocrd_tesserocr
 COPY . .
+COPY ocrd-tool.json .
 # prepackage ocrd-tool.json as ocrd-all-tool.json
-RUN ocrd ocrd-tool ocrd_tesserocr/ocrd-tool.json dump-tools > $(dirname $(ocrd bashlib filename))/ocrd-all-tool.json
+RUN ocrd ocrd-tool ocrd-tool.json dump-tools > $(dirname $(ocrd bashlib filename))/ocrd-all-tool.json
 # install everything and reduce image size
 RUN make deps-ubuntu \
     && make -j4 install GIT_SUBMODULE=: \
@@ -52,10 +53,12 @@ RUN make deps-ubuntu \
     && rm -rf /build/ocrd_tesserocr \
     && apt-get -y remove --auto-remove g++ libtesseract-dev make
 
+# pre-install some frequently used models (in addition to eng+osd+equ)
 RUN ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata && \
-    ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata && \
-    # clean possibly created log-files/dirs of ocrd_network logger to prevent permission problems
-    rm -rf /tmp/ocrd_*
+    ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
+
+# clean possibly created log-files/dirs of ocrd_network logger to prevent permission problems
+RUN rm -rf /tmp/ocrd_*
 
 # as discussed in ocrd_all#378, we do not want to manage more than one resource location
 # to mount for model persistence; 
@@ -65,8 +68,6 @@ RUN ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata && \
 RUN mkdir -p $XDG_CONFIG_HOME
 RUN mv $TESSDATA_PREFIX $XDG_CONFIG_HOME/ocrd-tesserocr-recognize
 RUN ln -s $XDG_CONFIG_HOME/ocrd-tesserocr-recognize $TESSDATA_PREFIX
-# finally, alias/symlink all ocrd-resources to /models for shorter mount commands
-RUN mv $XDG_CONFIG_HOME /models && ln -s /models $XDG_CONFIG_HOME
 
 WORKDIR /data
 VOLUME /data
