@@ -5,9 +5,34 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.20.1] - 2025-04-01
+
+Changed:
+
+ * `ocrd-tool.json`: remove `configs/` as processor resource → no more directory resources
+ * Dockerfile: supplant `configs/` resource for standalone CLI by pre-installing in tessdata
+
+Added:
+
+ * `ocrd-tool.json`: add model resources for all Tesseract languages and scripts
+
+## [0.20.0] - 2025-03-07
+
 Changed:
 
  * adapt to ocrd 3.0, #216
+ * deskew: no segment.id suffix for generated images on page level
+ * :fire: drop support for Python 3.7
+ * switch from `setup.py` to `pyproject.toml` for packaging
+ * Docker: shortcut `ocrd-all-tool.json` via our `ocrd-tool.json`
+
+Added:
+
+ * extended tests:
+   * test with `instance_caching`
+   * test with METS caching
+   * test with METS server
+   * test with page-parallel multiprocessing
 
 ## [0.19.1] - 2024-07-01
 
@@ -433,6 +458,8 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.20.1]: ../../compare/v0.20.1...v0.20.0
+[0.20.0]: ../../compare/v0.20.0...v0.19.1
 [0.19.1]: ../../compare/v0.19.1...v0.19.0
 [0.19.0]: ../../compare/v0.19.0...v0.18.1
 [0.18.1]: ../../compare/v0.18.1...v0.18.0
