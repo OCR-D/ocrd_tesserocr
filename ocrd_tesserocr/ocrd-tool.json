@@ -226,14 +226,14 @@
           "name": "eng.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model for contemporary (computer typesetting and offset printing) English",
-          "size": 4113088
+          "size": 15400601
         },
         {
           "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/deu.traineddata",
           "name": "deu.traineddata",
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model for contemporary (computer typesetting and offset printing) German",
-          "size": 1525436
+          "size": 8628461
         },
         {
           "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/deu_latf.traineddata",
@@ -507,6 +507,846 @@
           "parameter_usage": "without-extension",
           "description": "Tesseract LSTM model for Vietnamese script (Vietnamese alphabet)",
           "size": 12435419
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/afr.traineddata",
+          "name": "afr.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Afrikaans",
+          "size": 12800552
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/amh.traineddata",
+          "name": "amh.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Amharic",
+          "size": 8389639
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ara.traineddata",
+          "name": "ara.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Arabic",
+          "size": 12603724
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/asm.traineddata",
+          "name": "asm.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Assamese",
+          "size": 11315350
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/aze_cyrl.traineddata",
+          "name": "aze_cyrl.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Azerbaijani (in Cyrillic script)",
+          "size": 4700277
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/aze.traineddata",
+          "name": "aze.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Azerbaijani (in Latin script)",
+          "size": 6281404
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/bel.traineddata",
+          "name": "bel.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Belarusian",
+          "size": 10870278
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ben.traineddata",
+          "name": "ben.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Bengali",
+          "size": 11045427
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/bod.traineddata",
+          "name": "bod.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Tibetan",
+          "size": 8623846
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/bos.traineddata",
+          "name": "bos.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Bosnian",
+          "size": 5264248
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/bre.traineddata",
+          "name": "bre.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Breton",
+          "size": 15640760
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/bul.traineddata",
+          "name": "bul.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Bulgarian",
+          "size": 8844613
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/cat.traineddata",
+          "name": "cat.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Catalan",
+          "size": 3802329
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ceb.traineddata",
+          "name": "ceb.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Cebuano",
+          "size": 3452674
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ces.traineddata",
+          "name": "ces.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Czech",
+          "size": 10918912
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/chi_sim.traineddata",
+          "name": "chi_sim.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Mandarin Chinese (simplified, horizontal writing)",
+          "size": 13077423
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/chi_sim_vert.traineddata",
+          "name": "chi_sim_vert.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Mandarin Chinese (simplified, vertical writing)",
+          "size": 13077507
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/chi_tra.traineddata",
+          "name": "chi_tra.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Mandarin Chinese (traditional, horizontal writing)",
+          "size": 12985735
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/chi_tra_vert.traineddata",
+          "name": "chi_tra_vert.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Mandarin Chinese (traditional, vertical writing)",
+          "size": 12985521
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/chr.traineddata",
+          "name": "chr.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Cherokee",
+          "size": 2258703
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/cos.traineddata",
+          "name": "cos.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Corsican",
+          "size": 8830216
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/cym.traineddata",
+          "name": "cym.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Welsh",
+          "size": 8750784
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/dan.traineddata",
+          "name": "dan.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Danish",
+          "size": 9758142
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/div.traineddata",
+          "name": "div.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Dhivehi",
+          "size": 4574116
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/dzo.traineddata",
+          "name": "dzo.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Dzongkha",
+          "size": 3243805
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ell.traineddata",
+          "name": "ell.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Modern Greek (1453-)",
+          "size": 8945021
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/enm.traineddata",
+          "name": "enm.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Middle English (1100-1500)",
+          "size": 13281564
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/epo.traineddata",
+          "name": "epo.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Esperanto",
+          "size": 7402169
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/est.traineddata",
+          "name": "est.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Estonian",
+          "size": 15833749
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/eus.traineddata",
+          "name": "eus.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Basque",
+          "size": 7933869
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/fao.traineddata",
+          "name": "fao.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Faroese",
+          "size": 10030003
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/fas.traineddata",
+          "name": "fas.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Persian",
+          "size": 3325955
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/fil.traineddata",
+          "name": "fil.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Filipino",
+          "size": 8978743
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/fin.traineddata",
+          "name": "fin.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Finnish",
+          "size": 14369979
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/fra.traineddata",
+          "name": "fra.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for French",
+          "size": 3972885
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/frm.traineddata",
+          "name": "frm.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Middle French (ca. 1400-1600)",
+          "size": 4043005
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/fry.traineddata",
+          "name": "fry.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Western Frisian",
+          "size": 8442509
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/gla.traineddata",
+          "name": "gla.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Scottish Gaelic",
+          "size": 9599424
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/gle.traineddata",
+          "name": "gle.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Irish",
+          "size": 3942458
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/glg.traineddata",
+          "name": "glg.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Galician",
+          "size": 12709487
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/grc.traineddata",
+          "name": "grc.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Ancient Greek (to 1453)",
+          "size": 5168122
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/guj.traineddata",
+          "name": "guj.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Gujarati",
+          "size": 8515761
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/hat.traineddata",
+          "name": "hat.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Haitian",
+          "size": 12128251
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/heb.traineddata",
+          "name": "heb.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Hebrew",
+          "size": 3704077
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/hin.traineddata",
+          "name": "hin.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Hindi",
+          "size": 11895564
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/hrv.traineddata",
+          "name": "hrv.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Croatian",
+          "size": 11195424
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/hun.traineddata",
+          "name": "hun.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Hungarian",
+          "size": 12350405
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/hye.traineddata",
+          "name": "hye.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Armenian",
+          "size": 6372242
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/iku.traineddata",
+          "name": "iku.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Inuktitut",
+          "size": 6139484
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ind.traineddata",
+          "name": "ind.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Indonesian",
+          "size": 8253606
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/isl.traineddata",
+          "name": "isl.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Icelandic",
+          "size": 9486436
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ita_old.traineddata",
+          "name": "ita_old.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for historical Italian",
+          "size": 9852171
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ita.traineddata",
+          "name": "ita.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for modern Italian",
+          "size": 8863635
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/jav.traineddata",
+          "name": "jav.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Javanese",
+          "size": 8650382
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/jpn.traineddata",
+          "name": "jpn.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Japanese (horizontal writing)",
+          "size": 14330109
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/jpn_vert.traineddata",
+          "name": "jpn_vert.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Japanese (vertical writing)",
+          "size": 14330809
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/kan.traineddata",
+          "name": "kan.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Kannada",
+          "size": 10233763
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/kat_old.traineddata",
+          "name": "kat_old.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for historical Georgian",
+          "size": 3174400
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/kat.traineddata",
+          "name": "kat.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for modern Georgian",
+          "size": 4487336
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/kaz.traineddata",
+          "name": "kaz.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Kazakh",
+          "size": 7528853
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/khm.traineddata",
+          "name": "khm.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Central Khmer",
+          "size": 8104332
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/kir.traineddata",
+          "name": "kir.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Kirghiz",
+          "size": 11948344
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/kmr.traineddata",
+          "name": "kmr.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Northern Kurdish",
+          "size": 10196464
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/kor.traineddata",
+          "name": "kor.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Korean (horizontal writing)",
+          "size": 12528128
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/kor_vert.traineddata",
+          "name": "kor_vert.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Korean (vertical writing)",
+          "size": 3964469
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/lao.traineddata",
+          "name": "lao.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Lao",
+          "size": 13532551
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/lat.traineddata",
+          "name": "lat.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Latin",
+          "size": 9705145
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/lav.traineddata",
+          "name": "lav.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Latvian",
+          "size": 5623473
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/lit.traineddata",
+          "name": "lit.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Lithuanian",
+          "size": 10252680
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ltz.traineddata",
+          "name": "ltz.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Luxembourgish",
+          "size": 12721945
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/mal.traineddata",
+          "name": "mal.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Malayalam",
+          "size": 12524967
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/mar.traineddata",
+          "name": "mar.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Marathi",
+          "size": 13437670
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/mkd.traineddata",
+          "name": "mkd.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Macedonian",
+          "size": 3453054
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/mlt.traineddata",
+          "name": "mlt.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Maltese",
+          "size": 5060029
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/mon.traineddata",
+          "name": "mon.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Mongolian",
+          "size": 8646663
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/mri.traineddata",
+          "name": "mri.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Maori",
+          "size": 3610177
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/msa.traineddata",
+          "name": "msa.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Malay (macrolanguage)",
+          "size": 8230552
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/mya.traineddata",
+          "name": "mya.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Burmese",
+          "size": 14971060
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/nep.traineddata",
+          "name": "nep.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Nepali (macrolanguage)",
+          "size": 12387399
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/nld.traineddata",
+          "name": "nld.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Dutch",
+          "size": 8903736
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/nor.traineddata",
+          "name": "nor.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Norwegian",
+          "size": 14312333
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/oci.traineddata",
+          "name": "oci.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Occitan (post 1500)",
+          "size": 12917692
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ori.traineddata",
+          "name": "ori.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Oriya (macrolanguage)",
+          "size": 8110602
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/pan.traineddata",
+          "name": "pan.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Panjabi",
+          "size": 11893154
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/pol.traineddata",
+          "name": "pol.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Polish",
+          "size": 11978867
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/por.traineddata",
+          "name": "por.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Portuguese",
+          "size": 8159939
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/pus.traineddata",
+          "name": "pus.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Pushto",
+          "size": 11987930
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/que.traineddata",
+          "name": "que.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Quechua",
+          "size": 10774587
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ron.traineddata",
+          "name": "ron.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Romanian",
+          "size": 9595755
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/rus.traineddata",
+          "name": "rus.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Russian",
+          "size": 15301764
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/san.traineddata",
+          "name": "san.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Sanskrit",
+          "size": 15136202
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/sin.traineddata",
+          "name": "sin.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Sinhala",
+          "size": 8282713
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/slk.traineddata",
+          "name": "slk.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Slovak",
+          "size": 11542252
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/slv.traineddata",
+          "name": "slv.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Slovenian",
+          "size": 5879151
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/snd.traineddata",
+          "name": "snd.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Sindhi",
+          "size": 11981538
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/spa_old.traineddata",
+          "name": "spa_old.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for historical Spanish",
+          "size": 9476925
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/spa.traineddata",
+          "name": "spa.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for modern Spanish",
+          "size": 13570187
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/sqi.traineddata",
+          "name": "sqi.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Albanian",
+          "size": 4631498
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/srp_latn.traineddata",
+          "name": "srp_latn.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Serbian (in Latin script)",
+          "size": 9831713
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/srp.traineddata",
+          "name": "srp.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Serbian (in Cyrillic script)",
+          "size": 9345851
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/sun.traineddata",
+          "name": "sun.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Sundanese",
+          "size": 4132820
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/swa.traineddata",
+          "name": "swa.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Swahili (macrolanguage)",
+          "size": 4914855
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/swe.traineddata",
+          "name": "swe.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Swedish",
+          "size": 14325549
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/syr.traineddata",
+          "name": "syr.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Syriac",
+          "size": 12498294
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/tam.traineddata",
+          "name": "tam.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Tamil",
+          "size": 6023201
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/tat.traineddata",
+          "name": "tat.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Tatar",
+          "size": 7585204
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/tel.traineddata",
+          "name": "tel.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Telugu",
+          "size": 9098795
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/tgk.traineddata",
+          "name": "tgk.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Tajik",
+          "size": 4602842
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/tha.traineddata",
+          "name": "tha.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Thai",
+          "size": 7614571
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/tir.traineddata",
+          "name": "tir.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Tigrinya",
+          "size": 2410256
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ton.traineddata",
+          "name": "ton.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Tonga (Tonga Islands)",
+          "size": 3729371
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/tur.traineddata",
+          "name": "tur.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Turkish",
+          "size": 7456265
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/uig.traineddata",
+          "name": "uig.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Uighur",
+          "size": 13074609
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/ukr.traineddata",
+          "name": "ukr.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Ukrainian",
+          "size": 10859081
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/urd.traineddata",
+          "name": "urd.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Urdu",
+          "size": 7994323
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/uzb_cyrl.traineddata",
+          "name": "uzb_cyrl.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Uzbek (in Cyrillic script)",
+          "size": 4325478
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/uzb.traineddata",
+          "name": "uzb.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Uzbek (in Latin script)",
+          "size": 12953454
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/vie.traineddata",
+          "name": "vie.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Vietnamese",
+          "size": 12435550
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/yid.traineddata",
+          "name": "yid.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Yiddish",
+          "size": 3278995
+        },
+        {
+          "url": "https://github.com/tesseract-ocr/tessdata_best/raw/main/yor.traineddata",
+          "name": "yor.traineddata",
+          "parameter_usage": "without-extension",
+          "description": "Tesseract LSTM model for Yoruba",
+          "size": 3736121
         }
       ]
     },
