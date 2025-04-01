@@ -56,6 +56,11 @@ RUN make deps-ubuntu \
 # pre-install some frequently used models (in addition to eng+osd+equ)
 RUN ocrd resmgr download ocrd-tesserocr-recognize Fraktur.traineddata && \
     ocrd resmgr download ocrd-tesserocr-recognize deu.traineddata
+# pre-install configs for use in standalone CLI
+RUN wget -O /tmp/main.tar.gz https://github.com/tesseract-ocr/tesseract/archive/main.tar.gz && \
+    tar zxvf /tmp/main.tar.gz tesseract-main/tessdata/configs && \
+    mv tesseract-main/tessdata/configs/* $TESSDATA_PREFIX/configs && \
+    rm -r /tmp/main.tar.gz tesseract-main
 
 # clean possibly created log-files/dirs of ocrd_network logger to prevent permission problems
 RUN rm -rf /tmp/ocrd_*
