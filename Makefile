@@ -2,6 +2,7 @@ export
 
 SHELL = /bin/bash
 PYTHON = python3
+DOCKER = docker
 PIP = pip3
 GIT_SUBMODULE = git submodule
 LOG_LEVEL = INFO
@@ -102,7 +103,7 @@ deps-test:
 
 # Build docker image
 docker: repo/tesseract repo/tesserocr
-	docker build \
+	$(DOCKER) build \
 	--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) \
 	--build-arg VCS_REF=$$(git rev-parse --short HEAD) \
 	--build-arg BUILD_DATE=$$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
