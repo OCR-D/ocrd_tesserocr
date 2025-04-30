@@ -1,6 +1,5 @@
 ARG DOCKER_BASE_IMAGE
 FROM $DOCKER_BASE_IMAGE
-# install ocrd-tesserocr (until here commands for installing tesseract-ocr)
 ARG VCS_REF
 ARG BUILD_DATE
 LABEL \
@@ -46,6 +45,8 @@ COPY . .
 COPY ocrd-tool.json .
 # prepackage ocrd-tool.json as ocrd-all-tool.json
 RUN ocrd ocrd-tool ocrd-tool.json dump-tools > $(dirname $(ocrd bashlib filename))/ocrd-all-tool.json
+# prepackage ocrd-all-module-dir.json
+RUN ocrd ocrd-tool ocrd-tool.json dump-module-dirs > $(dirname $(ocrd bashlib filename))/ocrd-all-module-dir.json
 # install everything and reduce image size
 RUN make deps-ubuntu \
     && make -j4 install GIT_SUBMODULE=: \

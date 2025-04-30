@@ -2,6 +2,7 @@ export
 
 SHELL = /bin/bash
 PYTHON = python3
+DOCKER = docker
 PIP = pip3
 GIT_SUBMODULE = git submodule
 LOG_LEVEL = INFO
@@ -28,7 +29,7 @@ PYTEST_ARGS =
 
 # Docker container tag
 DOCKER_TAG = 'ocrd/tesserocr'
-DOCKER_BASE_IMAGE = docker.io/ocrd/core:v3.3.0
+DOCKER_BASE_IMAGE = docker.io/ocrd/core:latest
 
 help:
 	@echo ""
@@ -102,7 +103,7 @@ deps-test:
 
 # Build docker image
 docker: repo/tesseract repo/tesserocr
-	docker build \
+	$(DOCKER) build \
 	--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) \
 	--build-arg VCS_REF=$$(git rev-parse --short HEAD) \
 	--build-arg BUILD_DATE=$$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
@@ -122,7 +123,7 @@ $(TESSERACT_PREFIX)/bin/tesseract: build/tesseract/Makefile
 $(TESSERACT_PREFIX)/bin/lstmtraining: build/tesseract/Makefile
 	$(MAKE) -C build/tesseract training-install
 
-TESSERACT_CONFIG ?= --disable-openmp --disable-shared CXXFLAGS="-g -O2 -fPIC -fno-math-errno -Wall -Wextra -Wpedantic"
+TESSERACT_CONFIG ?= --disable-openmp --disable-shared CXXFLAGS="-g -O2 -fPIC -fno-math-errno -Wall -Wextra -Wpedantic -UNDEBUG"
 build/tesseract/Makefile: repo/tesseract/Makefile.in
 	mkdir -p $(@D)
 	cd $(@D) && $(CURDIR)/repo/tesseract/configure \
