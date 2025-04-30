@@ -123,7 +123,7 @@ $(TESSERACT_PREFIX)/bin/tesseract: build/tesseract/Makefile
 $(TESSERACT_PREFIX)/bin/lstmtraining: build/tesseract/Makefile
 	$(MAKE) -C build/tesseract training-install
 
-TESSERACT_CONFIG ?= --disable-openmp --disable-shared CXXFLAGS="-g -O2 -fPIC -fno-math-errno -Wall -Wextra -Wpedantic"
+TESSERACT_CONFIG ?= --disable-openmp --disable-shared CXXFLAGS="-g -O2 -fPIC -fno-math-errno -Wall -Wextra -Wpedantic -UNDEBUG"
 build/tesseract/Makefile: repo/tesseract/Makefile.in
 	mkdir -p $(@D)
 	cd $(@D) && $(CURDIR)/repo/tesseract/configure \
