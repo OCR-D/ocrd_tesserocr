@@ -6,7 +6,7 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 from shapely.geometry import Polygon, LineString
 from shapely.ops import unary_union, nearest_points, orient
 from shapely import set_precision
-
+from shapely.validation import explain_validity
 
 from ocrd_utils import (
     getLogger,
@@ -226,6 +226,8 @@ def join_polygons(polygons, scale=20):
 
 def make_join(polygons, scale=20):
     """construct concave hull (alpha shape) from input polygons by connecting their pairwise nearest points"""
+    #LOG = getLogger('ocrd.processor.TesserocrRecognize')
+    #LOG.debug("joining %d polygons", len(polygons))
     # ensure input polygons are simply typed and all oriented equally
     polygons = [orient(poly)
                 for poly in itertools.chain.from_iterable(
@@ -251,9 +253,11 @@ def make_join(polygons, scale=20):
         prevp = polygons[prevp]
         nextp = polygons[nextp]
         nearest = nearest_points(prevp, nextp)
-        bridgep = LineString(nearest).buffer(max(1, scale/5), resolution=1)
+        bridgep = orient(LineString(nearest).buffer(max(1, scale/5), resolution=1), -1)
         polygons.append(bridgep)
     jointp = unary_union(polygons)
+    if jointp.geom_type == 'MultiPolygon':
+        jointp = unary_union(jointp.geoms)
     assert jointp.geom_type == 'Polygon', jointp.wkt
     # follow-up calculations will necessarily be integer;
     # so anticipate rounding here and then ensure validity
@@ -284,6 +288,7 @@ def polygon_for_parent(polygon, parent):
     
     (Should be moved to ocrd_utils.coordinates_for_segment.)
     """
+    #LOG = getLogger('ocrd.processor.TesserocrRecognize')
     childp = Polygon(polygon)
     if isinstance(parent, PageType):
         if parent.get_Border():
@@ -299,8 +304,10 @@ def polygon_for_parent(polygon, parent):
     childp = make_valid(childp)
     parentp = make_valid(parentp)
     if not childp.is_valid:
+        #LOG.debug("child polygon is invalid: %s", explain_validity.childp)
         return None
     if not parentp.is_valid:
+        #LOG.debug("parent polygon is invalid: %s", explain_validity.parentp)
         return None
     # check if clipping is necessary
     if childp.within(parentp):
@@ -308,16 +315,19 @@ def polygon_for_parent(polygon, parent):
     # clip to parent
     interp = make_intersection(childp, parentp)
     if not interp:
+        #LOG.debug("child and parent are disjunct")
         return None
     return interp.exterior.coords[:-1] # keep open
 
 def make_intersection(poly1, poly2):
+    #LOG = getLogger('ocrd.processor.TesserocrRecognize')
     interp = poly1.intersection(poly2)
     # post-process
     if interp.is_empty or interp.area == 0.0:
         # this happens if Tesseract "finds" something
         # outside of the valid Border of a deskewed/cropped page
         # (empty corners created by masking); will be ignored
+        #LOG.debug("intersection is empty")
         return None
     if interp.geom_type == 'GeometryCollection':
         # heterogeneous result: filter zero-area shapes (LineString, Point)
@@ -325,15 +335,19 @@ def make_intersection(poly1, poly2):
     if interp.geom_type == 'MultiPolygon':
         # homogeneous result: construct convex hull to connect
         interp = make_join(interp.geoms)
-    if interp.minimum_clearance < 1.0:
-        # follow-up calculations will necessarily be integer;
-        # so anticipate rounding here and then ensure validity
-        interp = Polygon(np.round(interp.exterior.coords))
-        interp = make_valid(interp)
+    assert interp.geom_type == 'Polygon', interp.wkt
+    interp = make_valid(interp)
     return interp
 
-def make_valid(polygon):
+def make_valid(polygon: Polygon) -> Polygon:
+    """Ensures shapely.geometry.Polygon object is valid by repeated rearrangement/simplification/enlargement."""
+    def isint(x):
+        return isinstance(x, int) or int(x) == x
+    # make sure rounding does not invalidate
+    if not all(map(isint, np.array(polygon.exterior.coords).flat)) and polygon.minimum_clearance < 1.0:
+        polygon = Polygon(np.round(polygon.exterior.coords))
     points = list(polygon.exterior.coords)
+    # try by re-arranging points
     for split in range(1, len(points)):
         if polygon.is_valid or polygon.simplify(polygon.area).is_valid:
             break
