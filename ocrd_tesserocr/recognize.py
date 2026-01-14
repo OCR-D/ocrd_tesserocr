@@ -80,7 +80,10 @@ class TessBaseAPI(PyTessBaseAPI):
         self.oem = oem or self.oem
         self.psm = psm or self.psm
         self.parameters = variables or self.parameters
-        super().InitFull(path=self.path, lang=self.lang, oem=self.oem, variables=self.parameters)
+        super().InitFull(path=self.path, lang=self.lang, oem=self.oem,
+                         variables=self.parameters,
+                         # avoid dragging in ScrollView etc
+                         set_only_non_debug_params=True)
 
     def SetVariable(self, name, val):
         self.parameters[name] = val
