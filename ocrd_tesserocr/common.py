@@ -43,27 +43,6 @@ def page_element_conf0(element):
         # generateDS does not convert simpleType for attributes (yet?)
         return float(element.get_TextEquiv()[0].conf or "1.0")
     return 1.0
-
-def page_get_reading_order(ro, rogroup):
-    """Add all elements from the given reading order group to the given dictionary.
-    
-    Given a dict ``ro`` from layout element IDs to ReadingOrder element objects,
-    and an object ``rogroup`` with additional ReadingOrder element objects,
-    add all references to the dict, traversing the group recursively.
-    """
-    regionrefs = list()
-    if isinstance(rogroup, (OrderedGroupType, OrderedGroupIndexedType)):
-        regionrefs = (rogroup.get_RegionRefIndexed() +
-                      rogroup.get_OrderedGroupIndexed() +
-                      rogroup.get_UnorderedGroupIndexed())
-    if isinstance(rogroup, (UnorderedGroupType, UnorderedGroupIndexedType)):
-        regionrefs = (rogroup.get_RegionRef() +
-                      rogroup.get_OrderedGroup() +
-                      rogroup.get_UnorderedGroup())
-    for elem in regionrefs:
-        ro[elem.get_regionRef()] = elem
-        if not isinstance(elem, (RegionRefType, RegionRefIndexedType)):
-            page_get_reading_order(ro, elem)
         
 def page_update_higher_textequiv_levels(level, pcgts, overwrite=True):
     """Update the TextEquivs of all PAGE-XML hierarchy levels above ``level`` for consistency.
@@ -97,10 +76,7 @@ def page_update_higher_textequiv_levels(level, pcgts, overwrite=True):
         if relation.get_type() == 'join': # ignore 'link' type here
             joins.append((relation.get_SourceRegionRef().get_regionRef(),
                           relation.get_TargetRegionRef().get_regionRef()))
-    reading_order = dict()
-    ro = page.get_ReadingOrder()
-    if ro:
-        page_get_reading_order(reading_order, ro.get_OrderedGroup() or ro.get_UnorderedGroup())
+    reading_order = page.get_ReadingOrderGroups()
     if level != 'region':
         for region in page.get_AllRegions(classes=['Text']):
             # order is important here, because regions can be recursive,
@@ -188,7 +164,7 @@ def page_shrink_higher_coordinate_levels(maxlevel, minlevel, pcgts):
     
     Follow regions recursively, but make sure to traverse them in a depth-first strategy.
     """
-    LOG = getLogger('processor.TesserocrRecognize')
+    LOG = getLogger('ocrd.processor.TesserocrRecognize')
     page = pcgts.get_Page()
     regions = page.get_AllRegions(classes=['Text'])
     if minlevel != 'region':

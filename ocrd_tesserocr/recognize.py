@@ -437,6 +437,7 @@ class TesserocrRecognize(Processor):
         #        to detect regions only where nothing exists yet (by clipping to
         #        background before, or by removing clashing predictions after
         #        detection).
+        reading_order = page.get_ReadingOrderGroups()
         regions = page.get_AllRegions(classes=['Text'])
         if inlevel == 'region' and (
                 not regions or self.parameter['overwrite_segments']):
@@ -507,9 +508,9 @@ class TesserocrRecognize(Processor):
                 self.logger.warning("Page '%s' contains no table regions (but segmentation is off)",
                                     page_id)
             else:
-                self._process_existing_tables(tables, page, page_image, page_coords, pcgts.mapping)
+                self._process_existing_tables(tables, reading_order, page_image, page_coords, pcgts.mapping)
         elif regions:
-            self._process_existing_regions(regions, page_image, page_coords, pcgts.mapping)
+            self._process_existing_regions(regions, reading_order, page_image, page_coords, pcgts.mapping)
         else:
             self.logger.warning("Page '%s' contains no text regions (but segmentation is off)",
                                 page_id)
@@ -855,16 +856,7 @@ class TesserocrRecognize(Processor):
                         Unicode=alternative_text,
                         conf=alternative_conf))
 
-    def _process_existing_tables(self, tables, page, page_image, page_coords, mapping):
-        # prepare dict of reading order
-        reading_order = dict()
-        ro = page.get_ReadingOrder()
-        if not ro:
-            self.logger.warning("Page contains no ReadingOrder")
-            rogroup = None
-        else:
-            rogroup = ro.get_OrderedGroup() or ro.get_UnorderedGroup()
-            page_get_reading_order(reading_order, rogroup)
+    def _process_existing_tables(self, tables, reading_order, page_image, page_coords, mapping):
         segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
         # dive into tables
         for table in tables:
@@ -886,34 +878,6 @@ class TesserocrRecognize(Processor):
                         del reading_order[cell.id]
                         # TODO: adjust index to make contiguous again?
             table.set_TextRegion([])
-            roelem = reading_order.get(table.id)
-            if not roelem:
-                self.logger.warning("Table '%s' is not referenced in reading order (%s)",
-                                    table.id, "no target to add cells into")
-            elif isinstance(roelem, (OrderedGroupType, OrderedGroupIndexedType)):
-                self.logger.warning("Table '%s' already has an ordered group (%s)",
-                                    table.id, "cells will be appended")
-            elif isinstance(roelem, (UnorderedGroupType, UnorderedGroupIndexedType)):
-                self.logger.warning("Table '%s' already has an unordered group (%s)",
-                                    table.id, "cells will not be appended")
-                roelem = None
-            elif isinstance(roelem, RegionRefIndexedType):
-                # replace regionref by group with same index and ref
-                # (which can then take the cells as subregions)
-                roelem2 = OrderedGroupIndexedType(id=table.id + '_order',
-                                                  index=roelem.index,
-                                                  regionRef=roelem.regionRef)
-                roelem.parent_object_.add_OrderedGroupIndexed(roelem2)
-                roelem.parent_object_.get_RegionRefIndexed().remove(roelem)
-                roelem = roelem2
-            elif isinstance(roelem, RegionRefType):
-                # replace regionref by group with same ref
-                # (which can then take the cells as subregions)
-                roelem2 = OrderedGroupType(id=table.id + '_order',
-                                           regionRef=roelem.regionRef)
-                roelem.parent_object_.add_OrderedGroup(roelem2)
-                roelem.parent_object_.get_RegionRef().remove(roelem)
-                roelem = roelem2
             # set table image
             table_image, table_coords = self.workspace.image_from_segment(
                 table, page_image, page_coords)
@@ -936,10 +900,11 @@ class TesserocrRecognize(Processor):
             else:
                 self.logger.debug("Recognizing text in table '%s'", table.id)
                 self.tessapi.Recognize()
+            roelem = self._add_subgroup(table, reading_order)
             self._process_cells_in_table(self.tessapi.GetIterator(), table, roelem, table_coords, mapping)
 
-    def _process_existing_regions(self, regions, page_image, page_coords, mapping):
         if self.parameter['textequiv_level'] in ['region', 'cell'] and not self.parameter.get('model', ''):
+    def _process_existing_regions(self, regions, reading_order, page_image, page_coords, mapping):
             return
         segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
         for region in regions:
@@ -1170,7 +1135,40 @@ class TesserocrRecognize(Processor):
                     index=choice_no,
                     Unicode=alternative_text,
                     conf=alternative_conf))
-    
+
+    def _add_subgroup(self, segment, reading_order):
+        roelem = reading_order.get(segment.id)
+        name = "%s '%s'" % (segment.__class__.__name__.replace('Type', ''), segment.id)
+        subname = 'cells' if name == 'TableRegion' else 'paragraphs'
+        if not roelem:
+            self.logger.warning("%s is not referenced in reading order (%s)",
+                                name, "no target to add %s into" % subname)
+        elif isinstance(roelem, (OrderedGroupType, OrderedGroupIndexedType)):
+            self.logger.warning("%s already has an ordered group (%s)",
+                                name, "%s will be appended" % subname)
+        elif isinstance(roelem, (UnorderedGroupType, UnorderedGroupIndexedType)):
+            self.logger.warning("%s already has an unordered group (%s)",
+                                name, "%s will not be appended" % subname)
+            roelem = None
+        elif isinstance(roelem, RegionRefIndexedType):
+            # replace regionref by group with same index and ref
+            # (which can then take the cells as subregions)
+            roelem2 = OrderedGroupIndexedType(id=segment.id + '_order',
+                                              index=roelem.index,
+                                              regionRef=roelem.regionRef)
+            roelem.parent_object_.add_OrderedGroupIndexed(roelem2)
+            roelem.parent_object_.get_RegionRefIndexed().remove(roelem)
+            roelem = roelem2
+        elif isinstance(roelem, RegionRefType):
+            # replace regionref by group with same ref
+            # (which can then take the cells as subregions)
+            roelem2 = OrderedGroupType(id=segment.id + '_order',
+                                       regionRef=roelem.regionRef)
+            roelem.parent_object_.add_OrderedGroup(roelem2)
+            roelem.parent_object_.get_RegionRef().remove(roelem)
+            roelem = roelem2
+        return roelem
+
     def _add_orientation(self, result_it, region, coords):
         # Tesseract layout analysis already rotates the image, even for each
         # sub-segment (depending on RIL).
