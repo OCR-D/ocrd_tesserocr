@@ -132,6 +132,27 @@ class TesserocrRecognize(Processor):
         self._init()
 
     def _init(self):
+        if (self.parameter['segmentation_level'] == 'region' and
+            self.parameter['textequiv_level'] == 'region' and
+            self.parameter['find_tables'] and
+            self.parameter.get('model', '')):
+            raise ValueError("When `segmentation_level` is `region` and `find_tables` is enabled, "
+                             "`textequiv_level` must be at least `cell`, because text results "
+                             "cannot be annotated on tables directly.")
+        if (self.parameter['segmentation_level'] == 'region' and
+            self.parameter['textequiv_level'] == 'region' and
+            self.parameter['paragraphs'] == 'recursive'):
+            raise ValueError("When `textequiv_level` is `region`, `paragraphs` cannot be `recursive`"
+                             "because paragraphs need at least `cell` level.")
+        if (self.parameter['segmentation_level'] == 'cell' and
+            self.parameter['textequiv_level'] == 'region'):
+            raise ValueError("When `segmentation_level` is `cell`, "
+                             "`textequiv_level` must be at least `cell` too, because text results "
+                             "cannot be annotated on tables directly.")
+        if (self.parameter['segmentation_level'] == 'cell' and
+            self.parameter['paragraphs'] == 'flat'):
+            raise ValueError("When `segmentation_level` is `cell`, `paragraphs` cannot be `flat`, "
+                             "because existing regions and new paragraphs contradict each other.")
         model = "eng"
         if 'model' in self.parameter:
             model = self.parameter['model']
@@ -464,8 +485,6 @@ class TesserocrRecognize(Processor):
             page.set_ReadingOrder(None)
             # prepare Tesseract
             if self.parameter['find_tables']:
-                if outlevel == 'region' and self.parameter.get('model', ''):
-                    raise Exception("When segmentation_level is region and find_tables is enabled, textequiv_level must be at least cell, because text results cannot be annotated on tables directly.")
                 self.tessapi.SetVariable("textord_tabfind_find_tables", "1") # (default)
                 # this should yield additional blocks within the table blocks
                 # from the page iterator, but does not in fact (yet?):
@@ -501,8 +520,7 @@ class TesserocrRecognize(Processor):
             # (because the iterator is recursive to depth),
             # or be empty. This is independent of whether
             # or not they should be segmented into cells.
-            if outlevel == 'region':
-                raise Exception("When segmentation_level is cell, textequiv_level must be at least cell too, because text results cannot be annotated on tables directly.")
+            #
             # disable table detection here, so tables will be
             # analysed as independent text/line blocks:
             self.tessapi.SetVariable("textord_tabfind_find_tables", "0")
@@ -512,6 +530,12 @@ class TesserocrRecognize(Processor):
                                     page_id)
             else:
                 self._process_existing_tables(tables, reading_order, page_image, page_coords, pcgts.mapping)
+            if self.parameter['paragraphs'] == 'recursive':
+                if not regions:
+                    self.logger.warning("Page '%s' contains no text regions (but segmentation is off)",
+                                        page_id)
+                else:
+                    self._process_existing_regions(regions, reading_order, page_image, page_coords, pcgts.mapping)
         elif regions:
             self._process_existing_regions(regions, reading_order, page_image, page_coords, pcgts.mapping)
         else:
@@ -633,9 +657,20 @@ class TesserocrRecognize(Processor):
                     region.set_type(TextTypeSimpleType.FLOATING)
                 elif block_type == PT.CAPTION_TEXT:
                     region.set_type(TextTypeSimpleType.CAPTION)
-                page.add_TextRegion(region)
-                og.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
-                if self.parameter['textequiv_level'] not in ['region', 'cell']:
+                if self.parameter['paragraphs'] != 'flat':
+                    # recursive or none
+                    page.add_TextRegion(region)
+                rogroup = OrderedGroupIndexedType(
+                    id=ID + '_order', regionRef=ID if self.parameter['paragraphs'] != 'flat' else None,
+                    index=index)
+                og.add_OrderedGroupIndexed(rogroup)
+                if self.parameter['paragraphs'] == 'flat':
+                    self._process_paragraphs_in_region(it, page, rogroup, page_coords, mapping)
+                elif self.parameter['paragraphs'] == 'recursive' and \
+                     self.parameter['textequiv_level'] != 'region':
+                    self._process_paragraphs_in_region(it, region, rogroup, page_coords, mapping)
+                elif self.parameter['paragraphs'] == 'none' and \
+                     self.parameter['textequiv_level'] not in ['region', 'cell']:
                     self._process_lines_in_region(it, region, page_coords, mapping)
                 elif self.parameter.get('model', ''):
                     region.add_TextEquiv(TextEquivType(
@@ -692,6 +727,43 @@ class TesserocrRecognize(Processor):
             not og.get_UnorderedGroupIndexed()):
             # schema forbids empty OrderedGroup
             ro.set_OrderedGroup(None)
+
+    def _process_paragraphs_in_region(self, result_it, region, rogroup, page_coords, mapping):
+        for index, it in enumerate(iterate_level(result_it, RIL.PARA)):
+            bbox = it.BoundingBox(RIL.PARA, padding=self.parameter['padding'])
+            if self.parameter['shrink_polygons'] and not it.Empty(RIL.SYMBOL):
+                polygon = join_polygons([polygon_from_x0y0x1y1(
+                    symbol.BoundingBox(RIL.SYMBOL, padding=self.parameter['padding']))
+                                         for symbol in iterate_level(it, RIL.SYMBOL, parent=RIL.PARA)])
+                it.RestartParagraph()
+            else:
+                polygon = polygon_from_x0y0x1y1(bbox)
+            xywh = xywh_from_polygon(polygon)
+            polygon = coordinates_for_segment(polygon, None, page_coords)
+            polygon2 = polygon_for_parent(polygon, region)
+            if polygon2 is not None:
+                polygon = polygon2
+            points = points_from_polygon(polygon)
+            coords = CoordsType(points=points)
+            # plausibilise candidate
+            if polygon2 is None:
+                self.logger.warning('Ignoring extant paragraph: %s', points)
+                continue
+            #self.logger.info('Keeping paragraph: %s', str(xywh_from_polygon(polygon)))
+            #ID = region.id + "_para%04d" % index
+            ID = rogroup.id[:-6] + "_para%04d" % index
+            self.logger.info("Detected paragraph '%s'", ID)
+            para = TextRegionType(id=ID, Coords=coords)
+            region.add_TextRegion(para)
+            self._add_orientation(it, para, page_coords)
+            rogroup.add_RegionRefIndexed(RegionRefIndexedType(regionRef=ID, index=index))
+            if self.parameter['textequiv_level'] != 'cell':
+                self._process_lines_in_region(it, para, page_coords, mapping, parent_ril=RIL.PARA)
+            elif self.parameter.get('model', ''):
+                para.add_TextEquiv(TextEquivType(
+                    Unicode=it.GetUTF8Text(ril).rstrip("\n\f"),
+                    # iterator scores are arithmetic averages, too
+                    conf=it.Confidence(ril)/100.0))
 
     def _process_cells_in_table(self, result_it, region, rogroup, page_coords, mapping):
         if self.parameter['segmentation_level'] == 'cell':
@@ -869,7 +941,7 @@ class TesserocrRecognize(Processor):
             cells = table.get_TextRegion()
             if cells:
                 if not self.parameter['overwrite_segments']:
-                    self._process_existing_regions(cells, page_image, page_coords, mapping)
+                    self._process_existing_paragraphs(cells, page_image, page_coords, mapping)
                     continue
                 self.logger.info('Removing existing TextRegion cells in table %s', table.id)
                 for cell in table.get_TextRegion():
@@ -909,10 +981,13 @@ class TesserocrRecognize(Processor):
             roelem = self._add_subgroup(table, reading_order)
             self._process_cells_in_table(self.tessapi.GetIterator(), table, roelem, table_coords, mapping)
 
-        if self.parameter['textequiv_level'] in ['region', 'cell'] and not self.parameter.get('model', ''):
     def _process_existing_regions(self, regions, reading_order, page_image, page_coords, mapping):
+        process_deeper = self.parameter['textequiv_level'] != 'region' and (
+            self.parameter['textequiv_level'] != 'cell' or self.parameter['paragraphs'] == 'recursive')
+        segment_only = not self.parameter.get('model', '')
+        if segment_only and not process_deeper:
             return
-        segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
+        segment_only |= self.parameter['textequiv_level'] == 'none'
         for region in regions:
             region_image, region_coords = self.workspace.image_from_segment(
                 region, page_image, page_coords)
@@ -922,7 +997,7 @@ class TesserocrRecognize(Processor):
             if not segment_only:
                 self._reinit(region, mapping)
             if (region.get_TextEquiv() and not self.parameter['overwrite_text']
-                if self.parameter['textequiv_level'] in ['region', 'cell']
+                if not process_deeper
                 else self.parameter['segmentation_level'] != 'line'):
                 pass # image not used here
             elif self.parameter['padding']:
@@ -932,9 +1007,8 @@ class TesserocrRecognize(Processor):
                     region_coords['transform'], 2*[self.parameter['padding']])
             else:
                 self.tessapi.SetImage(region_image)
-            self.tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
-            # cell (region in table): we could enter from existing_tables or top-level existing regions
-            if self.parameter['textequiv_level'] in ['region', 'cell']:
+            self.tessapi.SetPageSegMode(PSM.SINGLE_BLOCK) # or rather SINGLE_COLUMN?
+            if not process_deeper:
                 #if region.get_primaryScript() not in self.tessapi.GetLoadedLanguages()...
                 if region.get_TextEquiv():
                     if not self.parameter['overwrite_text']:
@@ -948,10 +1022,27 @@ class TesserocrRecognize(Processor):
                     # iterator scores are arithmetic averages, too
                     conf=self.tessapi.MeanTextConf()/100.0))
                 continue # next region (to avoid indentation below)
-            ## line, word, or glyph level:
+            ## cell (recursive paragraph), line, word, or glyph level:
+            paragraphs = region.get_TextRegion()
             textlines = region.get_TextLine()
-            if self.parameter['segmentation_level'] == 'line' and (
-                    not textlines or self.parameter['overwrite_segments']):
+            if (self.parameter['segmentation_level'] == 'cell' and
+                self.parameter['paragraphs'] == 'recursive' and
+                (not paragraphs or self.parameter['overwrite_segments'])):
+                if paragraphs:
+                    self.logger.info('Removing existing paragraphs in region %s', region.id)
+                region.set_TextRegion([])
+                if segment_only:
+                    self.logger.debug("Detecting paragraphs in region '%s'", region.id)
+                    self.tessapi.AnalyseLayout()
+                else:
+                    self.logger.debug("Recognizing text in region '%s'", region.id)
+                    self.tessapi.Recognize()
+                roelem = self._add_subgroup(region, reading_order)
+                self._process_paragraphs_in_region(self.tessapi.GetIterator(), region, roelem, region_coords, mapping)
+            elif paragraphs:
+                self._process_existing_paragraphs(paragraphs, region_image, region_coords, mapping)
+            elif (self.parameter['segmentation_level'] == 'line' and
+                  (not textlines or self.parameter['overwrite_segments'])):
                 if textlines:
                     self.logger.info('Removing existing text lines in region %s', region.id)
                 region.set_TextLine([])
@@ -968,10 +1059,73 @@ class TesserocrRecognize(Processor):
                 self.logger.warning("Region '%s' contains no text lines (but segmentation is off)",
                                     region.id)
 
-    def _process_existing_lines(self, textlines, region_image, region_coords, mapping):
-        if self.parameter['textequiv_level'] == 'line' and not self.parameter.get('model', ''):
+    def _process_existing_paragraphs(self, paragraphs, page_image, page_coords, mapping):
+        # cell (region in table): we could enter from existing_tables or top-level existing regions
+        process_deeper = self.parameter['textequiv_level'] != 'cell'
+        segment_only = not self.parameter.get('model', '')
+        if segment_only and not process_deeper:
             return
-        segment_only = self.parameter['textequiv_level'] == 'none' or not self.parameter.get('model', '')
+        segment_only |= self.parameter['textequiv_level'] == 'none'
+        for paragraph in paragraphs:
+            paragraph_image, paragraph_coords = self.workspace.image_from_segment(
+                paragraph, page_image, page_coords)
+            if not paragraph_image.width or not paragraph_image.height:
+                self.logger.warning("Skipping paragraph '%s' with zero size", paragraph.id)
+                continue
+            if not segment_only:
+                self._reinit(paragraph, mapping)
+            if (paragraph.get_TextEquiv() and not self.parameter['overwrite_text']
+                if not process_deeper
+                else self.parameter['segmentation_level'] != 'line'):
+                pass # image not used here
+            elif self.parameter['padding']:
+                paragraph_image = pad_image(paragraph_image, self.parameter['padding'])
+                self.tessapi.SetImage(paragraph_image)
+                paragraph_coords['transform'] = shift_coordinates(
+                    paragraph_coords['transform'], 2*[self.parameter['padding']])
+            else:
+                self.tessapi.SetImage(paragraph_image)
+            self.tessapi.SetPageSegMode(PSM.SINGLE_BLOCK)
+            if not process_deeper:
+                #if paragraph.get_primaryScript() not in self.tessapi.GetLoadedLanguages()...
+                if paragraph.get_TextEquiv():
+                    if not self.parameter['overwrite_text']:
+                        continue
+                    self.logger.warning("Paragraph '%s' already contained text results", paragraph.id)
+                    paragraph.set_TextEquiv([])
+                self.logger.debug("Recognizing text in paragraph '%s'", paragraph.id)
+                # todo: consider SetParagraphSeparator
+                paragraph.add_TextEquiv(TextEquivType(
+                    Unicode=self.tessapi.GetUTF8Text().rstrip("\n\f"),
+                    # iterator scores are arithmetic averages, too
+                    conf=self.tessapi.MeanTextConf()/100.0))
+                continue # next paragraph (to avoid indentation below)
+            ## line, word, or glyph level:
+            textlines = paragraph.get_TextLine()
+            if (self.parameter['segmentation_level'] == 'line' and
+                (not textlines or self.parameter['overwrite_segments'])):
+                if textlines:
+                    self.logger.info('Removing existing text lines in paragraph %s', paragraph.id)
+                paragraph.set_TextLine([])
+                if segment_only:
+                    self.logger.debug("Detecting lines in paragraph '%s'", paragraph.id)
+                    self.tessapi.AnalyseLayout()
+                else:
+                    self.logger.debug("Recognizing text in paragraph '%s'", paragraph.id)
+                    self.tessapi.Recognize()
+                self._process_lines_in_region(self.tessapi.GetIterator(), paragraph, paragraph_coords, mapping)
+            elif textlines:
+                self._process_existing_lines(textlines, paragraph_image, paragraph_coords, mapping)
+            else:
+                self.logger.warning("Paragraph '%s' contains no text lines (but segmentation is off)",
+                                    paragraph.id)
+
+    def _process_existing_lines(self, textlines, region_image, region_coords, mapping):
+        process_deeper = self.parameter['textequiv_level'] != 'line'
+        segment_only = not self.parameter.get('model', '')
+        if segment_only and not process_deeper:
+            return
+        segment_only |= self.parameter['textequiv_level'] == 'none'
         for line in textlines:
             line_image, line_coords = self.workspace.image_from_segment(
                 line, region_image, region_coords)
@@ -981,7 +1135,7 @@ class TesserocrRecognize(Processor):
             if not segment_only:
                 self._reinit(line, mapping)
             if (line.get_TextEquiv() and not self.parameter['overwrite_text']
-                if self.parameter['textequiv_level'] == 'line'
+                if not process_deeper
                 else self.parameter['segmentation_level'] != 'word'):
                 pass # image not used here
             elif self.parameter['padding']:
@@ -996,7 +1150,7 @@ class TesserocrRecognize(Processor):
             else:
                 self.tessapi.SetPageSegMode(PSM.SINGLE_LINE)
             #if line.get_primaryScript() not in self.tessapi.GetLoadedLanguages()...
-            if self.parameter['textequiv_level'] == 'line':
+            if not process_deeper:
                 if line.get_TextEquiv():
                     if not self.parameter['overwrite_text']:
                         continue
