@@ -346,7 +346,12 @@ def make_valid(polygon: Polygon) -> Polygon:
     return polygon
 
 def iterate_level(it, ril, parent=None):
-    LOG = getLogger('processor.TesserocrRecognize')
+    LOG = getLogger('ocrd.processor.TesserocrRecognize')
+    RIL = {0: 'BLOCK',
+           1: 'PARA',
+           2: 'TEXTLINE',
+           3: 'WORD',
+           4: 'GLYPH'}
     # improves over tesserocr.iterate_level by
     # honouring multi-level semantics so iterators
     # can be combined across levels
@@ -364,8 +369,10 @@ def iterate_level(it, ril, parent=None):
         # Hence the following workaround avails itself:
         if ril > 0 and all(it.IsAtFinalElement(parent, level)
                            for level in range(parent, ril + 1)):
+            LOG.debug("level %s iterator is at final element", RIL[ril])
             break
         if not it.Next(ril):
+            LOG.debug("level %s iterator is not next", RIL[ril])
             break
         while it.Empty(ril) and not it.Empty(0):
             # This happens when
@@ -379,8 +386,7 @@ def iterate_level(it, ril, parent=None):
             # (hence the similar loop above).
             # Since this may happen multiple consecutive times,
             # enclose this in a while loop.
-            LOG.warning("level %d iterator at %d needs to skip empty segment",
-                        ril, pos)
+            LOG.warning("level %s iterator at %d needs to skip empty segment", RIL[ril], pos)
             if not it.Next(ril):
                 break
         pos += 1

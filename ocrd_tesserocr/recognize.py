@@ -550,7 +550,7 @@ class TesserocrRecognize(Processor):
         # (which would also give raw coordinates),
         # except we are also interested in the iterator's BlockType() here,
         # and its BlockPolygon()
-        for i, it in enumerate(iterate_level(result_it, RIL.BLOCK)):
+        for index, it in enumerate(iterate_level(result_it, RIL.BLOCK)):
             # (padding will be passed to both BoundingBox and GetImage)
             # (actually, Tesseract honours padding only on the left and bottom,
             #  whereas right and top are increased less!)
@@ -570,7 +570,7 @@ class TesserocrRecognize(Processor):
                 # simulate a RestartBlock(), not defined by Tesseract:
                 it.Begin()
                 for j, it in enumerate(iterate_level(it, RIL.BLOCK)):
-                    if i == j:
+                    if index == j:
                         break
             else:
                 polygon = polygon_from_x0y0x1y1(bbox)
@@ -585,6 +585,7 @@ class TesserocrRecognize(Processor):
             if polygon2 is None:
                 self.logger.warning('Ignoring extant region: %s', points)
                 continue
+            #self.logger.info('Keeping region: %s', str(xywh_from_polygon(polygon)))
             block_type = it.BlockType()
             if block_type in [
                     PT.FLOWING_TEXT,
@@ -594,6 +595,7 @@ class TesserocrRecognize(Processor):
                     PT.VERTICAL_TEXT,
                     PT.INLINE_EQUATION,
                     PT.EQUATION,
+                    PT.NOISE,
                     PT.TABLE] and (
                         xywh['w'] < 20 / 300.0*(dpi or 300) or
                         xywh['h'] < 10 / 300.0*(dpi or 300)):
@@ -770,6 +772,7 @@ class TesserocrRecognize(Processor):
             if polygon2 is None:
                 self.logger.warning('Ignoring extant line: %s', points)
                 continue
+            #self.logger.info('Keeping line: %s', str(xywh_from_polygon(polygon)))
             ID = region.id + "_line%04d" % index
             self.logger.info("Detected line '%s'", ID)
             line = TextLineType(id=ID, Coords=coords)
