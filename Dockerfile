@@ -25,13 +25,6 @@ ENV PYTHONIOENCODING utf8
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 
-# set proper date and timezone in container
-RUN echo "Europe/Berlin" > /etc/timezone
-RUN ln -sf /usr/share/zoneinfo/Europe/Berlin /etc/localtime
-RUN dpkg-reconfigure -f noninteractive tzdata
-# diagnostic output - check timezone settings
-# RUN cat /etc/timezone
-
 # avoid HOME/.local/share (hard to predict USER here)
 # so let XDG_DATA_HOME coincide with fixed system location
 # (can still be overridden by derived stages)
