@@ -5,6 +5,8 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [0.20.2] - 2026-05-04
+
 Changed:
 
   * Docker: Update base image to OCR-D/core v3.12.3, #223
@@ -466,6 +468,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.20.2]: ../../compare/v0.20.2...v0.20.1
 [0.20.1]: ../../compare/v0.20.1...v0.20.0
 [0.20.0]: ../../compare/v0.20.0...v0.19.1
 [0.19.1]: ../../compare/v0.19.1...v0.19.0
