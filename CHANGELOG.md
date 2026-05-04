@@ -5,6 +5,14 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+Changed:
+
+  * Docker: Update base image to OCR-D/core v3.12.3, #223
+
+Removed:
+
+  * Docker: Don't reconfigure tzdata, especially not before installing it, #223
+
 ## [0.20.1] - 2025-04-01
 
 Changed:
