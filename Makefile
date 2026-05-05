@@ -123,7 +123,7 @@ docker-push:
 	done; wait
 
 docker-smoke-test:
-	$(DOCKER) run --rm $(firstword DOCKER_TAGS) ocrd-page2alto-transform -h
+	$(DOCKER) run --rm $(firstword DOCKER_TAGS) ocrd-tesserocr-segment -h
 
 install-tesserocr: repo/tesserocr install-tesseract
 	$(PIP) install ./$<
