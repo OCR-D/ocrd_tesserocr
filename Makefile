@@ -116,6 +116,15 @@ docker: repo/tesseract repo/tesserocr
 	--build-arg BUILD_DATE=$$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
 	-t $(DOCKER_TAGS_T) .
 
+# Push docker images
+docker-push:
+	for img in $(DOCKER_TAGS);do \
+		$(DOCKER) push $$img & \
+	done; wait
+
+docker-smoke-test:
+	$(DOCKER) run --rm $(firstword DOCKER_TAGS) ocrd-page2alto-transform -h
+
 install-tesserocr: repo/tesserocr install-tesseract
 	$(PIP) install ./$<
 

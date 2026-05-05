@@ -1,12 +1,9 @@
 name: Docker Image CI
 
 on:
-  workflow_dispatch:
   push:
     branches: [ "master" ]
-
-env:
-  REPO_NAME: ${{ github.repository }}
+  workflow_dispatch: # run manually
 
 jobs:
 
@@ -18,24 +15,35 @@ jobs:
       contents: read
     
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        # we need tags for docker version tagging
+        fetch-tags: true
+        fetch-depth: 0
     - name: Checkout git submodules too
       run: git submodule sync && git submodule update --init
     - # Activate cache export feature to reduce build time of images
       name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@v3
     - name: Login to GitHub Container Registry
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - name: define image name from repo name
-      run: echo "IMAGE_NAME=ghcr.io/${REPO_NAME,,}" >> $GITHUB_ENV
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERIO_USERNAME }}
+        password: ${{ secrets.DOCKERIO_PASSWORD }}
+    - name: define unversioned fully qualified docker image names
+      run: echo "DOCKER_TAG='docker.io/ocrd/tesserocr ghcr.io/ocr-d/tesserocr'" >> $GITHUB_ENV
     - name: Build the Docker image
-      run: make docker DOCKER_TAG=${{ env.IMAGE_NAME }}
-    - name: Test the Docker image
-      run: docker run --rm ${{ env.IMAGE_NAME }} ocrd-tesserocr-segment -h
-    - name: Push to Github Container Registry
-      run: docker push ${{ env.IMAGE_NAME }}
+      # build both tags at the same time
+      run: make DOCKER_TAG="${{ env.DOCKER_TAG }}" docker
+    - name: Smoke Test the Docker image
+      run: make DOCKER_TAG="${{ env.DOCKER_TAG }}" docker-smoke-test
+    - name: Push to Dockerhub and Github Container Registry
+      run: make DOCKER_TAG="${{ env.DOCKER_TAG }}" docker-push
     
