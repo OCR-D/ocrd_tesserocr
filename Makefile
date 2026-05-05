@@ -105,7 +105,8 @@ deps-test:
 empty :=
 space := $(empty) $(empty)
 GIT_TAG := $(strip $(shell git describe --tags | grep -x "v[0-9]\+\.[0-9]\+\.[0-9]\+"))
-DOCKER_TAGS = $(subst $(space),$(space)-t$(space),$(DOCKER_TAG:%=$(if $(GIT_TAG),%:$(GIT_TAG),%:latest)))
+DOCKER_TAGS = $(DOCKER_TAG:%=$(if $(GIT_TAG),%:$(GIT_TAG),%:latest))
+DOCKER_TAGS_T = $(subst $(space),$(space)-t$(space),$(DOCKER_TAGS))
 
 # Build docker image
 docker: repo/tesseract repo/tesserocr
@@ -113,7 +114,7 @@ docker: repo/tesseract repo/tesserocr
 	--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) \
 	--build-arg VCS_REF=$$(git rev-parse --short HEAD) \
 	--build-arg BUILD_DATE=$$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-	-t $(DOCKER_TAGS) .
+	-t $(DOCKER_TAGS_T) .
 
 install-tesserocr: repo/tesserocr install-tesseract
 	$(PIP) install ./$<
