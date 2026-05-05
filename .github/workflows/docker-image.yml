@@ -38,7 +38,7 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USER }}
         password: ${{ secrets.DOCKERHUB_PASS }}
     - name: define unversioned fully qualified docker image names
-      run: echo "DOCKER_TAG='docker.io/ocrd/tesserocr ghcr.io/ocr-d/tesserocr'" >> $GITHUB_ENV
+      run: echo "DOCKER_TAG=docker.io/ocrd/tesserocr ghcr.io/ocr-d/tesserocr" >> $GITHUB_ENV
     - name: Build the Docker image
       # build both tags at the same time
       run: make DOCKER_TAG="${{ env.DOCKER_TAG }}" docker
