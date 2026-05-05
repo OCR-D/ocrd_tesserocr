@@ -28,7 +28,7 @@ PYTEST_ARGS =
 
 # Docker container tag
 DOCKER_TAG = 'ocrd/tesserocr'
-DOCKER_BASE_IMAGE = docker.io/ocrd/core:v3.12.3
+DOCKER_BASE_IMAGE = docker.io/ocrd/core:v3.13.0
 
 help:
 	@echo ""
