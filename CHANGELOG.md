@@ -8,6 +8,7 @@ Versioned according to [Semantic Versioning](http://semver.org/).
 Changed:
 
   * Docker: Update base image to OCR-D/core v3.13.0
+  * Reorganize Docker and PyPI CD, #224
 
 ## [0.20.2] - 2026-05-04
 
