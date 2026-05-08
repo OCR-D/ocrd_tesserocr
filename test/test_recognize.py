@@ -42,6 +42,10 @@ def test_run_modular(workspace_kant_binarized):
     result0 = next(results, False)
     assert result0
     result0 = page_from_file(result0)
+    text0 = result0.etree.xpath('//page:TextRegion/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0
+    text0 = result0.etree.xpath('//page:TextLine/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0
     text0 = result0.etree.xpath('//page:Glyph/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
     assert len(text0) > 0
 
@@ -99,6 +103,10 @@ def test_run_allinone(workspace_kant_binarized):
     result0 = next(results, False)
     assert result0
     result0 = page_from_file(result0)
+    text0 = result0.etree.xpath('//page:TextRegion/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0
+    text0 = result0.etree.xpath('//page:TextLine/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0
     text0 = result0.etree.xpath('//page:Glyph/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
     assert len(text0) > 0
 
@@ -119,6 +127,48 @@ def test_run_allinone_sparse(workspace_kant_binarized):
                   parameter={'segmentation_level': 'region', 'textequiv_level': 'glyph', 'sparse_text': True,
                              'model': 'Fraktur'})
     workspace_kant_binarized.save_mets()
+
+def test_run_allinone_para_flat(workspace_kant_binarized):
+    run_processor(TesserocrRecognize,
+                  workspace=workspace_kant_binarized,
+                  input_file_grp="OCR-D-IMG",
+                  output_file_grp="OCR-D-OCR-TESS-W2C",
+                  parameter={'segmentation_level': 'region', 'textequiv_level': 'glyph', 'paragraphs': 'flat',
+                             'model': 'Fraktur'})
+    workspace_kant_binarized.save_mets()
+    assert os.path.isdir(os.path.join(workspace_kant_binarized.directory, 'OCR-D-OCR-TESS-W2C'))
+    results = workspace_kant_binarized.find_files(file_grp='OCR-D-OCR-TESS-W2C', mimetype=MIMETYPE_PAGE)
+    result0 = next(results, False)
+    assert result0
+    result0 = page_from_file(result0)
+    text0 = result0.etree.xpath('//page:TextRegion/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 4 # more than 4 top-level blocks
+    text0 = result0.etree.xpath('//page:TextLine/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0
+    text0 = result0.etree.xpath('//page:Glyph/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0
+
+def test_run_allinone_para_recursive(workspace_kant_binarized):
+    run_processor(TesserocrRecognize,
+                  workspace=workspace_kant_binarized,
+                  input_file_grp="OCR-D-IMG",
+                  output_file_grp="OCR-D-OCR-TESS-W2C",
+                  parameter={'segmentation_level': 'region', 'textequiv_level': 'glyph', 'paragraphs': 'recursive',
+                             'model': 'Fraktur'})
+    workspace_kant_binarized.save_mets()
+    assert os.path.isdir(os.path.join(workspace_kant_binarized.directory, 'OCR-D-OCR-TESS-W2C'))
+    results = workspace_kant_binarized.find_files(file_grp='OCR-D-OCR-TESS-W2C', mimetype=MIMETYPE_PAGE)
+    result0 = next(results, False)
+    assert result0
+    result0 = page_from_file(result0)
+    text0 = result0.etree.xpath('//page:Page/page:TextRegion/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) == 4 # exactly 4 top-level blocks
+    text0 = result0.etree.xpath('//page:TextRegion/page:TextRegion/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0 # some second-level paragraphs
+    text0 = result0.etree.xpath('//page:TextLine/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0
+    text0 = result0.etree.xpath('//page:Glyph/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0
 
 def test_run_allineone_multimodel(workspace_kant_binarized):
     run_processor(TesserocrRecognize,
@@ -162,5 +212,9 @@ def test_run_allinone_cached(workspace_kant_binarized):
     result0 = next(results, False)
     assert result0
     result0 = page_from_file(result0)
+    text0 = result0.etree.xpath('//page:TextRegion/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0
+    text0 = result0.etree.xpath('//page:TextLine/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
+    assert len(text0) > 0
     text0 = result0.etree.xpath('//page:Glyph/page:TextEquiv/page:Unicode', namespaces=NAMESPACES)
     assert len(text0) > 0

@@ -1,6 +1,7 @@
 from multiprocessing import Process
 from time import sleep
 from pytest import fixture
+import logging
 
 from ocrd import Resolver, Workspace, OcrdMetsServer
 from ocrd_utils import pushd_popd, initLogging, setOverrideLogLevel, disableLogging, config
@@ -15,6 +16,9 @@ def workspace(tmpdir, pytestconfig, request):
         initLogging()
         if pytestconfig.getoption('verbose') > 0:
             setOverrideLogLevel('DEBUG')
+            for name, logger in logging.root.manager.loggerDict.items():
+                if name.startswith('PIL'):
+                    logger.setLevel(30)
         with pushd_popd(tmpdir):
             if 'metscache' in request.param:
                 config.OCRD_METS_CACHING = True
