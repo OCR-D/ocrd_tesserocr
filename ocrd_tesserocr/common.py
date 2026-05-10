@@ -3,7 +3,7 @@ from PIL import Image, ImageStat
 
 import numpy as np
 from scipy.sparse.csgraph import minimum_spanning_tree
-from shapely.geometry import Polygon, LineString
+from shapely.geometry import Polygon, LineString, MultiPolygon
 from shapely.ops import unary_union, nearest_points, orient
 from shapely import set_precision
 
@@ -254,6 +254,10 @@ def make_join(polygons, scale=20):
         bridgep = LineString(nearest).buffer(max(1, scale/5), resolution=1)
         polygons.append(bridgep)
     jointp = unary_union(polygons)
+    
+    if isinstance(jointp, MultiPolygon):
+        jointp = max(jointp.geoms, key=lambda p: p.area)  # Choose the largest polygon
+        
     assert jointp.geom_type == 'Polygon', jointp.wkt
     # follow-up calculations will necessarily be integer;
     # so anticipate rounding here and then ensure validity
