@@ -486,6 +486,7 @@ Changed:
   * Recognition with proper support for textequiv_level, drop `page` level
 
 <!-- link-labels -->
+[0.21.2]: ../../compare/v0.21.2...v0.21.1
 [0.21.1]: ../../compare/v0.21.1...v0.21.0
 [0.21.0]: ../../compare/v0.21.0...v0.20.2
 [0.20.2]: ../../compare/v0.20.2...v0.20.1
