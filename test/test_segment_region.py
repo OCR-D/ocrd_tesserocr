@@ -61,3 +61,18 @@ def test_run_staves(workspace_herold_small):
     out_blocks = out_pcgts.get_Page().get_AllRegions(classes=['Text'])
     assert len(out_blocks)
     workspace_herold_small.save_mets()
+
+def test_run_para_flat(workspace_herold_small):
+    run_processor(TesserocrSegmentRegion,
+                  workspace=workspace_herold_small,
+                  input_file_grp="OCR-D-IMG",
+                  output_file_grp="OCR-D-SEG-BLOCK",
+                  parameter={'paragraphs': 'flat'})
+    out_files = list(workspace_herold_small.find_files(
+        fileGrp="OCR-D-SEG-BLOCK", pageId="PHYS_0001", mimetype=MIMETYPE_PAGE))
+    assert len(out_files)
+    out_pcgts = page_from_file(out_files[0])
+    assert out_pcgts is not None
+    out_blocks = out_pcgts.get_Page().get_AllRegions(classes=['Text'])
+    assert len(out_blocks) > 17 # more than top-level blocks
+    workspace_herold_small.save_mets()

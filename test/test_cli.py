@@ -11,7 +11,7 @@ def test_show_resource(tmpdir, monkeypatch):
     env.update(TESSDATA_PREFIX=str(tmpdir))
     r = run(['ocrd-tesserocr-recognize', '-C', 'bar.traineddata'],
             env=env, text=True, capture_output=True)
-    assert not r.returncode, r.output
+    assert not r.returncode, r.stderr
 
 def test_list_all_resources(tmpdir, monkeypatch):
     samplefile = Path(tmpdir, 'foo.traineddata')
@@ -21,4 +21,4 @@ def test_list_all_resources(tmpdir, monkeypatch):
     env.update(TESSDATA_PREFIX=str(tmpdir))
     r = run(['ocrd-tesserocr-recognize', '-L'],
             env=env, text=True, capture_output=True)
-    assert not r.returncode, r.output
+    assert not r.returncode, r.stderr

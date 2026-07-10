@@ -19,7 +19,7 @@
         },
         "operation_level": {
           "type": "string",
-          "enum": ["page","region", "line"],
+          "enum": ["page", "region", "line"],
           "default": "region",
           "description": "PAGE XML hierarchy level to operate on"
         },
@@ -130,6 +130,12 @@
           "type": "boolean",
           "default": false,
           "description": "When detecting regions, use 'sparse text' page segmentation mode (finding as much text as possible in no particular order): only text regions, single lines without vertical or horizontal space."
+        },
+        "paragraphs": {
+          "type": "string",
+          "enum": ["recursive", "flat", "none"],
+          "default": "none",
+          "description": "How to output paragraphs (at level=cell): as text regions in text regions (paragraphs below blocks), as top-level text regions (keep only paragraph regions), or not at all (keep only block regions)"
         },
         "raw_lines": {
           "type": "boolean",
@@ -1394,6 +1400,12 @@
           "type": "boolean",
           "default": false,
           "description": "use 'sparse text' page segmentation mode (find as much text as possible in no particular order): only text regions, single lines without vertical or horizontal space"
+        },
+        "paragraphs": {
+          "type": "string",
+          "enum": ["recursive", "flat", "none"],
+          "default": "none",
+          "description": "How to output paragraphs (at level=cell): as text regions in text regions (paragraphs below blocks), as top-level text regions (keep only paragraph regions), or not at all (keep only block regions)"
         }
       }
    },
@@ -1446,6 +1458,12 @@
           "type": "boolean",
           "default": false,
           "description": "use 'sparse text' page segmentation mode (find as much text as possible in no particular order): only text regions, single lines without vertical or horizontal space"
+        },
+        "paragraphs": {
+          "type": "string",
+          "enum": ["recursive", "flat", "none"],
+          "default": "none",
+          "description": "How to output paragraphs (at level=cell): as text regions in text regions (paragraphs below blocks), as top-level text regions (keep only paragraph regions), or not at all (keep only block regions)"
         }
       }
     },
@@ -1467,6 +1485,33 @@
           "type": "boolean",
           "default": true,
           "description": "Remove existing layout and text annotation below the TableRegion level (otherwise skip table; no incremental annotation yet)."
+        },
+        "padding": {
+          "type": "number",
+          "format": "integer",
+          "description": "extend detected cell rectangles by this many (true) pixels",
+          "default": 0
+        },
+        "shrink_polygons": {
+          "type": "boolean",
+          "default": false,
+          "description": "annotate polygon coordinates instead of bounding box rectangles by projecting the convex hull of all symbols"
+        }
+      }
+     },
+     "ocrd-tesserocr-segment-para": {
+      "executable": "ocrd-tesserocr-segment-para",
+      "categories": ["Layout analysis"],
+      "description": "Segment text regions into paragraph text regions with Tesseract",
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
+      "steps": ["layout/segmentation/region"],
+      "parameters": {
+        "dpi": {
+          "type": "number",
+          "format": "float",
+          "description": "pixel density in dots per inch (overrides any meta-data in the images)",
+          "default": 0
         },
         "padding": {
           "type": "number",

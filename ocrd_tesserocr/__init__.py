@@ -4,6 +4,7 @@ from .segment import TesserocrSegment
 from .segment_word import TesserocrSegmentWord
 from .segment_line import TesserocrSegmentLine
 from .segment_table import TesserocrSegmentTable
+from .segment_para import TesserocrSegmentPara
 from .segment_region import TesserocrSegmentRegion
 from .crop import TesserocrCrop
 from .deskew import TesserocrDeskew
